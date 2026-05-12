@@ -1,0 +1,303 @@
+openapi: 3.0.3
+info:
+  title: API de la Tienda Universitaria - Especificación SDD
+  version: 1.0.0
+  description: >
+    Especificación técnica centralizada para la Tienda Universitaria (Universidad Nacional de Loja).
+    Diseñado bajo el enfoque Specification-Driven Development (SDD) para integrarse con spec-kit.
+    Sirve como fuente única de verdad para la generación de modelos, vistas y serializadores en Django.
+  
+  # -------------------------------------------------------------------------
+  # METADATOS DEL SISTEMA Y ARQUITECTURA
+  # -------------------------------------------------------------------------
+  x-architecture:
+    framework: Django
+    pattern: MVT (Model-View-Template)
+    deployment: Monolito
+    database: Relacional (PostgreSQL/MySQL) # Según documentos de APE1 Tienda Universitaria
+
+  # -------------------------------------------------------------------------
+  # REQUISITOS NO FUNCIONALES Y LEGALES
+  # -------------------------------------------------------------------------
+  x-non-functional-requirements:
+    rendimiento: "Manejo eficiente de multitareas y tiempos de respuesta optimizados."
+    seguridad: "Implementación estricta de HTTPS. Prevención de ataques maliciosos (CSRF, XSS) nativa de Django."
+    control_versiones: "Uso obligatorio de Git/GitHub para evitar conflictos y pérdida de código (mencionado en APE1)."
+
+  x-legal-requirements:
+    normativa: "Ley Orgánica de Protección de Datos Personales (LOPDP) de Ecuador."
+    principios_aplicados:
+      - Privacidad desde el Diseño y por Defecto (Art. 39).
+      - Minimización de datos: Solo se captura lo esencial para la transacción.
+      - Consentimiento explícito: El usuario debe aceptar los términos de tratamiento de datos antes del registro.
+      - Destrucción/Ocultamiento: Capacidad de anonimizar los datos según la guía de la LOPDP.
+
+servers:
+  - url: https://api.tienda-universitaria.unl.edu.ec/api/v1
+    description: Servidor de Producción (Requiere HTTPS)
+  - url: http://localhost:8000/api/v1
+    description: Entorno de Desarrollo Local
+
+paths:
+  # =========================================================================
+  # FLUJOS DE USUARIO Y FUNCIONALIDAD PRINCIPAL
+  # =========================================================================
+  /usuarios/registro:
+    post:
+      summary: Registro de un nuevo usuario en la tienda.
+      description: Crea una cuenta de usuario. Requiere la aceptación explícita de las políticas de privacidad.
+      tags:
+        - Usuarios
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UsuarioRegistroInput'
+      responses:
+        '201':
+          description: Usuario registrado exitosamente.
+        '400':
+          description: Error de validación (ej. consentimiento_lopdp falso).
+
+  /compras/carrito:
+    get:
+      summary: Obtiene los productos actuales en el carrito del usuario.
+      tags:
+        - Compras
+      responses:
+        '200':
+          description: Lista de productos en el carrito.
+    post:
+      summary: Añade un producto al carrito.
+      tags:
+        - Compras
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                producto_id:
+                  type: integer
+                cantidad:
+                  type: integer
+                  minimum: 1
+      responses:
+        '200':
+          description: Producto añadido.
+
+  # =========================================================================
+  # INTEGRACIÓN: PASARELA DE PAGOS (COPY AND PAY - PRIMEIROPAY)
+  # =========================================================================
+  /pagos/preparar-checkout:
+    post:
+      summary: Prepara el formulario de pago (Server-to-Server).
+      description: >
+        Paso 1 de Copy and Pay. Realiza un POST server-to-server a PrimeiroPay 
+        para obtener el 'id' (checkout_id) necesario para renderizar el widget de pago en el frontend.
+      tags:
+        - Pagos
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - amount
+                - currency
+                - paymentType
+              properties:
+                amount:
+                  type: number
+                  format: float
+                  description: Monto total del pedido.
+                currency:
+                  type: string
+                  example: "USD"
+                paymentType:
+                  type: string
+                  example: "DB" # Debit
+      responses:
+        '200':
+          description: Retorna el checkout ID para el frontend.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  checkout_id:
+                    type: string
+                    description: "ID de la sesión de checkout válido por 30 minutos." # Según manual Copy and Pay
+
+  /pagos/estado:
+    get:
+      summary: Obtiene el estado final de una transacción.
+      description: >
+        Paso 3 de Copy and Pay. Una vez procesado el pago, el frontend es redirigido 
+        con un parámetro GET 'resourcePath'. Django usa este path para consultar el estado.
+      tags:
+        - Pagos
+      parameters:
+        - in: query
+          name: resourcePath
+          required: true
+          schema:
+            type: string
+          description: "Ruta de recurso devuelta por PrimeiroPay (ej. /v1/checkouts/{id}/payment)"
+      responses:
+        '200':
+          description: Estado del pago validado.
+
+  # =========================================================================
+  # INTEGRACIÓN: GEOLOCALIZACIÓN (GOOGLE MAPS API - SERPAPI)
+  # =========================================================================
+  /ubicacion/buscar:
+    get:
+      summary: Búsqueda de lugares cercanos (ej. puntos de entrega o sucursales).
+      description: Proxy hacia SerpApi para obtener resultados de Google Maps Local en formato JSON.
+      tags:
+        - Geolocalización
+      parameters:
+        - in: query
+          name: q
+          required: true
+          schema:
+            type: string
+          description: "Consulta de búsqueda (ej. 'Universidad Nacional de Loja')."
+        - in: query
+          name: ll
+          required: false
+          schema:
+            type: string
+          description: "Parámetros opcionales de latitud/longitud."
+      responses:
+        '200':
+          description: Resultados estructurados JSON desde SerpApi.
+
+  # =========================================================================
+  # INTEGRACIÓN: CHATBOT DE ASISTENCIA (GEMINI API)
+  # =========================================================================
+  /asistencia/chat:
+    post:
+      summary: Envía un prompt al asistente virtual basado en Gemini.
+      description: >
+        Usa el modelo Gemini 2.5 Flash. El backend inyecta de forma segura el GEMINI_API_KEY.
+        # Seguridad: El GEMINI_API_KEY jamás debe enviarse desde el frontend. Debe vivir en el .env de Django.
+      tags:
+        - Chatbot
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - mensaje
+              properties:
+                mensaje:
+                  type: string
+                  description: Mensaje del usuario para el bot.
+      responses:
+        '200':
+          description: Respuesta generada por la IA.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  respuesta_bot:
+                    type: string
+
+components:
+  schemas:
+    # -------------------------------------------------------------------------
+    # MODELOS DE BASE DE DATOS (DJANGO ORM MAPPING)
+    # -------------------------------------------------------------------------
+    Usuario:
+      type: object
+      description: Entidad central del usuario de la tienda.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        nombre_completo:
+          type: string
+        email:
+          type: string
+          format: email
+        fecha_registro:
+          type: string
+          format: date-time
+        consentimiento_lopdp:
+          type: boolean
+          description: "Debe ser TRUE obligatoriamente. Traza de auditoría legal (Art. LOPDP)."
+          default: false
+      required:
+        - nombre_completo
+        - email
+        - consentimiento_lopdp
+
+    UsuarioRegistroInput:
+      type: object
+      properties:
+        nombre_completo:
+          type: string
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+          writeOnly: true
+        consentimiento_lopdp:
+          type: boolean
+          description: "Casilla de verificación de términos y políticas de privacidad."
+      required:
+        - nombre_completo
+        - email
+        - password
+        - consentimiento_lopdp
+
+    Producto:
+      type: object
+      description: Entidad de catálogo de productos universitarios.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        nombre:
+          type: string
+          maxLength: 150
+        descripcion:
+          type: string
+        precio:
+          type: number
+          format: float
+        stock:
+          type: integer
+          minimum: 0
+
+    Pedido:
+      type: object
+      description: Orden de compra de un usuario.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        usuario_id:
+          type: integer
+        total:
+          type: number
+          format: float
+        estado_pedido:
+          type: string
+          enum: [PENDIENTE, PAGADO, CANCELADO, ENTREGADO]
+        checkout_id_primeiropay:
+          type: string
+          description: "ID de la sesión de pago devuelta por PrimeiroPay para referencias futuras."
+        fecha_creacion:
+          type: string
+          format: date-time

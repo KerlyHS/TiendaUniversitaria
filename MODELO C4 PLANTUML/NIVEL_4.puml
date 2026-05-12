@@ -1,0 +1,269 @@
+@startuml
+skinparam classAttributeIconSize 0
+skinparam BackgroundColor #FFFFFF
+skinparam packageStyle rectangle
+
+title Diagrama de Clases (Modelo C4) - Tienda Universitaria
+
+' ================= PAQUETE: MÓDULO DE USUARIO =================
+package "Modulo de Usuario" #F9EBEA {
+
+    class Persona {
+        - nombre: string
+        - identification: string
+        - apellido: string
+        - direccion: string
+        - teléfono: string
+    }
+
+    class Usuario {
+        - correo: string
+        - clave: string
+        - esta_activo: boolean
+        - isUniversidad: boolean
+        + iniciar_sesion()
+        + cerrar_sesion()
+    }
+
+    enum "<<ROL>>\nRol" as ROL {
+        - ADMINISTRADOR
+        - CLIENTE
+        - CAJERO
+        - BODEGUERO
+        - GERENTE
+        - SUPERVISOR
+    }
+
+    class Administrador {
+        + activarUsuario()
+        + gestionarPermisos()
+        + registrarProducto()
+    }
+
+    class Cajero {
+        + conciliarCaja()
+        + ventasDiarias()
+    }
+
+    class Supervisor {
+    }
+
+    class Gerente {
+    }
+
+    class Bodeguero {
+        + validarStock()
+    }
+}
+
+' ================= PAQUETE: MÓDULO DE VENTAS =================
+package "Modulo de Ventas" #EBF5FB {
+
+    class Caja {
+        - fechaAbre : date
+        - fechaCierra: date
+        - saldoAbre : float
+        - saldoCierra : float
+        + registrarIngreso()
+        + registrarEgreso()
+    }
+
+    class HistorialCaja {
+    }
+
+    class Venta {
+        - subtotal: float
+        - fecha : date
+        + generarComprobante()
+        + calcularTotal()
+    }
+
+    class DetalleVenta {
+        - descripcion: string
+        - precioUnitario : float
+        + calcularSubtotal()
+        + crearFactura()
+    }
+
+    class Pedido {
+        + editarPedido()
+    }
+
+    class HistorialCompra {
+        - cantidad : int
+    }
+
+    enum "<<METODOPAGO>>\nMetodoPago" as METODOPAGO {
+        - EFECTIVO
+        - TRANSFERENCIA
+        - DEBITO
+        - CREDITO
+    }
+
+    enum "<<PROGRESO_VENTA>>\nProgresoVenta" as PROGRESO_VENTA {
+        - RECIBIDO
+        - EN PREPARACIÓN
+        - LISTO
+        - ENTREGADO
+        - CANCELADO
+        - DEVOLUCION
+    }
+
+    enum "<<ENTREGA>>\nEntrega" as ENTREGA {
+        - TIENDA
+        - DOMICILIO
+    }
+}
+
+' ================= PAQUETE: MÓDULO DE CATÁLOGO =================
+package "Modulo de Catalogo" #FEF9E7 {
+
+    class Catalogo {
+        + ordenar()
+    }
+
+    class Producto {
+        - nombre : string
+        - descripcion : string
+        - código : string
+        - precio : float
+        - aplicaImpuesto: boolean
+        - isActivo : boolean
+        - vencimiento : date
+    }
+
+    class Promocion {
+        - fechaInicio : date
+        - fechaFin : date
+        - isUse : boolean
+    }
+
+    class HistorialPromocion {
+        - fechaAsignada : date
+    }
+
+    enum "<<CATEGORÍA>>\nCategoria" as CATEGORIA {
+        - AGRICOLA
+        - INSTITUCIONAL
+        - TECNOLOGICO
+        - ACADEMICO
+        - TEXTIL
+        - SOUVENIR
+        - TEMPORAL
+    }
+
+    enum "<<MEDIDA>>\nMedida" as MEDIDA {
+        - GRAMO
+        - KILOGRAMO
+        - LIBRA
+        - UNIDAD
+    }
+}
+
+' ================= PAQUETE: MÓDULO DE INVENTARIO =================
+package "Modulo de Inventario" #E9F7EF {
+
+    class Inventario {
+        - stockMinimo : int
+        - stockMaximo : int
+        + registrarEntrada()
+        + registrarSalida()
+    }
+
+    class Bodega {
+        - ubicacion: string
+        - nombre: string
+    }
+
+    class Proveedor {
+    }
+
+    class OrdenCompra {
+    }
+
+    class DetalleCompra {
+    }
+
+    class SolicitudAbastecimiento {
+    }
+
+    class DetalleSolicitud {
+    }
+
+    enum "<<PROGRESO_OrCompra>>\nProgresoOrden" as PROGRESO_OrCompra {
+        - ANULADO
+        - SOLICITADO
+        - RECIBIDO
+        - APROBADO
+    }
+
+    enum "<<PROGRESO_SolAbasto>>\nProgresoSolicitud" as PROGRESO_SolAbasto {
+        - ANULADO
+        - SOLICITADO
+        - RECIBIDO
+        - APROBADO
+    }
+}
+
+' ================= PAQUETE: MÓDULO DE REPORTES =================
+package "Modulo de Reportes" #FCF3CF {
+    class Reporte {
+        - nombre : string
+        - precio : float
+        - isActivo : boolean
+    }
+}
+
+' ================= RELACIONES DE HERENCIA =================
+Persona <|-- Usuario
+Usuario <|-- Administrador
+Usuario <|-- Cajero
+Usuario <|-- Supervisor
+Usuario <|-- Gerente
+Usuario <|-- Bodeguero
+
+' ================= RELACIONES ENTRE CLASES =================
+
+' Relaciones Usuario
+Usuario "1" -left-> "1..*" ROL : tiene >
+Usuario "1" --> "*" HistorialCompra : posee >
+Usuario "1" --> "*" Venta : realiza >
+
+' Relaciones Caja y Ventas
+Cajero "1" --> "*" Caja : gestiona >
+Caja "1" *-- "*" HistorialCaja
+Caja "1" --> "*" Venta : registra >
+
+Venta "1" *-- "1..*" DetalleVenta
+Venta "*" -left-> "1" METODOPAGO : usa >
+Venta "1" -- "1" Pedido : corresponde a >
+
+Pedido "*" --> "1" PROGRESO_VENTA : estado >
+Pedido "*" --> "1" ENTREGA : tipo >
+
+' Relaciones Catálogo y Productos
+DetalleVenta "*" --> "1" Producto : contiene >
+Catalogo "1" o-- "*" Producto
+Catalogo "1" o-- "*" Promocion
+Catalogo "1" --> "1..*" CATEGORIA : clasifica >
+
+Producto "*" --> "1" MEDIDA : se mide en >
+Promocion "1" *-- "*" HistorialPromocion
+
+' Relaciones Inventario y Bodega
+Inventario "1" o-- "*" Producto : controla >
+Bodega "1" *-- "*" Inventario
+Reporte "*" --> "1" Inventario : analiza >
+Reporte "*" --> "1" Venta : analiza >
+
+' Relaciones Compras y Abastecimiento
+Bodeguero "1" --> "*" SolicitudAbastecimiento : crea >
+SolicitudAbastecimiento "1" *-- "*" DetalleSolicitud
+SolicitudAbastecimiento "*" --> "1" PROGRESO_SolAbasto : estado >
+
+Proveedor "1" --> "*" OrdenCompra : atiende >
+OrdenCompra "1" *-- "1..*" DetalleCompra
+OrdenCompra "*" --> "1" PROGRESO_OrCompra : estado >
+DetalleCompra "*" --> "1" Producto : adquiere >
+
+@enduml
