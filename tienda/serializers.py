@@ -1,6 +1,42 @@
 from rest_framework import serializers
-from .models import Usuario, PrivacyPolicy
+from .models import (
+    Usuario, PrivacyPolicy, Producto, Promocion,
+    Pedido, Venta, DetalleVenta, Caja
+)
 from django.utils import timezone
+
+class ProductoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Producto
+        fields = '__all__'
+        read_only_fields = ['id', 'fecha_creacion']
+
+class PromocionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Promocion
+        fields = '__all__'
+
+class PedidoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Pedido
+        fields = '__all__'
+
+class DetalleVentaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DetalleVenta
+        fields = '__all__'
+
+class VentaSerializer(serializers.ModelSerializer):
+    detalles = DetalleVentaSerializer(many=True, read_only=True)
+    class Meta:
+        model = Venta
+        fields = '__all__'
+
+class CajaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Caja
+        fields = '__all__'
+
 
 class PrivacyPolicySerializer(serializers.ModelSerializer):
     contenido = serializers.CharField(source='content')
@@ -17,7 +53,7 @@ class UsuarioSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Usuario
-        fields = ['id', 'nombre_completo', 'email', 'password', 'consentimiento_lopdp', 'fecha_registro']
+        fields = ['id', 'nombre_completo', 'email', 'password', 'identificacion', 'direccion', 'telefono', 'rol', 'is_universidad', 'consentimiento_lopdp', 'fecha_registro']
         read_only_fields = ['id', 'fecha_registro']
 
     def validate(self, data):
@@ -48,6 +84,11 @@ class UsuarioSerializer(serializers.ModelSerializer):
             email=validated_data['email'],
             password=validated_data['password'],
             nombre_completo=validated_data['nombre_completo'],
+            identificacion=validated_data.get('identificacion', ''),
+            direccion=validated_data.get('direccion', ''),
+            telefono=validated_data.get('telefono', ''),
+            rol=validated_data.get('rol', 'CLIENTE'),
+            is_universidad=validated_data.get('is_universidad', False),
             consentimiento_lopdp=True,
             consentimiento_timestamp=timezone.now(),
             privacy_policy=latest_policy

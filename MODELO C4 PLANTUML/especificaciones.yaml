@@ -279,6 +279,10 @@ components:
         stock:
           type: integer
           minimum: 0
+        imagen_url:
+          type: string
+          format: uri
+          description: "URL externa de la imagen del producto."
 
     Pedido:
       type: object
