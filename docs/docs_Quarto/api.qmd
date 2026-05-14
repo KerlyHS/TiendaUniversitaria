@@ -1,0 +1,85 @@
+---
+title: "Referencia de la API"
+---
+
+Esta es la documentación de los endpoints expuestos por Tienda Universitaria (REST API Headless).
+
+Todas las rutas inician con el sub-path `/api/v1/tienda/`.
+
+---
+
+## 1. Módulo de Autenticación y Registro
+
+### Registrar Usuario
+Registra de manera pública a un cliente asegurando su consentimiento LOPDP.
+
+<div class="api-endpoint">
+POST /api/v1/tienda/register/
+</div>
+
+**Cuerpo (JSON) requerido:**
+```json
+{
+  "username": "usuario_unl",
+  "email": "estudiante@unl.edu.ec",
+  "first_name": "Juan",
+  "last_name": "Pérez",
+  "password": "Password123",
+  "password_confirm": "Password123",
+  "consentimiento_lopdp": true,
+  "privacy_policy_version": "v1.0"
+}
+```
+
+### Política de Privacidad
+
+<div class="api-endpoint">
+GET /api/v1/tienda/privacy-policy/latest/
+</div>
+
+---
+
+## 2. Catálogo de Productos
+
+Permite listar y detallar productos disponibles.
+
+### Listar Productos
+
+<div class="api-endpoint">
+GET /api/v1/tienda/productos/
+</div>
+
+### Ver Detalle de Producto
+
+<div class="api-endpoint">
+GET /api/v1/tienda/productos/{id}/
+</div>
+
+---
+
+## 3. Ventas y Pedidos
+
+### Crear Pedido
+
+<div class="api-endpoint">
+POST /api/v1/tienda/pedidos/crear/
+</div>
+
+**Cuerpo (JSON) esperado:**
+```json
+{
+  "items": [{"producto_id": 1, "cantidad": 2}],
+  "entrega": "TIENDA",
+  "total": 29.90
+}
+```
+
+---
+
+## 4. Pagos Integrados
+
+### Checkout Server-to-Server
+
+<div class="api-endpoint">
+POST /api/v1/tienda/pagos/preparar-checkout/
+</div>

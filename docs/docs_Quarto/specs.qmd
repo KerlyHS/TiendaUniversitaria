@@ -1,0 +1,42 @@
+---
+title: "Documentación de Specs SDD"
+---
+
+Esta sección describe cómo la herramienta **Spec Kit** y la metodología **Spec-Driven Development (SDD)** se usaron para definir e implementar las historias de usuario de la Tienda Universitaria.
+
+## 001 - Autenticación y LOPDP (Catálogo Base)
+
+**Ruta en Repositorio:** `specs/001-user-registration-lopdp/`
+
+### Resumen del Planteamiento API
+- **Arquitectura**: Headless, usando `Django Rest Framework (DRF)` (Frontend con React).
+- **Criterios De Aceptación**: Toda solicitud a `POST /usuarios/registro/` debe ser rechazada explícitamente si el campo flag `consentimiento_lopdp` es evaluado como falso u omitido (Art. 39).
+- **Modelo de Minimización**: Extensión controlada del base abstracto `AbstractUser` aislando sólo: nombre, email, password, y política atada.
+
+### Cumplimiento VS Pruebas
+| Regla SDD Requerida | Estado de Implementación | Reporte de Cobertura Python |
+| :--- | :--- | :--- |
+| **REQ-01**: Inmutabilidad del Timestamp | Cumplido - `models.DateTimeField(auto_now_add=True)` | 100% Validado |
+| **REQ-02**: Minimización (No recolectar demás) | Cumplido - El serializador rechaza dinámicamente kwargs. | 100% Validado |
+| **REQ-03**: Endpoint de Políticas Activas | Cumplido - Recuperar `.first()` orden descendente | 100% Validado |
+
+## 002 - Funcionalidades de Negocio Globales (Catálogo, Ventas e Inventario)
+
+**Ruta en Repositorio:** `specs/002-product-catalog/`
+
+### Resumen del Planteamiento
+- Arquitectura en Módulos separados (C4 Model Nivel 4).
+- Modelado de Roles y Cajas.
+- Modelado de Promociones y Medidas.
+- Manejo de Stock a través del Módulo de Inventario (Solicitudes de abastecimiento).
+
+## 003 - Integraciones Externas
+
+**Ruta en Repositorio:** `specs/003-integrations/`
+
+### Checkout y Asistencia AI
+- Checkout mediante PrimeiroPay (Copy&Pay).
+- Asistencia usando ecosistema Gemini API Flash 2.5 vía peticiones POST seguras para no exponer key en frontend.
+
+--- 
+*Generado automáticamente en base al YAML / specs.*

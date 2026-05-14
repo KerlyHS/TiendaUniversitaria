@@ -1,0 +1,49 @@
+---
+title: "Guía de Instalación"
+---
+
+## Requisitos Previos
+
+Asegúrate de tener instalados:
+
+- Python 3.10 o superior.
+- Git.
+
+## Configuración del Entorno Local
+
+1. **Clonar el repositorio y entrar en la carpeta**:
+   ```bash
+   git clone <tu-repo-url>
+   cd TiendaUniversitaria
+   ```
+
+2. **Crear y activar el entorno virtual**:
+   ```bash
+   python -m venv venv
+   # En Windows:
+   .\venv\Scripts\activate
+   # En macOS/Linux:
+   source venv/bin/activate
+   ```
+
+3. **Copiar plantilla de variables de entorno**:
+   ```bash
+   cp .env.template .env
+   ```
+
+4. **Instalar dependencias**:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+5. **Aplicar migraciones de Base de Datos**:
+   ```bash
+   python manage.py migrate
+   ```
+
+6. **Ejecutar el Servidor**:
+   ```bash
+   python manage.py runserver
+   ```
+   
+La API Basa estará disponible bajo `http://localhost:8000/api/v1/`.

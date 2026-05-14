@@ -1,0 +1,38 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+' Configuración
+LAYOUT_WITH_LEGEND()
+title Diagrama de Contenedores (Nivel 2) - Sistema de Tienda Universitaria
+
+' Actores
+Person(estudiante, "Estudiante", "Usuario que realiza compras.")
+Person(admin, "Administrador", "Personal de la tienda.")
+
+' Límite del Sistema
+System_Boundary(sistema_tienda, "Sistema de Tienda Universitaria") {
+    
+    Container(web_app, "Aplicación Web (Frontend)", "Django Templates / JS / CSS", "Muestra la interfaz para el catálogo de productos y gestión de perfiles.")
+    
+    Container(api_app, "Servidor Backend / API", "Python / Django", "Gestiona la lógica de negocio, validaciones de seguridad (LOPDP) y procesamiento de pedidos.")
+    
+    ContainerDb(db, "Base de Datos", "Relacional (SQLite/PostgreSQL)", "Almacena productos, usuarios, transacciones y sesiones.")
+}
+
+' Sistemas Externos
+System_Ext(pasarela, "Pasarela de Pagos", "Servicio externo (PrimeiroPay) para transacciones.")
+System_Ext(sistema_unl, "Sistema UNL", "Provee datos de estudiantes y autenticación institucional.")
+
+' Relaciones entre actores y contenedores
+Rel(estudiante, web_app, "Usa para comprar", "HTTPS")
+Rel(admin, web_app, "Usa para gestionar stock", "HTTPS")
+
+' Relaciones internas
+Rel(web_app, api_app, "Realiza peticiones a", "REST API / JSON")
+Rel(api_app, db, "Lee y escribe en", "Django ORM / SQL")
+
+' Relaciones con externos
+Rel(api_app, pasarela, "Envía cobros y recibe estado", "API REST")
+Rel(api_app, sistema_unl, "Consulta datos de usuario", "LDAP / API")
+
+@enduml

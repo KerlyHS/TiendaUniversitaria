@@ -1,0 +1,30 @@
+project:
+  type: website
+  output-dir: _site
+
+website:
+  title: "Docs - Tienda Universitaria"
+  description: "Documentación oficial del API Backend de la Tienda Universitaria"
+  sidebar:
+    style: "docked"
+    search: true
+    contents:
+      - section: "Inicio"
+        contents:
+          - index.qmd
+          - setup.qmd
+      - section: "Referencia Arquitectura SDD"
+        contents:
+          - specs.qmd
+      - section: "Referencia API REST"
+        contents:
+          - api.qmd
+      - section: "Análisis y Cobertura (QA)"
+        contents:
+          - testing.qmd
+
+format:
+  html:
+    theme: cosmo
+    css: styles.css
+    toc: true

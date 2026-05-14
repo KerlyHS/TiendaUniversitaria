@@ -1,0 +1,72 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+' Configuraciones visuales (opcional, para acercarse al tema oscuro)
+!define FONTS_COLOR #FFFFFF
+Skinparam BackgroundColor #111111
+Skinparam DefaultFontColor #FFFFFF
+
+title Diagrama de Componentes - API Backend (Tienda Universitaria)
+
+' ================= EXTRACCIÓN DE CONTENEDORES EXTERNOS =================
+Container(app_web, "Aplicacion web", "Container: React", "Aplicación para navegadores web")
+Container(app_movil, "Aplicacion movil", "Container: React Native", "Aplicación para los celulares")
+
+ContainerDb(db, "Base de datos", "Container: MySQL", "guarda toda la información del sistema")
+
+System_Ext(api_copyandpay, "API COPYAndPAY", "API a usar para las transacciones\n[Component: Python Service / API Client]")
+System_Ext(smtp, "Sistema de Correo SMTP", "sistema a usar para el uso de envio de correos\n[Component: Protocolo SMTP]")
+
+
+' ================= LÍMITE DEL SISTEMA (API BACKEND) =================
+Container_Boundary(api_backend, "API BACKEND") {
+    
+    Component(urls, "URLs", "Django urls.py", "Encargado de recibir las peticiones tanto de la app web como movil y los enruta a los distintos modulos")
+    Component(vistas, "Vistas", "Django ViewSets", "Recibe los JSON por parte de las urls y se comunica con los modulos")
+
+    Component(mod_inventario, "Modulo Inventario", "Django App / JWT", "Controla ingresos, salidas, niveles de stock y alertas de reposición.")
+    Component(mod_ventas, "Modulo Ventas", "Django App", "Orquesta el carrito de compras, creación de pedidos y estados de entrega.")
+    Component(mod_usuario, "Modulo Usuario", "Django App", "Gestiona autenticación, perfiles y permisos de los diferentes roles.")
+    Component(mod_catalogo, "Modulo de Catalogo", "Django App", "Administra la vista de productos, categorias y promociones activas.")
+    Component(mod_reportes, "Modulo de Reportes", "Django App", "Genera estadisticas centralizadas de ventas, inventario y caja.")
+
+    Component(srv_pagos, "Servicio de Pagos", "Python Service / API Client", "Transforma, encripta y envia los datos de la transacción para procesar el cobro con la pasarela externa.")
+    Component(srv_notificaciones, "Servicio de notificaciones", "Python / Django Mail Service", "Ensambla las plantillas y despacha de forma asincrona los correos electrónicos (recibos y estados de pedido).")
+}
+
+' ================= RELACIONES E INTERACCIONES =================
+
+' Entradas al sistema
+Rel_R(app_web, urls, "Envia las peticiones a las URLs", "JSON/HTTPS")
+Rel_R(app_movil, urls, "Envia las peticiones a las URLs", "JSON/HTTPS")
+
+' Flujo interno de enrutamiento
+Rel_D(urls, vistas, "Entrega las peticiones en objetos JSON", "JSON")
+
+' Vistas hacia los módulos
+Rel_R(vistas, mod_inventario, "Delega la lógica de negocio")
+Rel_R(vistas, mod_ventas, "Delega la lógica de negocio")
+Rel_R(vistas, mod_usuario, "Delega la lógica de negocio")
+Rel_R(vistas, mod_catalogo, "Delega la lógica de negocio")
+Rel_R(vistas, mod_reportes, "Delega la lógica de negocio")
+
+' Interacciones entre módulos internos
+Rel_U(mod_ventas, mod_inventario, "Ordena descontar stock")
+Rel_R(mod_ventas, srv_pagos, "Solicita procesar pago")
+Rel_D(mod_ventas, srv_notificaciones, "Ordena enviar recibo")
+
+' Conexiones a la base de datos
+Rel_R(mod_inventario, db, "Interactuan con la base de datos y devuelven la información", "JSON")
+Rel_R(mod_ventas, db, "Interactuan con la base de datos y devuelven la información", "JSON")
+Rel_R(mod_usuario, db, "Interactuan con la base de datos y devuelven la información", "JSON")
+Rel_R(mod_catalogo, db, "Interactuan con la base de datos y devuelven la información", "JSON")
+Rel_R(mod_reportes, db, "Interactuan con la base de datos y devuelven la información", "JSON")
+
+' Salidas a sistemas externos
+Rel_R(srv_pagos, api_copyandpay, "Procesa transacción", "JSON/HTTPS")
+Rel_R(srv_notificaciones, smtp, "Envia emails al cliente", "SMTP")
+
+' Forzar un poco el diseño (Layout)
+LAYOUT_WITH_LEGEND()
+
+@enduml

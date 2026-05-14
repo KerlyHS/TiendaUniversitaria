@@ -1,0 +1,10 @@
+/* CSS personalizado opcional para la documentación */
+h1, h2, h3 {
+  color: #2c3e50;
+}
+.api-endpoint {
+  background-color: #f8f9fa;
+  padding: 10px;
+  border-radius: 5px;
+  font-family: monospace;
+}

@@ -1,0 +1,160 @@
+openapi: 3.0.0
+info:
+  title: API Tienda Universitaria - UNL
+  description: >-
+    Contrato de interfaces para la gestión de ventas y usuarios bajo metodología
+    SDD.
+  version: 1.0.0
+servers:
+  - url: 'https://api.tiendauniversitaria.unl.edu.ec/v1'
+    description: Servidor de producción
+paths:
+  /usuario/login/:
+    post:
+      summary: Autenticación de usuario
+      tags:
+        - Sesión
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                correo:
+                  type: string
+                  format: email
+                clave:
+                  type: string
+              required:
+                - correo
+                - clave
+      responses:
+        '200':
+          description: Login exitoso
+          content:
+            application/json:
+              example:
+                status: success
+                msj: Bienvenido Luis
+                token: JWT_TOKEN_HERE
+        '401':
+          description: Error de credenciales
+          content:
+            application/json:
+              example:
+                error: El correo o la contraseña no coinciden.
+                tipo: AUTH_ERROR
+        '503':
+          description: Error de conectividad
+          content:
+            application/json:
+              example:
+                error: Dispositivo sin internet
+                tipo: NETWORK_OFFLINE
+  /pedidos/crear/:
+    post:
+      summary: Registro de nueva venta
+      tags:
+        - Ventas
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                items:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      producto_id:
+                        type: integer
+                      cantidad:
+                        type: integer
+                entrega:
+                  type: string
+                  enum:
+                    - TIENDA
+                    - DOMICILIO
+                total:
+                  type: number
+                  format: float
+              required:
+                - items
+                - entrega
+                - total
+      responses:
+        '201':
+          description: Transacción completada con éxito
+          content:
+            application/json:
+              example:
+                status: completed
+                id_transaccion: TX-99
+                msj: >-
+                  Su pedido #12345 ha sido procesado exitosamente. Se ha enviado
+                  el comprobante a su correo institucional.
+        '400':
+          description: Error de negocio (Stock insuficiente)
+          content:
+            application/json:
+              example:
+                error: Stock insuficiente para el producto seleccionado
+                tipo: STOCK_ERROR
+        '402':
+          description: Fallo en pasarela de pago (COPYAndPAY)
+          content:
+            application/json:
+              example:
+                error: Fondos insuficientes o tarjeta rechazada
+                tipo: PAYMENT_FAILED
+  /usuario/registro/:
+    post:
+      summary: Registro inicial con consentimiento (LOPDP)
+      tags:
+        - Usuario
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                correo:
+                  type: string
+                  format: email
+                consentimiento:
+                  type: object
+                  properties:
+                    aceptado:
+                      type: boolean
+                    version_politica:
+                      type: string
+                    timestamp:
+                      type: string
+                      format: date-time
+                  required:
+                    - aceptado
+                    - version_politica
+                    - timestamp
+              required:
+                - correo
+                - consentimiento
+      responses:
+        '201':
+          description: Usuario registrado y consentimiento almacenado
+        '422':
+          description: Error de validación de contrato
+          content:
+            application/json:
+              example:
+                error: Falta marca de tiempo de voluntad del titular
+                tipo: LEGAL_VALIDATION_ERROR
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

@@ -1,0 +1,15 @@
+---
+title: "Tienda Universitaria Backend API"
+---
+
+Bienvenido a la documentación oficial del Backend de la **Tienda Universitaria**.
+
+Este proyecto provee una API REST desarrollada en **Django** y **Django Rest Framework (DRF)**. Está diseñado bajo una arquitectura "Headless", lo que permite integrarse sin problemas con un frontend en React u otros clientes web/móviles.
+
+## Características Principales
+
+*   **Cumplimiento LOPDP**: Garantiza el registro con consentimiento explícito e inmutable de acuerdo con las normativas ecuatorianas.
+*   **Minimización de Datos**: Colección estricta de datos esenciales.
+*   **Catálogo de Productos**: API de lectura rápida para vitrinas virtuales.
+
+Para comenzar, revisa la [Guía de Instalación (Setup)](setup.qmd) o explora directamente los [Endpoints de la API](api.qmd).

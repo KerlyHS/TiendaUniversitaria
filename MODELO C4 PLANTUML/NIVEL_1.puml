@@ -1,0 +1,26 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+' Configuración visual opcional
+LAYOUT_WITH_LEGEND()
+title Diagrama de Contexto (Nivel 1) - Sistema de Tienda Universitaria
+
+' Actores (Personas)
+Person(estudiante, "Estudiante", "Usuario de la universidad que explora productos, realiza compras y gestiona sus pedidos.")
+Person(administrador, "Administrador", "Personal encargado de gestionar el inventario, los usuarios y revisar los reportes de ventas.")
+
+' Sistema Principal
+System(tienda_sistema, "Sistema de Tienda Universitaria", "Plataforma central (Django) que permite la gestión y venta de productos universitarios.")
+
+' Sistemas Externos (Basado en el contexto de tus archivos como PrimeiroPay)
+System_Ext(pasarela_pagos, "Pasarela de Pagos", "Sistema externo (ej. PrimeiroPay) que procesa las transacciones financieras.")
+System_Ext(sistema_universitario, "Sistema de la Universidad", "Sistema central que provee la autenticación y datos de los estudiantes.")
+
+' Relaciones
+Rel(estudiante, tienda_sistema, "Explora, compra productos y revisa estado", "HTTPS/Web")
+Rel(administrador, tienda_sistema, "Gestiona catálogo, inventario y reportes", "HTTPS/Web")
+
+Rel(tienda_sistema, pasarela_pagos, "Envía solicitudes de cobro y recibe confirmaciones", "API REST / JSON")
+Rel(tienda_sistema, sistema_universitario, "Valida identidad y credenciales del usuario", "API REST")
+
+@enduml
