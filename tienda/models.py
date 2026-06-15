@@ -1,6 +1,7 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+from django.core.validators import MinValueValidator
 
 # ================= ENUMS (TextChoices) =================
 
@@ -122,9 +123,92 @@ class Promocion(models.Model):
 # ================= MÓDULO DE VENTAS =================
 
 class Pedido(models.Model):
-    estado = models.CharField(max_length=20, choices=ProgresoVenta.choices, default=ProgresoVenta.RECIBIDO)
-    tipo_entrega = models.CharField(max_length=15, choices=Entrega.choices, default=Entrega.TIENDA)
-    cliente = models.ForeignKey(Usuario, on_delete=models.RESTRICT, related_name='pedidos')
+    """
+    # Modelo Pedido (Orden)
+    
+    Representa una orden de compra del cliente con seguimiento de estado
+    desde recepción hasta entrega.
+    
+    ## Campos
+    - `numero_pedido`: Identificador único (P-YYYYMMDD-XXX)
+    - `cliente`: Usuario que realizó la orden
+    - `estado`: Estado actual de la orden (RECIBIDO, PREPARACION, LISTO, ENTREGADO, CANCELADO)
+    - `tipo_entrega`: Forma de entrega (TIENDA, DOMICILIO)
+    - `subtotal`: Suma de items sin impuesto
+    - `impuesto`: IVA calculado (12%)
+    - `total`: subtotal + impuesto
+    
+    ## Auditoría
+    - `fecha_creacion`: Cuándo se creó la orden
+    - `fecha_modificacion`: Última modificación
+    """
+    numero_pedido = models.CharField(
+        max_length=20, 
+        unique=True,
+        verbose_name="Número de Pedido",
+        help_text="Generado automáticamente. Formato: P-YYYYMMDD-XXX"
+    )
+    estado = models.CharField(
+        max_length=20, 
+        choices=ProgresoVenta.choices, 
+        default=ProgresoVenta.RECIBIDO,
+        verbose_name="Estado del Pedido"
+    )
+    tipo_entrega = models.CharField(
+        max_length=15, 
+        choices=Entrega.choices, 
+        default=Entrega.TIENDA,
+        verbose_name="Tipo de Entrega"
+    )
+    cliente = models.ForeignKey(
+        Usuario, 
+        on_delete=models.RESTRICT, 
+        related_name='pedidos',
+        verbose_name="Cliente"
+    )
+    
+    # Totales
+    subtotal = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2, 
+        default=0.00,
+        verbose_name="Subtotal"
+    )
+    impuesto = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2, 
+        default=0.00,
+        verbose_name="Impuesto (IVA)"
+    )
+    total = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2, 
+        default=0.00,
+        verbose_name="Total"
+    )
+    
+    # Auditoría
+    fecha_creacion = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Fecha de Creación"
+    )
+    fecha_modificacion = models.DateTimeField(
+        auto_now=True,
+        verbose_name="Última Modificación"
+    )
+    
+    class Meta:
+        ordering = ['-fecha_creacion']
+        indexes = [
+            models.Index(fields=['numero_pedido']),
+            models.Index(fields=['cliente', '-fecha_creacion']),
+            models.Index(fields=['estado']),
+        ]
+        verbose_name = "Pedido"
+        verbose_name_plural = "Pedidos"
+    
+    def __str__(self):
+        return f"{self.numero_pedido} - {self.cliente.nombre_completo} ({self.get_estado_display()})"
     
 class Venta(models.Model):
     fecha = models.DateTimeField(auto_now_add=True)
@@ -134,11 +218,82 @@ class Venta(models.Model):
     cajero = models.ForeignKey(Usuario, on_delete=models.RESTRICT, related_name='ventas_registradas', limit_choices_to={'rol': Rol.CAJERO})
 
 class DetalleVenta(models.Model):
-    venta = models.ForeignKey(Venta, on_delete=models.CASCADE, related_name='detalles')
-    producto = models.ForeignKey(Producto, on_delete=models.PROTECT)
-    descripcion = models.CharField(max_length=255, blank=True)
-    cantidad = models.IntegerField(default=1)
-    precio_unitario = models.DecimalField(max_digits=10, decimal_places=2)
+    """
+    # Modelo DetalleVenta (Item de Venta)
+    
+    Representa un item individual en una venta/orden con información
+    histórica del precio al momento de la compra.
+    
+    ## Campos Históricos
+    - `nombre_producto`: Snapshot del nombre del producto
+    - `precio_unitario`: Precio que se pagó (no cambia si el producto se hace más caro)
+    - `cantidad`: Cantidad comprada
+    - `subtotal`: cantidad * precio_unitario
+    """
+    pedido = models.ForeignKey(
+        Pedido,
+        on_delete=models.CASCADE,
+        related_name='detalles_venta',
+        null=True,
+        blank=True,
+        verbose_name="Pedido"
+    )
+    producto = models.ForeignKey(
+        Producto, 
+        on_delete=models.PROTECT,
+        verbose_name="Producto"
+    )
+    
+    # Información histórica (snapshots al momento de la venta)
+    nombre_producto = models.CharField(
+        max_length=255,
+        verbose_name="Nombre del Producto",
+        help_text="Snapshot del nombre al momento de la venta"
+    )
+    descripcion = models.TextField(
+        blank=True,
+        verbose_name="Descripción"
+    )
+    cantidad = models.IntegerField(
+        default=1,
+        verbose_name="Cantidad",
+        validators=[MinValueValidator(1)]
+    )
+    
+    # Precio histórico
+    precio_unitario = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2,
+        verbose_name="Precio Unitario",
+        help_text="Precio pagado por unidad (histórico)"
+    )
+    subtotal = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2,
+        default=0.00,
+        verbose_name="Subtotal",
+        help_text="cantidad * precio_unitario"
+    )
+    
+    # Auditoría
+    fecha_creacion = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Fecha de Creación"
+    )
+    
+    class Meta:
+        ordering = ['fecha_creacion']
+        verbose_name = "Detalle de Venta"
+        verbose_name_plural = "Detalles de Venta"
+    
+    def __str__(self):
+        return f"{self.nombre_producto} x {self.cantidad} @ ${self.precio_unitario}"
+    
+    def save(self, *args, **kwargs):
+        """Auto-calcular subtotal si no está seteado"""
+        if not self.subtotal:
+            self.subtotal = self.cantidad * self.precio_unitario
+        super().save(*args, **kwargs)
 
 class Caja(models.Model):
     fecha_abre = models.DateTimeField(auto_now_add=True)
@@ -146,3 +301,25 @@ class Caja(models.Model):
     saldo_abre = models.DecimalField(max_digits=10, decimal_places=2)
     saldo_cierra = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     cajero = models.ForeignKey(Usuario, on_delete=models.RESTRICT, related_name='cajas_gestionadas', limit_choices_to={'rol': Rol.CAJERO})
+
+class EstadoTransaccion(models.TextChoices):
+    PENDING = 'PENDING', _('Pendiente')
+    APROBADO = 'APROBADO', _('Aprobado')
+    RECHAZADO = 'RECHAZADO', _('Rechazado')
+
+class Transaccion(models.Model):
+    pedido = models.OneToOneField(Pedido, on_delete=models.CASCADE, related_name='transaccion')
+    stripe_session_id = models.CharField(max_length=255, unique=True, null=True, blank=True)
+    monto = models.DecimalField(max_digits=10, decimal_places=2)
+    estado = models.CharField(max_length=20, choices=EstadoTransaccion.choices, default=EstadoTransaccion.PENDING)
+    metodo_pago = models.CharField(max_length=50, default='STRIPE')
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    fecha_actualizacion = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-fecha_creacion']
+        verbose_name = "Transacción"
+        verbose_name_plural = "Transacciones"
+
+    def __str__(self):
+        return f"TX {self.id} - Pedido {self.pedido.id} - {self.estado}"

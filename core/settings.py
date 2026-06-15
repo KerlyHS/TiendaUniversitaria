@@ -10,11 +10,18 @@ from pathlib import Path
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+
 # CAMBIO 1: Cambiamos el valor por defecto de DEBUG a True para desarrollo local
 env = environ.Env(
     DEBUG=(bool, True)
 )
 environ.Env.read_env(BASE_DIR / '.env')
+
+# ================= STRIPE CONFIGURATION =================
+STRIPE_SECRET_KEY = env('STRIPE_SECRET_KEY', default='rk_test_51TiKmSHRp3SyFZZ3QtXNfDqXiq0ZqxL1NWANsrmEHBXrl1B2lxITSWOmuDOahI3GrOQlbLEV57E5lG80YbGRpBZ000blPhed1X')
+STRIPE_WEBHOOK_SECRET = env('STRIPE_WEBHOOK_SECRET', default='')
+
+FRONTEND_URL = env('FRONTEND_URL', default='http://localhost:3000')
 
 # Quick-start development settings - unsuitable for production
 # SECURITY WARNING: keep the secret key used in production secret!
@@ -25,6 +32,10 @@ DEBUG = env('DEBUG')
 
 # CAMBIO 2: Agregamos tu servidor local a la lista por defecto
 ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['127.0.0.1', 'localhost'])
+
+# Configuración de negocio
+from decimal import Decimal
+IMPUESTO_IVA = Decimal(env('IMPUESTO_IVA', default='0.12'))
 
 # Application definition
 # ... (deja el resto del archivo exactamente igual desde INSTALLED_APPS hacia abajo)
@@ -39,6 +50,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'rest_framework_simplejwt',
+    'corsheaders',
     'tienda',
 ]
 
@@ -46,6 +59,7 @@ AUTH_USER_MODEL = 'tienda.Usuario'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -121,3 +135,64 @@ USE_TZ = True
 STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# ================= CORS CONFIGURATION =================
+CORS_ALLOWED_ORIGINS = env.list('CORS_ALLOWED_ORIGINS', default=[
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    'http://localhost:5173',  # Vite default
+])
+
+CORS_ALLOW_CREDENTIALS = True
+
+# ================= REST FRAMEWORK CONFIGURATION =================
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+    ),
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticatedOrReadOnly',
+    ),
+    'DEFAULT_FILTER_BACKENDS': [
+        'django_filters.rest_framework.DjangoFilterBackend',
+        'rest_framework.filters.SearchFilter',
+        'rest_framework.filters.OrderingFilter',
+    ],
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 20,
+}
+
+# ================= SIMPLE JWT CONFIGURATION =================
+from datetime import timedelta
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(hours=24),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ROTATE_REFRESH_TOKENS': False,
+    'BLACKLIST_AFTER_ROTATION': False,
+    'UPDATE_LAST_LOGIN': False,
+    
+    'ALGORITHM': 'HS256',
+    'SIGNING_KEY': SECRET_KEY,
+    'VERIFYING_KEY': None,
+    'AUDIENCE': None,
+    'ISSUER': None,
+    'JTI_CLAIM': 'jti',
+    'TOKEN_TYPE_CLAIM': 'token_type',
+    'JTI_VALUE_CLAIM': 'user_id',
+    
+    'AUTH_HEADER_TYPES': ('Bearer',),
+    'AUTH_HEADER_NAME': 'HTTP_AUTHORIZATION',
+    'USER_ID_FIELD': 'id',
+    'USER_ID_CLAIM': 'user_id',
+    'USER_AUTHENTICATION_RULE': 'rest_framework_simplejwt.authentication.default_user_authentication_rule',
+    
+    'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
+    'TOKEN_CLASS_PATH': 'rest_framework_simplejwt.tokens.Token',
+    'TOKEN_BLACKLIST_CLASS_PATH': 'rest_framework_simplejwt.token_blacklist.models.OutstandingToken',
+    'SLIDING_TOKEN_CLASS_PATH': 'rest_framework_simplejwt.tokens.SlidingToken',
+    'SLIDING_TOKEN_REFRESH_CLASS_PATH': 'rest_framework_simplejwt.tokens.SlidingToken',
+    
+    'SLIDE_USING_REFRESH': False,
+}

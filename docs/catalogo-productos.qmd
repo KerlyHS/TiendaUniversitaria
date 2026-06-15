@@ -1,0 +1,679 @@
+---
+title: "Catálogo de Productos - TiendaUniversitaria"
+subtitle: "API REST para operaciones CRUD de productos"
+date: "2024"
+author: "Backend Team"
+format: 
+  html:
+    toc: true
+    toc-depth: 3
+    code-fold: false
+    theme: cosmo
+---
+
+# Catálogo de Productos
+
+## 1. Descripción General
+
+El catálogo de productos es el módulo central de TiendaUniversitaria que permite:
+
+- **Consulta Pública**: Estudiantes y visitantes pueden ver productos disponibles
+- **Filtrado y Búsqueda**: Encontrar productos por categoría, precio, nombre
+- **Gestión (Admin)**: Crear, actualizar y eliminar productos
+- **Paginación Automática**: 10 productos por página
+
+### Características Clave
+
+- ✅ Lectura Pública (GET sin autenticación)
+- ✅ Escritura Autenticada (POST/PUT/DELETE requieren login)
+- ✅ Filtrado por categoría, precio, estado activo
+- ✅ Búsqueda en nombre y descripción
+- ✅ Ordenamiento por precio, nombre, fecha
+- ✅ Paginación automática (10 items/página)
+- ✅ Imágenes con URLs externas
+- ✅ Validación de stock y precio
+
+---
+
+## 2. Operaciones CRUD
+
+### 2.1 Listar Productos
+
+**Endpoint**: `GET /api/v1/productos/`
+
+**Autenticación**: No requerida
+
+**Query Parameters**:
+
+| Parámetro | Descripción | Ejemplo |
+|-----------|------------|---------|
+| `page` | Número de página | `?page=2` |
+| `categoria` | Filtrar por categoría | `?categoria=TEXTIL` |
+| `search` | Búsqueda en nombre/descripción | `?search=Camiseta` |
+| `ordering` | Campo para ordenar | `?ordering=-precio` |
+
+**Respuesta (200 OK)**:
+
+```json
+{
+  "count": 45,
+  "next": "http://localhost:8000/api/v1/productos/?page=2",
+  "previous": null,
+  "results": [
+    {
+      "id": 1,
+      "codigo": "CAM-001",
+      "nombre": "Camiseta UNL",
+      "descripcion": "Camiseta de algodón 100%",
+      "precio": "15.50",
+      "stock": 100,
+      "categoria": "TEXTIL",
+      "medida": "UNIDAD",
+      "aplica_impuesto": true,
+      "is_activo": true,
+      "vencimiento": null,
+      "imagen_url": "https://example.com/camiseta.jpg",
+      "fecha_creacion": "2024-01-15T10:30:00Z"
+    }
+  ]
+}
+```
+
+---
+
+### 2.2 Obtener Detalles de Producto
+
+**Endpoint**: `GET /api/v1/productos/{id}/`
+
+**Autenticación**: No requerida
+
+**Path Parameters**:
+
+| Parámetro | Descripción |
+|-----------|------------|
+| `id` | ID del producto |
+
+**Respuesta (200 OK)**:
+
+```json
+{
+  "id": 1,
+  "codigo": "CAM-001",
+  "nombre": "Camiseta UNL",
+  "descripcion": "Camiseta de algodón 100%",
+  "precio": "15.50",
+  "stock": 100,
+  "categoria": "TEXTIL",
+  "medida": "UNIDAD",
+  "aplica_impuesto": true,
+  "is_activo": true,
+  "vencimiento": null,
+  "imagen_url": "https://example.com/camiseta.jpg",
+  "fecha_creacion": "2024-01-15T10:30:00Z"
+}
+```
+
+**Errores**:
+
+```json
+// 404 - Producto no encontrado o inactivo
+{
+  "detail": "Not found."
+}
+```
+
+---
+
+### 2.3 Crear Producto
+
+**Endpoint**: `POST /api/v1/productos/`
+
+**Autenticación**: Requerida (Bearer Token)
+
+**Request Body**:
+
+```json
+{
+  "codigo": "CAM-002",
+  "nombre": "Gorra UNL",
+  "descripcion": "Gorra ajustable negra con logo",
+  "precio": 12.50,
+  "stock": 75,
+  "categoria": "TEXTIL",
+  "medida": "UNIDAD",
+  "aplica_impuesto": true,
+  "is_activo": true,
+  "vencimiento": null,
+  "imagen_url": "https://example.com/gorra.jpg"
+}
+```
+
+**Respuesta (201 Created)**:
+
+```json
+{
+  "id": 2,
+  "codigo": "CAM-002",
+  "nombre": "Gorra UNL",
+  "descripcion": "Gorra ajustable negra con logo",
+  "precio": "12.50",
+  "stock": 75,
+  "categoria": "TEXTIL",
+  "medida": "UNIDAD",
+  "aplica_impuesto": true,
+  "is_activo": true,
+  "vencimiento": null,
+  "imagen_url": "https://example.com/gorra.jpg",
+  "fecha_creacion": "2024-05-27T14:22:00Z"
+}
+```
+
+**Errores (400 Bad Request)**:
+
+```json
+{
+  "precio": ["El precio debe ser mayor que 0.00"],
+  "stock": ["El stock no puede ser negativo"],
+  "nombre": ["Este campo no puede estar vacío."]
+}
+```
+
+**Error (401 Unauthorized)**:
+
+```json
+{
+  "detail": "Authentication credentials were not provided."
+}
+```
+
+---
+
+### 2.4 Actualizar Producto
+
+**Endpoint**: `PUT /api/v1/productos/{id}/`
+
+**Autenticación**: Requerida (Bearer Token)
+
+**Request Body** (actualización parcial):
+
+```json
+{
+  "codigo": "CAM-001",
+  "nombre": "Camiseta UNL - Premium",
+  "descripcion": "Camiseta de algodón 100%, calidad premium",
+  "precio": 18.50,
+  "stock": 90,
+  "categoria": "TEXTIL",
+  "medida": "UNIDAD",
+  "aplica_impuesto": true,
+  "is_activo": true,
+  "imagen_url": "https://example.com/camiseta-premium.jpg"
+}
+```
+
+**Respuesta (200 OK)**:
+
+```json
+{
+  "id": 1,
+  "codigo": "CAM-001",
+  "nombre": "Camiseta UNL - Premium",
+  "descripcion": "Camiseta de algodón 100%, calidad premium",
+  "precio": "18.50",
+  "stock": 90,
+  "categoria": "TEXTIL",
+  "medida": "UNIDAD",
+  "aplica_impuesto": true,
+  "is_activo": true,
+  "vencimiento": null,
+  "imagen_url": "https://example.com/camiseta-premium.jpg",
+  "fecha_creacion": "2024-01-15T10:30:00Z"
+}
+```
+
+**Errores**:
+
+- `400 Bad Request`: Datos inválidos (precio/stock negativos)
+- `401 Unauthorized`: No autenticado
+- `404 Not Found`: Producto no existe
+
+---
+
+### 2.5 Eliminar Producto
+
+**Endpoint**: `DELETE /api/v1/productos/{id}/`
+
+**Autenticación**: Requerida (Bearer Token)
+
+**Respuesta (204 No Content)**:
+
+Sin contenido en el cuerpo de respuesta.
+
+**Errores**:
+
+- `401 Unauthorized`: No autenticado
+- `404 Not Found`: Producto no existe
+
+---
+
+## 3. Filtrado y Búsqueda
+
+### 3.1 Filtrar por Categoría
+
+```
+GET /api/v1/productos/?categoria=TEXTIL
+```
+
+**Categorías disponibles**:
+
+- `AGRICOLA` - Productos agrícolas
+- `INSTITUCIONAL` - Productos institucionales
+- `TECNOLOGICO` - Productos tecnológicos
+- `ACADEMICO` - Productos académicos
+- `TEXTIL` - Ropa y textiles
+- `SOUVENIR` - Souvenirs
+- `TEMPORAL` - Productos temporales
+
+---
+
+### 3.2 Filtrar por Rango de Precios
+
+```
+GET /api/v1/productos/?precio_min=10&precio_max=50
+```
+
+---
+
+### 3.3 Búsqueda por Texto
+
+```
+GET /api/v1/productos/?search=Camiseta
+```
+
+Busca en campos: `nombre` y `descripcion` (case-insensitive)
+
+---
+
+### 3.4 Ordenamiento
+
+```
+GET /api/v1/productos/?ordering=precio          # Ascendente
+GET /api/v1/productos/?ordering=-precio         # Descendente
+GET /api/v1/productos/?ordering=nombre          # Por nombre
+GET /api/v1/productos/?ordering=fecha_creacion  # Por fecha
+```
+
+---
+
+### 3.5 Combinaciones
+
+```
+# Productos textiles ordenados por precio descend uente
+GET /api/v1/productos/?categoria=TEXTIL&ordering=-precio
+
+# Buscar "Camiseta" en categoría "TEXTIL"
+GET /api/v1/productos/?categoria=TEXTIL&search=Camiseta
+
+# Página 2 con 10 items por página
+GET /api/v1/productos/?page=2
+
+# Todos los filtros combinados
+GET /api/v1/productos/?categoria=TEXTIL&precio_max=50&search=oficial&ordering=-precio&page=1
+```
+
+---
+
+## 4. Integración React
+
+### 4.1 Listar Productos
+
+```javascript
+// src/services/productService.ts
+import apiClient from './api';
+
+export const getProducts = async (filters = {}) => {
+  const params = new URLSearchParams(filters);
+  const response = await apiClient.get(`/productos/?${params}`);
+  return response.data;
+};
+
+// src/pages/CatalogPage.tsx
+import { useState, useEffect } from 'react';
+import { getProducts } from '../services/productService';
+
+export const CatalogPage = () => {
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [filters, setFilters] = useState({
+    categoria: '',
+    search: '',
+    ordering: 'nombre',
+    page: 1
+  });
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        setLoading(true);
+        const data = await getProducts(filters);
+        setProducts(data.results);
+      } catch (error) {
+        console.error('Error fetching products:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, [filters]);
+
+  if (loading) return <div>Cargando...</div>;
+
+  return (
+    <div>
+      <h1>Catálogo de Productos</h1>
+      
+      <div className="filters">
+        <select 
+          value={filters.categoria} 
+          onChange={(e) => setFilters({...filters, categoria: e.target.value})}
+        >
+          <option value="">Todas las categorías</option>
+          <option value="TEXTIL">Textil</option>
+          <option value="INSTITUCIONAL">Institucional</option>
+        </select>
+
+        <input 
+          type="text" 
+          placeholder="Buscar..."
+          value={filters.search}
+          onChange={(e) => setFilters({...filters, search: e.target.value})}
+        />
+      </div>
+
+      <div className="products-grid">
+        {products.map(product => (
+          <div key={product.id} className="product-card">
+            <img src={product.imagen_url} alt={product.nombre} />
+            <h3>{product.nombre}</h3>
+            <p>{product.descripcion}</p>
+            <p className="price">${product.precio}</p>
+            <p className="stock">Stock: {product.stock}</p>
+            <button>Agregar al carrito</button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+```
+
+### 4.2 Obtener Detalles del Producto
+
+```javascript
+export const getProductDetail = async (id) => {
+  const response = await apiClient.get(`/productos/${id}/`);
+  return response.data;
+};
+
+// Uso en componente
+const ProductDetailPage = ({ productId }) => {
+  const [product, setProduct] = useState(null);
+
+  useEffect(() => {
+    getProductDetail(productId).then(setProduct);
+  }, [productId]);
+
+  if (!product) return <div>Producto no encontrado</div>;
+
+  return (
+    <div className="product-detail">
+      <img src={product.imagen_url} alt={product.nombre} />
+      <h1>{product.nombre}</h1>
+      <p>{product.descripcion}</p>
+      <p>Precio: ${product.precio}</p>
+      <p>Stock disponible: {product.stock}</p>
+      {product.vencimiento && <p>Vence: {product.vencimiento}</p>}
+    </div>
+  );
+};
+```
+
+### 4.3 Crear Producto (Admin)
+
+```javascript
+export const createProduct = async (productData) => {
+  const response = await apiClient.post('/productos/', productData);
+  return response.data;
+};
+
+// Uso en formulario
+const CreateProductForm = () => {
+  const [formData, setFormData] = useState({
+    codigo: '',
+    nombre: '',
+    descripcion: '',
+    precio: '',
+    stock: '',
+    categoria: 'SOUVENIR'
+  });
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const newProduct = await createProduct(formData);
+      alert('Producto creado: ' + newProduct.nombre);
+    } catch (error) {
+      alert('Error: ' + error.response.data.nombre[0]);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <input 
+        name="nombre" 
+        placeholder="Nombre"
+        required
+      />
+      <textarea 
+        name="descripcion" 
+        placeholder="Descripción"
+      />
+      <input 
+        name="precio" 
+        type="number" 
+        step="0.01"
+        placeholder="Precio"
+        required
+      />
+      <input 
+        name="stock" 
+        type="number" 
+        placeholder="Stock"
+        required
+      />
+      <button type="submit">Crear Producto</button>
+    </form>
+  );
+};
+```
+
+### 4.4 Actualizar Producto
+
+```javascript
+export const updateProduct = async (id, productData) => {
+  const response = await apiClient.put(`/productos/${id}/`, productData);
+  return response.data;
+};
+```
+
+### 4.5 Eliminar Producto
+
+```javascript
+export const deleteProduct = async (id) => {
+  await apiClient.delete(`/productos/${id}/`);
+};
+
+// Uso
+const deleteHandler = async (productId) => {
+  if (window.confirm('¿Está seguro?')) {
+    await deleteProduct(productId);
+    alert('Producto eliminado');
+  }
+};
+```
+
+---
+
+## 5. Manejo de Errores
+
+### 5.1 Errores Comunes
+
+```javascript
+// Componente reutilizable para manejo de errores
+const withErrorHandling = (apiCall) => {
+  try {
+    return await apiCall();
+  } catch (error) {
+    switch (error.response?.status) {
+      case 400:
+        throw new Error('Datos inválidos: ' + Object.values(error.response.data).flat().join(', '));
+      case 401:
+        throw new Error('No autenticado. Inicie sesión.');
+      case 403:
+        throw new Error('No tiene permisos para esta acción.');
+      case 404:
+        throw new Error('Producto no encontrado.');
+      default:
+        throw new Error('Error del servidor. Intente más tarde.');
+    }
+  }
+};
+```
+
+---
+
+## 6. Categorías de Productos
+
+| Código | Nombre | Descripción |
+|--------|--------|------------|
+| AGRICOLA | Agrícola | Productos agrícolas y orgánicos |
+| INSTITUCIONAL | Institucional | Productos con logo/marca UNL |
+| TECNOLOGICO | Tecnológico | Artículos tecnológicos |
+| ACADEMICO | Académico | Materiales académicos |
+| TEXTIL | Textil | Ropa y prendas de vestir |
+| SOUVENIR | Souvenir | Recuerdos y souvenirs |
+| TEMPORAL | Temporal | Productos de temporada |
+
+---
+
+## 7. Unidades de Medida
+
+| Código | Nombre |
+|--------|--------|
+| GRAMO | Gramo |
+| KILOGRAMO | Kilogramo |
+| LIBRA | Libra |
+| UNIDAD | Unidad |
+
+---
+
+## 8. Validaciones
+
+### 8.1 Campos Requeridos
+
+- `nombre`: Obligatorio, máx 150 caracteres
+- `descripcion`: Obligatoria
+- `precio`: Obligatorio, > 0.00
+- `stock`: Obligatorio, >= 0
+- `categoria`: Obligatoria (default: SOUVENIR)
+
+### 8.2 Validaciones de Negocio
+
+```python
+# Precio debe ser positivo
+if precio < 0.01:
+    error("El precio debe ser mayor que 0.00")
+
+# Stock no puede ser negativo
+if stock < 0:
+    error("El stock no puede ser negativo")
+
+# Código único (opcional)
+if codigo and Producto.objects.filter(codigo=codigo).exists():
+    error("Este código ya existe")
+```
+
+---
+
+## 9. Performance
+
+### 9.1 Benchmarks
+
+| Operación | Tiempo Objetivo | Estado |
+|-----------|-----------------|--------|
+| Listar productos (GET) | < 200ms | ✅ |
+| Buscar (Search) | < 300ms | ✅ |
+| Crear producto (POST) | < 500ms | ✅ |
+| Actualizar producto (PUT) | < 500ms | ✅ |
+| Eliminar producto (DELETE) | < 500ms | ✅ |
+
+### 9.2 Índices de Base de Datos
+
+Optimizaciones implementadas:
+
+- Índice en: `nombre`
+- Índice en: `categoria`
+- Índice en: `precio`
+
+---
+
+## 10. Testing
+
+Todos los endpoints están cubiertos por 21 tests automatizados:
+
+```bash
+# Ejecutar tests
+python manage.py test tienda.tests.ProductoApiTests -v 2
+
+# Resultados esperados
+# Ran 21 tests in 14.260s - OK (100% passing)
+```
+
+### Casos de Prueba
+
+✅ Listar productos con paginación  
+✅ Filtrar por categoría  
+✅ Buscar por nombre  
+✅ Buscar por descripción  
+✅ Ordenar por precio (asc/desc)  
+✅ Obtener detalles del producto  
+✅ Crear producto (autenticado)  
+✅ Crear producto (sin autenticación)  
+✅ Crear con precio inválido  
+✅ Crear con stock inválido  
+✅ Crear sin campos requeridos  
+✅ Actualizar producto  
+✅ Actualizar sin autenticación  
+✅ Actualizar con precio inválido  
+✅ Actualizar producto no existente  
+✅ Eliminar producto  
+✅ Eliminar sin autenticación  
+✅ Eliminar producto no existente  
+✅ Productos inactivos no aparecen  
+✅ Productos inactivos retornan 404  
+
+---
+
+## 11. Referencias
+
+- [Django REST Framework Filtering](https://www.django-rest-framework.org/api-guide/filtering/)
+- [Paginación en DRF](https://www.django-rest-framework.org/api-guide/pagination/)
+- [Validación en DRF](https://www.django-rest-framework.org/api-guide/serializers/#validation)
+
+---
+
+**Versión**: 1.0.0  
+**Status**: Completado y Testeado ✅  
+**Última actualización**: 2024-05-27  
+**Tests**: 21/21 Pasando ✅

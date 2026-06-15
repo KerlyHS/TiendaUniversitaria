@@ -42,7 +42,7 @@ class VentaAdmin(admin.ModelAdmin):
 
 @admin.register(DetalleVenta)
 class DetalleVentaAdmin(admin.ModelAdmin):
-    list_display = ('venta', 'producto', 'cantidad', 'precio_unitario')
+    list_display = ('pedido', 'producto', 'cantidad', 'precio_unitario')
 
 @admin.register(Caja)
 class CajaAdmin(admin.ModelAdmin):
