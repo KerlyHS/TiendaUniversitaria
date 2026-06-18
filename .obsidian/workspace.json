@@ -11,15 +11,34 @@
             "id": "31b44d1bb9f3fc9e",
             "type": "leaf",
             "state": {
-              "type": "image",
-              "state": {
-                "file": "MODELO C4 PLANTUML/ModeloC4_TiendaUniversitaria-Modelo C3.webp"
-              },
-              "icon": "lucide-image",
-              "title": "ModeloC4_TiendaUniversitaria-Modelo C3"
+              "type": "graph",
+              "state": {},
+              "icon": "lucide-git-fork",
+              "title": "Vista gráfica"
+            }
+          },
+          {
+            "id": "2e806eca907333f4",
+            "type": "leaf",
+            "state": {
+              "type": "smart-lookup-release-notes-view",
+              "state": {},
+              "icon": "file-text",
+              "title": "Release Notes"
+            }
+          },
+          {
+            "id": "b114dcbea8860b78",
+            "type": "leaf",
+            "state": {
+              "type": "graph",
+              "state": {},
+              "icon": "lucide-git-fork",
+              "title": "Vista gráfica"
             }
           }
-        ]
+        ],
+        "currentTab": 2
       }
     ],
     "direction": "vertical"
@@ -92,17 +111,16 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "MODELO C4 PLANTUML/ModeloC4_TiendaUniversitaria-Modelo C3.webp",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
                 "showSearch": false,
                 "searchQuery": "",
-                "backlinkCollapsed": false,
+                "backlinkCollapsed": true,
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "Enlaces entrantes de ModeloC4_TiendaUniversitaria-Modelo C3"
+              "title": "Enlaces entrantes"
             }
           },
           {
@@ -168,8 +186,8 @@
             "state": {
               "type": "smart-env-status-view",
               "state": {},
-              "icon": "gauge",
-              "title": "Smart Environment Status"
+              "icon": "lucide-ghost",
+              "title": "smart-env-status-view"
             }
           },
           {
@@ -182,7 +200,8 @@
               "title": "Connections"
             }
           }
-        ]
+        ],
+        "currentTab": 4
       }
     ],
     "direction": "horizontal",
@@ -190,6 +209,7 @@
   },
   "left-ribbon": {
     "hiddenItems": {
+      "smart-lookup:Smart Lookup: Open lookup view": false,
       "switcher:Abrir selector rápido": false,
       "graph:Abrir vista gráfica": false,
       "canvas:Crear nuevo lienzo": false,
@@ -202,8 +222,12 @@
       "smart-connections:Smart Connections: Open random connection": false
     }
   },
-  "active": "d7ecbbb12592dafe",
+  "active": "e614d0f1da00e2cd",
   "lastOpenFiles": [
+    "frontend/vite.config.js.timestamp-1781614110313-c9747a3b531028.mjs",
+    "revision 27/ANALISIS_PROYECTO_COMPLETO.md",
+    "frontend/node_modules/ms/license.md",
+    "MODELO C4 PLANTUML/ModeloC4_TiendaUniversitaria-Modelo C3.webp",
     "MODELO C4 PLANTUML/endpoints tienda.pdf",
     "Sin título.canvas"
   ]

@@ -23,13 +23,8 @@ export const authService = {
    * Spec-001: Registro de usuario con consentimiento LOPDP
    * POST /api/v1/usuarios/registro/
    */
-  register: async (email, password, nombre_completo, consentimiento_lopdp) => {
-    const response = await apiClient.post('/usuarios/registro/', {
-      email,
-      password,
-      nombre_completo,
-      consentimiento_lopdp,
-    });
+  register: async (userData) => {
+    const response = await apiClient.post('/usuarios/registro/', userData);
     return response.data;
   },
 

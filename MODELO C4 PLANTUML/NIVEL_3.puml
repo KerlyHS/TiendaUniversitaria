@@ -12,9 +12,9 @@ title Diagrama de Componentes - API Backend (Tienda Universitaria)
 Container(app_web, "Aplicacion web", "Container: React", "Aplicación para navegadores web")
 Container(app_movil, "Aplicacion movil", "Container: React Native", "Aplicación para los celulares")
 
-ContainerDb(db, "Base de datos", "Container: MySQL", "guarda toda la información del sistema")
+ContainerDb(db, "Base de datos", "Container: SQLite3", "guarda toda la información del sistema (Productos, Usuarios, Pedidos, etc.)")
 
-System_Ext(api_copyandpay, "API COPYAndPAY", "API a usar para las transacciones\n[Component: Python Service / API Client]")
+System_Ext(api_stripe, "API Stripe", "API a usar para las transacciones de pago con tarjetas\n[Component: Python Service / API Client]")
 System_Ext(smtp, "Sistema de Correo SMTP", "sistema a usar para el uso de envio de correos\n[Component: Protocolo SMTP]")
 
 
@@ -26,7 +26,7 @@ Container_Boundary(api_backend, "API BACKEND") {
 
     Component(mod_inventario, "Modulo Inventario", "Django App / JWT", "Controla ingresos, salidas, niveles de stock y alertas de reposición.")
     Component(mod_ventas, "Modulo Ventas", "Django App", "Orquesta el carrito de compras, creación de pedidos y estados de entrega.")
-    Component(mod_usuario, "Modulo Usuario", "Django App", "Gestiona autenticación, perfiles y permisos de los diferentes roles.")
+    Component(mod_usuario, "Modulo Usuario", "Django App", "Gestiona autenticación JWT, perfiles, roles y auditoría de consentimientos LOPDP.")
     Component(mod_catalogo, "Modulo de Catalogo", "Django App", "Administra la vista de productos, categorias y promociones activas.")
     Component(mod_reportes, "Modulo de Reportes", "Django App", "Genera estadisticas centralizadas de ventas, inventario y caja.")
 
@@ -63,7 +63,7 @@ Rel_R(mod_catalogo, db, "Interactuan con la base de datos y devuelven la informa
 Rel_R(mod_reportes, db, "Interactuan con la base de datos y devuelven la información", "JSON")
 
 ' Salidas a sistemas externos
-Rel_R(srv_pagos, api_copyandpay, "Procesa transacción", "JSON/HTTPS")
+Rel_R(srv_pagos, api_stripe, "Procesa transacción de pago", "JSON/HTTPS")
 Rel_R(srv_notificaciones, smtp, "Envia emails al cliente", "SMTP")
 
 ' Forzar un poco el diseño (Layout)
