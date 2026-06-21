@@ -100,7 +100,9 @@ class PedidoViewSet(viewsets.ModelViewSet):
         Pedido completo con número generado y totales calculados.
         """
         serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+        if not serializer.is_valid():
+            print("PEDIDO CREATE ERRORS:", serializer.errors)
+            serializer.is_valid(raise_exception=True)
         pedido = serializer.save()
         
         # Retornar detalle completo del pedido creado
@@ -232,6 +234,37 @@ class PagoViewSet(viewsets.ViewSet):
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+    @action(detail=False, methods=['post'], url_path='crear-payment-intent')
+    def crear_payment_intent(self, request):
+        serializer = CheckoutRequestSerializer(data=request.data)
+        if serializer.is_valid():
+            pedido_id = serializer.validated_data['pedido_id']
+            pedido = Pedido.objects.get(id=pedido_id)
+
+            if pedido.cliente != request.user and request.user.rol not in ['ADMIN', 'GERENTE']:
+                return Response({"detail": "No tienes permiso para pagar este pedido."}, status=status.HTTP_403_FORBIDDEN)
+
+            try:
+                # Create PaymentIntent
+                intent = StripePaymentService.create_payment_intent(pedido)
+
+                # Create or Update Transaccion
+                transaccion, created = Transaccion.objects.update_or_create(
+                    pedido=pedido,
+                    defaults={
+                        'stripe_session_id': intent.id, # reusamos este campo para guardar el intent id
+                        'monto': pedido.total,
+                        'estado': EstadoTransaccion.PENDING,
+                        'metodo_pago': 'STRIPE'
+                    }
+                )
+
+                return Response({'client_secret': intent.client_secret}, status=status.HTTP_200_OK)
+            except Exception as e:
+                return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 class StripeWebhookView(APIView):
     authentication_classes = []
     permission_classes = []
@@ -249,24 +282,119 @@ class StripeWebhookView(APIView):
             # Invalid signature
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
-        # Handle the checkout.session.completed event
+        # Handle both Checkout Session and Payment Intent events
         if event['type'] == 'checkout.session.completed':
             session = event['data']['object']
-            
-            # Fulfill the purchase...
             pedido_id = session.get('client_reference_id')
-            if pedido_id:
-                try:
-                    with transaction.atomic():
-                        pedido = Pedido.objects.select_for_update().get(id=pedido_id)
-                        if pedido.estado == 'RECIBIDO':
-                            pedido.estado = 'LISTO'
-                            pedido.save()
-                            
-                            transaccion = pedido.transaccion
-                            transaccion.estado = EstadoTransaccion.APROBADO
-                            transaccion.save()
-                except Pedido.DoesNotExist:
-                    pass
+        elif event['type'] == 'payment_intent.succeeded':
+            payment_intent = event['data']['object']
+            pedido_id = payment_intent.get('metadata', {}).get('pedido_id')
+        else:
+            pedido_id = None
+
+        if pedido_id:
+            try:
+                with transaction.atomic():
+                    pedido = Pedido.objects.select_for_update().get(id=pedido_id)
+                    if pedido.estado == 'RECIBIDO':
+                        pedido.estado = 'LISTO'
+                        pedido.save()
+                        
+                        transaccion = pedido.transaccion
+                        transaccion.estado = EstadoTransaccion.APROBADO
+                        transaccion.save()
+            except Pedido.DoesNotExist:
+                pass
         
         return Response(status=status.HTTP_200_OK)
+
+# ================= DASHBOARD STATS =================
+
+from django.db.models import Sum, Count
+from django.utils import timezone
+from datetime import timedelta
+
+class DashboardStatsView(APIView):
+    """
+    # Dashboard Stats
+    Devuelve los indicadores clave (KPIs) para el Panel de Control del Administrador.
+    """
+    # Require admin or staff permissions
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        if request.user.rol not in ['ADMIN', 'GERENTE', 'SUPERVISOR', 'BODEGUERO', 'CAJERO']:
+            return Response({"detail": "No tienes permiso para ver el panel."}, status=status.HTTP_403_FORBIDDEN)
+
+        now = timezone.now()
+        start_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        start_of_today = now.replace(hour=0, minute=0, second=0, microsecond=0)
+
+        # Ventas del mes (Monto de pedidos pagados/completados)
+        pedidos_mes = Pedido.objects.filter(
+            fecha_creacion__gte=start_of_month,
+            estado__in=['PAGADO', 'PREPARACION', 'LISTO', 'ENTREGADO']
+        )
+        ventas_totales_mes = pedidos_mes.aggregate(Sum('total'))['total__sum'] or 0
+        total_pedidos_mes = pedidos_mes.count()
+        ticket_promedio = (ventas_totales_mes / total_pedidos_mes) if total_pedidos_mes > 0 else 0
+
+        # Órdenes de hoy
+        ordenes_hoy = Pedido.objects.filter(fecha_creacion__gte=start_of_today).count()
+        pendientes_hoy = Pedido.objects.filter(fecha_creacion__gte=start_of_today, estado='RECIBIDO').count()
+
+        # Datos para el Gráfico (Últimos 6 meses o días del mes)
+        # Aquí mockeamos los últimos 6 meses para la demostración
+        grafico_ventas = [
+            {"name": "Ene", "ventas": 1200},
+            {"name": "Feb", "ventas": 1900},
+            {"name": "Mar", "ventas": 1500},
+            {"name": "Abr", "ventas": 2100},
+            {"name": "May", "ventas": 1800},
+            {"name": "Jun", "ventas": float(ventas_totales_mes)},
+        ]
+
+        # Alertas de Stock
+        alertas_stock = Producto.objects.filter(is_activo=True, stock__lte=5).values('id', 'nombre', 'stock', 'imagen')[:5]
+        alertas_list = [{"id": a['id'], "nombre": a['nombre'], "stock": a['stock'], "imagen": a['imagen']} for a in alertas_stock]
+
+        # Órdenes Recientes
+        ordenes_recientes_qs = Pedido.objects.order_by('-fecha_creacion')[:5]
+        ordenes_recientes = []
+        for p in ordenes_recientes_qs:
+            ordenes_recientes.append({
+                "id": p.id,
+                "cliente": p.cliente.nombre_completo if p.cliente else "Anónimo",
+                "monto": float(p.total),
+                "fecha": p.fecha_creacion.strftime("%Y-%m-%d %H:%M"),
+                "estado": p.estado
+            })
+
+        # Reporte Caja
+        caja_activa = Caja.objects.filter(fecha_cierra__isnull=True).first()
+        saldo_actual = caja_activa.saldo_abre if caja_activa else 0
+        entradas_hoy = 450.00  # Mock
+        salidas_hoy = 25.00    # Mock
+
+        data = {
+            "kpis": {
+                "ventas_mes": float(ventas_totales_mes),
+                "ticket_promedio": float(ticket_promedio),
+                "ordenes_hoy": ordenes_hoy,
+                "pendientes_empaque": pendientes_hoy
+            },
+            "grafico_ventas": grafico_ventas,
+            "caja": {
+                "saldo_actual": float(saldo_actual),
+                "entradas_hoy": entradas_hoy,
+                "salidas_hoy": salidas_hoy,
+                "ultimos_cierres": [
+                    {"fecha": "Ayer", "monto": 1150.00},
+                    {"fecha": "15 Oct", "monto": 980.00}
+                ]
+            },
+            "alertas_stock": alertas_list,
+            "ordenes_recientes": ordenes_recientes
+        }
+
+        return Response(data)

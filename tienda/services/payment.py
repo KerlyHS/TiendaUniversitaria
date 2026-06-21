@@ -53,6 +53,23 @@ class StripePaymentService:
         return session
 
     @staticmethod
+    def create_payment_intent(pedido):
+        """
+        Crea un PaymentIntent en Stripe para usar con Stripe Elements.
+        """
+        total_cents = int(Decimal(str(pedido.total)) * Decimal('100'))
+        
+        intent = stripe.PaymentIntent.create(
+            amount=total_cents,
+            currency='usd',
+            metadata={
+                'pedido_id': str(pedido.id),
+                'cliente_email': pedido.cliente.email,
+            }
+        )
+        return intent
+
+    @staticmethod
     def construct_webhook_event(payload, sig_header):
         """
         Valida la firma y construye el evento del Webhook.

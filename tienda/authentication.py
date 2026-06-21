@@ -76,9 +76,9 @@ class AuthSerializer(serializers.Serializer):
                 "Email y contraseña son requeridos."
             )
         
-        # Buscar usuario por email
+        # Buscar usuario por email (case insensitive)
         try:
-            usuario = Usuario.objects.get(email=email)
+            usuario = Usuario.objects.get(email__iexact=email)
         except Usuario.DoesNotExist:
             raise serializers.ValidationError(
                 "El correo o la contraseña no coinciden."

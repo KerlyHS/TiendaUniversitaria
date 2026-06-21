@@ -4,7 +4,7 @@ import { GraduationCap, Mail, Lock } from 'lucide-react';
 import { Input } from '../../../shared/components/UI/Input';
 import { Button } from '../../../shared/components/UI/Button';
 import { Checkbox } from '../../../shared/components/UI/Checkbox';
-import { authService } from '../../../core/api/services';
+import { useAuth } from '../../../core/hooks/useAuth';
 import { useToast } from '../../../shared/context/ToastContext';
 
 export const LoginPage = () => {
@@ -13,6 +13,7 @@ export const LoginPage = () => {
   const [errorMsg, setErrorMsg] = useState('');
   
   const navigate = useNavigate();
+  const { login } = useAuth();
   const { addToast } = useToast();
 
   const [isFormHovered, setIsFormHovered] = useState(false);
@@ -28,30 +29,28 @@ export const LoginPage = () => {
     setIsLoading(true);
 
     try {
-      // Usamos el username (email) y el password
-      const response = await authService.login(formData.username, formData.password);
+      const response = await login(formData.username, formData.password);
       
-      if (response.access) {
-        // Guardar token y redirigir
-        localStorage.setItem('jwt_token', response.access);
-        if (response.refresh) {
-          localStorage.setItem('jwt_refresh', response.refresh);
-        }
-        
+      if (response.success) {
         addToast({
           title: '¡Bienvenido!',
           message: 'Has iniciado sesión correctamente.',
           type: 'success'
         });
         
-        navigate('/catalogo');
+        // Redirección basada en el rol
+        const rol = response.user?.rol;
+        if (['ADMIN', 'GERENTE', 'SUPERVISOR', 'BODEGUERO', 'CAJERO'].includes(rol)) {
+          navigate('/admin/dashboard');
+        } else {
+          navigate('/catalogo');
+        }
+      } else {
+        setErrorMsg(response.error || 'Credenciales incorrectas. Verifica tu correo y contraseña.');
       }
     } catch (error) {
       console.error('Error de login:', error);
-      setErrorMsg(
-        error.response?.data?.detail || 
-        'Credenciales incorrectas. Verifica tu correo y contraseña.'
-      );
+      setErrorMsg('Error al conectar con el servidor.');
     } finally {
       setIsLoading(false);
     }
