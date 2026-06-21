@@ -159,10 +159,213 @@ class VentaViewSet(viewsets.ModelViewSet):
     serializer_class = VentaSerializer
     permission_classes = [IsAuthenticated]
 
+from django.db import models
+from tienda.serializers import generate_order_number
+
 class CajaViewSet(viewsets.ModelViewSet):
     queryset = Caja.objects.all()
     serializer_class = CajaSerializer
     permission_classes = [IsAuthenticated]
+
+    @action(detail=False, methods=['post'], url_path='procesar-venta')
+    def procesar_venta(self, request):
+        user = request.user
+        if user.rol not in ['ADMIN', 'CAJERO', 'GERENTE']:
+            return Response({"detail": "Permiso denegado."}, status=status.HTTP_403_FORBIDDEN)
+        
+        data = request.data
+        cliente_id = data.get('cliente_id')
+        metodo_pago = data.get('metodo_pago', 'EFECTIVO')
+        detalles_data = data.get('detalles', [])
+        
+        if not detalles_data:
+            return Response({"detail": "La venta debe tener al menos un producto."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Cliente
+        if not cliente_id:
+            try:
+                cliente = Usuario.objects.get(email='consumidor.final@unl.edu.ec')
+            except Usuario.DoesNotExist:
+                return Response({"detail": "Cliente consumidor final no encontrado."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        else:
+            try:
+                cliente = Usuario.objects.get(id=cliente_id)
+            except Usuario.DoesNotExist:
+                return Response({"detail": "Cliente especificado no encontrado."}, status=status.HTTP_404_NOT_FOUND)
+        
+        if metodo_pago != 'EFECTIVO' and cliente.email == 'consumidor.final@unl.edu.ec':
+            return Response(
+                {"detail": "Para pagos con tarjeta o transferencia es OBLIGATORIO emitir factura (seleccionar o crear cliente real)."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        with transaction.atomic():
+            numero_pedido = generate_order_number()
+            pedido = Pedido.objects.create(
+                numero_pedido=numero_pedido,
+                cliente=cliente,
+                tipo_entrega='TIENDA',
+                estado='ENTREGADO'
+            )
+            
+            from decimal import Decimal
+            subtotal = Decimal('0.00')
+            impuesto_total = Decimal('0.00')
+            
+            for detalle in detalles_data:
+                producto_id = detalle.get('producto_id')
+                cantidad = int(detalle.get('cantidad', 1))
+                
+                try:
+                    producto = Producto.objects.select_for_update().get(id=producto_id)
+                except Producto.DoesNotExist:
+                    raise serializers.ValidationError(f"Producto {producto_id} no existe.")
+                
+                if producto.stock < cantidad:
+                    raise serializers.ValidationError(f"Stock insuficiente para {producto.nombre}.")
+                    
+                subtotal_item = producto.precio * cantidad
+                
+                DetalleVenta.objects.create(
+                    pedido=pedido,
+                    producto=producto,
+                    nombre_producto=producto.nombre,
+                    descripcion=producto.descripcion or '',
+                    cantidad=cantidad,
+                    precio_unitario=producto.precio,
+                    subtotal=subtotal_item
+                )
+                
+                producto.stock -= cantidad
+                producto.save()
+                
+                subtotal += subtotal_item
+                if producto.aplica_impuesto:
+                    from django.conf import settings
+                    impuesto_total += subtotal_item * Decimal('0.12')
+                    
+            pedido.subtotal = subtotal
+            pedido.impuesto = impuesto_total
+            pedido.total = subtotal + impuesto_total
+            pedido.save()
+            
+            venta = Venta.objects.create(
+                subtotal=subtotal,
+                metodo_pago=metodo_pago,
+                pedido=pedido,
+                cajero=user
+            )
+            
+        return Response({
+            "mensaje": "Venta procesada exitosamente.",
+            "pedido_id": pedido.id,
+            "venta_id": venta.id,
+            "numero_pedido": pedido.numero_pedido,
+            "total": pedido.total
+        }, status=status.HTTP_201_CREATED)
+
+    @action(detail=False, methods=['get', 'post'], url_path='clientes')
+    def clientes(self, request):
+        if request.method == 'POST':
+            data = request.data
+            nombre_completo = data.get('nombre_completo')
+            identificacion = data.get('identificacion', '')
+            direccion = data.get('direccion', '')
+            telefono = data.get('telefono', '')
+            email = data.get('email')
+            
+            if not email and identificacion:
+                email = f"{identificacion}@cliente.unl.edu.ec"
+            elif not email:
+                import uuid
+                email = f"{uuid.uuid4().hex[:10]}@cliente.unl.edu.ec"
+                
+            if not nombre_completo:
+                return Response({"detail": "El nombre completo es obligatorio."}, status=status.HTTP_400_BAD_REQUEST)
+                
+            if Usuario.objects.filter(email=email).exists():
+                return Response({"detail": "Ya existe un usuario con este correo."}, status=status.HTTP_400_BAD_REQUEST)
+            if identificacion and Usuario.objects.filter(identificacion=identificacion).exclude(identificacion='').exists():
+                return Response({"detail": "Ya existe un usuario con esta identificación."}, status=status.HTTP_400_BAD_REQUEST)
+                
+            cliente = Usuario.objects.create(
+                username=email,
+                email=email,
+                nombre_completo=nombre_completo,
+                identificacion=identificacion,
+                direccion=direccion,
+                telefono=telefono,
+                rol='CLIENTE',
+                is_active=True
+            )
+            return Response({
+                "id": cliente.id, 
+                "nombre_completo": cliente.nombre_completo, 
+                "identificacion": cliente.identificacion, 
+                "email": cliente.email
+            }, status=status.HTTP_201_CREATED)
+            
+        q = request.query_params.get('q', '')
+        if len(q) < 3:
+            return Response([])
+            
+        clientes = Usuario.objects.filter(rol='CLIENTE').filter(
+            models.Q(nombre_completo__icontains=q) |
+            models.Q(identificacion__icontains=q) |
+            models.Q(email__icontains=q)
+        )[:10]
+        
+        data = [{"id": c.id, "nombre_completo": c.nombre_completo, "identificacion": c.identificacion, "email": c.email} for c in clientes]
+        return Response(data)
+
+    @action(detail=False, methods=['get'], url_path=r'comprobante/(?P<pedido_id>\d+)/pdf')
+    def comprobante_pdf(self, request, pedido_id=None):
+        try:
+            pedido = Pedido.objects.get(id=pedido_id)
+        except Pedido.DoesNotExist:
+            return Response({"detail": "Pedido no encontrado."}, status=404)
+            
+        from django.http import HttpResponse
+        from reportlab.pdfgen import canvas
+        from reportlab.lib.pagesizes import A4
+        import io
+        
+        buffer = io.BytesIO()
+        p = canvas.Canvas(buffer, pagesize=A4)
+        
+        p.setFont("Helvetica-Bold", 16)
+        p.drawString(50, 800, "Tienda Universitaria UNL")
+        p.setFont("Helvetica", 12)
+        p.drawString(50, 780, f"Comprobante / Factura: {pedido.numero_pedido}")
+        p.drawString(50, 760, f"Fecha: {pedido.fecha_creacion.strftime('%Y-%m-%d %H:%M')}")
+        
+        p.drawString(50, 730, "Datos del Cliente:")
+        p.setFont("Helvetica", 10)
+        p.drawString(50, 715, f"Nombre: {pedido.cliente.nombre_completo}")
+        p.drawString(50, 700, f"RUC/CI: {pedido.cliente.identificacion or 'Consumidor Final'}")
+        p.drawString(50, 685, f"Correo: {pedido.cliente.email}")
+        
+        p.setFont("Helvetica-Bold", 12)
+        p.drawString(50, 650, "Detalle de Productos:")
+        p.setFont("Helvetica", 10)
+        y = 630
+        for dt in pedido.detalles_venta.all():
+            p.drawString(50, y, f"{dt.cantidad}x {dt.nombre_producto} - ${dt.subtotal}")
+            y -= 20
+            
+        y -= 20
+        p.setFont("Helvetica-Bold", 12)
+        p.drawString(50, y, f"Subtotal: ${pedido.subtotal}")
+        p.drawString(50, y-20, f"IVA: ${pedido.impuesto}")
+        p.drawString(50, y-40, f"Total a Pagar: ${pedido.total}")
+        
+        p.showPage()
+        p.save()
+        
+        buffer.seek(0)
+        response = HttpResponse(buffer, content_type='application/pdf')
+        response['Content-Disposition'] = f'inline; filename="comprobante_{pedido.numero_pedido}.pdf"'
+        return response
 
 # ================= ENDPOINTS PÚBLICOS =================
 

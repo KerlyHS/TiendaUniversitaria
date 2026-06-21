@@ -75,13 +75,13 @@ export const GlobalHeader = () => {
           </div>
           
           {/* Ubícanos */}
-          <div className="hidden lg:flex items-center gap-1 cursor-pointer hover:bg-white/10 transition-colors p-2 rounded-DEFAULT group">
+          <a href="https://maps.app.goo.gl/X1et5xkBGnCPL29u5" target="_blank" rel="noopener noreferrer" className="hidden lg:flex items-center gap-1 cursor-pointer hover:bg-white/10 transition-colors p-2 rounded-DEFAULT group">
             <span className="material-symbols-outlined text-primary-fixed-dim group-hover:text-primary-fixed">location_on</span>
             <div className="flex flex-col">
               <span className="font-label-caps text-label-caps text-on-primary/70">Ubícanos en</span>
               <span className="font-title-md text-[14px] leading-tight text-on-primary font-bold group-hover:text-primary-fixed">Campus Central</span>
             </div>
-          </div>
+          </a>
           
           {/* Search Bar */}
           <form onSubmit={handleSearchSubmit} className="flex-grow max-w-3xl flex relative" ref={searchContainerRef}>
@@ -131,7 +131,7 @@ export const GlobalHeader = () => {
                         <span className="font-body-sm font-bold text-on-surface">{result.nombre}</span>
                         <span className="text-xs text-on-surface-variant">{result.categoria?.nombre}</span>
                       </div>
-                      <div className="font-bold text-primary">${result.precio.toFixed(2)}</div>
+                      <div className="font-bold text-primary">${Number(result.precio).toFixed(2)}</div>
                     </Link>
                   ))
                 ) : (
@@ -146,7 +146,7 @@ export const GlobalHeader = () => {
           {/* Trailing Actions */}
           <div className="flex items-center gap-1 flex-shrink-0 text-on-primary">
             {isAuthenticated ? (
-              <Link to="/dashboard" className="hidden md:flex items-center gap-2 p-2 hover:bg-white/10 rounded-DEFAULT transition-colors">
+              <Link to={user?.rol === 'ADMIN' ? '/admin' : '/dashboard'} className="hidden md:flex items-center gap-2 p-2 hover:bg-white/10 rounded-DEFAULT transition-colors">
                 <div className="w-8 h-8 rounded-full bg-primary/20 text-primary-fixed-dim flex items-center justify-center">
                   <span className="material-symbols-outlined text-[20px]">person</span>
                 </div>
@@ -165,7 +165,7 @@ export const GlobalHeader = () => {
             )}
             
             {isAuthenticated ? (
-              <Link to="/dashboard" className="md:hidden p-2 hover:bg-white/10 rounded-full transition-colors flex items-center justify-center">
+              <Link to={user?.rol === 'ADMIN' ? '/admin' : '/dashboard'} className="md:hidden p-2 hover:bg-white/10 rounded-full transition-colors flex items-center justify-center">
                 <div className="w-8 h-8 rounded-full bg-primary/20 text-primary-fixed-dim flex items-center justify-center">
                   <span className="material-symbols-outlined">person</span>
                 </div>

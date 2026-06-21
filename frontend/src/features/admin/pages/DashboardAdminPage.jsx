@@ -1,15 +1,24 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { TrendingUp, ShoppingBag, DollarSign, AlertTriangle } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import apiClient from '../../../core/api/apiClient';
 import { useToast } from '../../../shared/context/ToastContext';
+import { useAuth } from '../../../core/hooks/useAuth';
 
 export const DashboardAdminPage = () => {
   const [stats, setStats] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const { addToast } = useToast();
+  const navigate = useNavigate();
+  const { user } = useAuth();
 
   useEffect(() => {
+    if (user?.rol === 'CAJERO') {
+      navigate('/admin/caja', { replace: true });
+      return;
+    }
+
     const fetchStats = async () => {
       try {
         const response = await apiClient.get('/dashboard/stats/');

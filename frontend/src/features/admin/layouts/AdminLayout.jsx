@@ -13,12 +13,12 @@ export const AdminLayout = () => {
   };
 
   const navItems = [
-    { name: 'Panel Control', path: '/admin/dashboard', icon: LayoutDashboard },
-    { name: 'Inventario', path: '/admin/inventario', icon: Package },
-    { name: 'Ventas', path: '/admin/ventas', icon: TrendingUp },
-    { name: 'Caja', path: '/admin/caja', icon: Wallet },
-    { name: 'Configuración', path: '/admin/configuracion', icon: Settings },
-  ];
+    { name: 'Panel Control', path: '/admin/dashboard', icon: LayoutDashboard, roles: ['ADMIN', 'GERENTE'] },
+    { name: 'Inventario', path: '/admin/inventario', icon: Package, roles: ['ADMIN', 'GERENTE', 'BODEGUERO'] },
+    { name: 'Ventas', path: '/admin/ventas', icon: TrendingUp, roles: ['ADMIN', 'GERENTE'] },
+    { name: 'Caja', path: '/admin/caja', icon: Wallet, roles: ['ADMIN', 'CAJERO', 'GERENTE'] },
+    { name: 'Configuración', path: '/admin/configuracion', icon: Settings, roles: ['ADMIN', 'CAJERO', 'GERENTE', 'BODEGUERO'] },
+  ].filter(item => item.roles.includes(user?.rol));
 
   return (
     <div className="flex flex-col h-screen bg-surface-container-lowest overflow-hidden">

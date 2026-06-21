@@ -13,6 +13,8 @@ import { CheckoutSuccessPage } from '../features/orders/pages/CheckoutSuccessPag
 import { CheckoutCancelPage } from '../features/orders/pages/CheckoutCancelPage';
 import { InventoryAdminPage } from '../features/admin/pages/InventoryAdminPage';
 import { DashboardAdminPage } from '../features/admin/pages/DashboardAdminPage';
+import { CajaAdminPage } from '../features/admin/pages/CajaAdminPage';
+import { VentasAdminPage } from '../features/admin/pages/VentasAdminPage';
 import { AdminLayout } from '../features/admin/layouts/AdminLayout';
 
 // Protected Route
@@ -130,8 +132,8 @@ export const App = () => {
           <Route path="dashboard" element={<DashboardAdminPage />} />
           <Route path="inventario" element={<InventoryAdminPage />} />
           {/* Fallback temporales */}
-          <Route path="ventas" element={<div className="p-8">Módulo de Ventas en construcción</div>} />
-          <Route path="caja" element={<div className="p-8">Módulo de Caja en construcción</div>} />
+          <Route path="ventas" element={<VentasAdminPage />} />
+          <Route path="caja" element={<CajaAdminPage />} />
           <Route path="configuracion" element={<div className="p-8">Módulo de Configuración en construcción</div>} />
           <Route index element={<Navigate to="/admin/dashboard" replace />} />
         </Route>
