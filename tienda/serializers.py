@@ -452,7 +452,7 @@ class UsuarioSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Usuario
-        fields = ['id', 'nombre_completo', 'email', 'password', 'identificacion', 'direccion', 'telefono', 'rol', 'is_universidad', 'consentimiento_lopdp', 'fecha_registro']
+        fields = ['id', 'nombre_completo', 'email', 'password', 'identificacion', 'direccion', 'telefono', 'rol', 'is_universidad', 'comunidad_rol', 'consentimiento_lopdp', 'fecha_registro']
         read_only_fields = ['id', 'fecha_registro']
 
     def validate(self, data):
@@ -486,8 +486,9 @@ class UsuarioSerializer(serializers.ModelSerializer):
             identificacion=validated_data.get('identificacion', ''),
             direccion=validated_data.get('direccion', ''),
             telefono=validated_data.get('telefono', ''),
-            rol=validated_data.get('rol', 'CLIENTE'),
+            rol='CLIENTE', # Siempre forzamos que los registros desde el frontend sean clientes
             is_universidad=validated_data.get('is_universidad', False),
+            comunidad_rol=validated_data.get('comunidad_rol', ''),
             consentimiento_lopdp=True,
             consentimiento_timestamp=timezone.now(),
             privacy_policy=latest_policy

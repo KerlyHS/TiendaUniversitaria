@@ -1,8 +1,10 @@
+import { useNavigate } from 'react-router-dom';
 import { ShoppingCart, X, Trash2, Lock } from 'lucide-react';
 import { Button } from '../../../shared/components/UI/Button';
 import { useCart } from '../../../shared/context/CartContext';
 
 export const OffCanvasCart = () => {
+  const navigate = useNavigate();
   const { isCartOpen, closeCart, cartItems, updateQuantity, removeFromCart, totalItems, subtotal } = useCart();
 
   if (!isCartOpen) return null;
@@ -84,7 +86,14 @@ export const OffCanvasCart = () => {
               <span className="text-primary">${subtotal.toFixed(2)}</span>
             </div>
             
-            <Button className="w-full bg-primary text-on-primary hover:bg-primary-container" size="lg">
+            <Button 
+              className="w-full bg-primary text-on-primary hover:bg-primary-container" 
+              size="lg"
+              onClick={() => {
+                closeCart();
+                navigate('/checkout');
+              }}
+            >
               Ir a Pagar
             </Button>
             <p className="text-center text-xs text-on-surface-variant mt-4 flex items-center justify-center gap-1">

@@ -7,7 +7,7 @@ from .authentication import LoginView, LogoutView, UserProfileView
 from .views import (
     UsuarioRegistrationView, PrivacyPolicyRetrieveView, ProductoViewSet,
     PromocionViewSet, PedidoViewSet, VentaViewSet, CajaViewSet,
-    PagoViewSet, StripeWebhookView
+    PagoViewSet, StripeWebhookView, DashboardStatsView
 )
 
 router = DefaultRouter()
@@ -20,6 +20,10 @@ router.register(r'pagos', PagoViewSet, basename='pago')
 
 urlpatterns = [
     path('', include(router.urls)),
+    
+    # ================= DASHBOARD =================
+    path('dashboard/stats/', DashboardStatsView.as_view(), name='dashboard-stats'),
+    
     
     # ================= AUTENTICACIÓN =================
     path('auth/login/', LoginView.as_view(), name='auth-login'),

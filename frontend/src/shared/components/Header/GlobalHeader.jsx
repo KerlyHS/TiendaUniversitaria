@@ -1,18 +1,36 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../../../shared/context/CartContext';
 import { CustomSearchEngine } from '../../../shared/utils/searchEngine';
-import { mockProducts } from '../../../shared/utils/mockData';
+import { catalogService } from '../../../core/api/services';
+import { useAuth } from '../../../core/hooks/useAuth';
 
 export const GlobalHeader = () => {
   const { totalItems, openCart } = useCart();
+  const { isAuthenticated, user } = useAuth();
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchCategory, setSearchCategory] = useState('');
   const [showResults, setShowResults] = useState(false);
   const searchContainerRef = useRef(null);
 
+  const [allProducts, setAllProducts] = useState([]);
+
   // Inicializar motor de búsqueda (en un app real vendría de un endpoint o store)
-  const searchEngine = useMemo(() => new CustomSearchEngine(mockProducts), []);
+  const searchEngine = useMemo(() => new CustomSearchEngine(allProducts), [allProducts]);
   
+  useEffect(() => {
+    const fetchProds = async () => {
+      try {
+        const res = await catalogService.listProducts();
+        setAllProducts(res.results || res);
+      } catch (e) {
+        console.error("Error al cargar productos para buscador", e);
+      }
+    };
+    fetchProds();
+  }, []);
+
   // Realizar búsqueda
   const searchResults = useMemo(() => {
     return searchEngine.search(searchQuery);
@@ -28,6 +46,17 @@ export const GlobalHeader = () => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    if (searchQuery.trim() || searchCategory) {
+      const params = new URLSearchParams();
+      if (searchQuery.trim()) params.append('q', searchQuery.trim());
+      if (searchCategory) params.append('categoria', searchCategory);
+      setShowResults(false);
+      navigate(`/catalogo?${params.toString()}`);
+    }
+  };
 
   return (
     <header className="bg-on-background border-b border-outline shadow-none sticky top-0 z-50 w-full transition-colors duration-300">
@@ -46,25 +75,31 @@ export const GlobalHeader = () => {
           </div>
           
           {/* Ubícanos */}
-          <div className="hidden lg:flex items-center gap-1 cursor-pointer hover:bg-white/10 transition-colors p-2 rounded-DEFAULT group">
+          <a href="https://maps.app.goo.gl/X1et5xkBGnCPL29u5" target="_blank" rel="noopener noreferrer" className="hidden lg:flex items-center gap-1 cursor-pointer hover:bg-white/10 transition-colors p-2 rounded-DEFAULT group">
             <span className="material-symbols-outlined text-primary-fixed-dim group-hover:text-primary-fixed">location_on</span>
             <div className="flex flex-col">
               <span className="font-label-caps text-label-caps text-on-primary/70">Ubícanos en</span>
               <span className="font-title-md text-[14px] leading-tight text-on-primary font-bold group-hover:text-primary-fixed">Campus Central</span>
             </div>
-          </div>
+          </a>
           
           {/* Search Bar */}
-          <div className="flex-grow max-w-3xl flex relative" ref={searchContainerRef}>
+          <form onSubmit={handleSearchSubmit} className="flex-grow max-w-3xl flex relative" ref={searchContainerRef}>
             <div className="relative w-full flex">
-              <select className="hidden md:block bg-surface-container-low border-none text-body-sm font-body-sm text-on-surface rounded-l-DEFAULT focus:ring-0 cursor-pointer px-3 py-2 outline-none">
-                <option>Todos</option>
-                <option>Textil</option>
-                <option>Accesorios</option>
+              <select 
+                value={searchCategory}
+                onChange={(e) => setSearchCategory(e.target.value)}
+                className="hidden md:block bg-surface-container-low border-none text-body-sm font-body-sm text-on-surface rounded-l-DEFAULT focus:ring-0 cursor-pointer px-3 py-2 outline-none"
+              >
+                <option value="">Todos</option>
+                <option value="textil">Textil</option>
+                <option value="accesorios">Accesorios</option>
+                <option value="alimentos">Alimentos</option>
+                <option value="libros">Libros</option>
               </select>
               <input 
                 className="w-full bg-surface text-on-surface border-none px-4 py-2 text-body-sm font-body-sm focus:ring-2 focus:ring-primary outline-none md:rounded-none rounded-l-DEFAULT" 
-                placeholder="Buscar productos, categorías (Fuzzy Search & TF-IDF)..." 
+                placeholder="Buscar productos, categorías..." 
                 type="text" 
                 value={searchQuery}
                 onChange={(e) => {
@@ -73,7 +108,7 @@ export const GlobalHeader = () => {
                 }}
                 onFocus={() => setShowResults(true)}
               />
-              <button className="bg-primary hover:bg-primary-container text-on-primary px-4 py-2 rounded-r-DEFAULT transition-colors flex items-center justify-center">
+              <button type="submit" className="bg-primary hover:bg-primary-container text-on-primary px-4 py-2 rounded-r-DEFAULT transition-colors flex items-center justify-center">
                 <span className="material-symbols-outlined">search</span>
               </button>
             </div>
@@ -96,7 +131,7 @@ export const GlobalHeader = () => {
                         <span className="font-body-sm font-bold text-on-surface">{result.nombre}</span>
                         <span className="text-xs text-on-surface-variant">{result.categoria?.nombre}</span>
                       </div>
-                      <div className="font-bold text-primary">${result.precio.toFixed(2)}</div>
+                      <div className="font-bold text-primary">${Number(result.precio).toFixed(2)}</div>
                     </Link>
                   ))
                 ) : (
@@ -106,18 +141,40 @@ export const GlobalHeader = () => {
                 )}
               </div>
             )}
-          </div>
+          </form>
           
           {/* Trailing Actions */}
           <div className="flex items-center gap-1 flex-shrink-0 text-on-primary">
-            <Link to="/login" className="hidden md:flex flex-col items-start p-2 hover:bg-white/10 rounded-DEFAULT transition-colors">
-              <span className="font-label-caps text-label-caps text-on-primary">Hola, Identifícate</span>
-              <span className="font-title-md text-[14px] leading-tight font-bold">Cuenta y Listas</span>
-            </Link>
+            {isAuthenticated ? (
+              <Link to={user?.rol === 'ADMIN' ? '/admin' : '/dashboard'} className="hidden md:flex items-center gap-2 p-2 hover:bg-white/10 rounded-DEFAULT transition-colors">
+                <div className="w-8 h-8 rounded-full bg-primary/20 text-primary-fixed-dim flex items-center justify-center">
+                  <span className="material-symbols-outlined text-[20px]">person</span>
+                </div>
+                <div className="flex flex-col items-start">
+                  <span className="font-label-caps text-[10px] text-on-primary">Hola,</span>
+                  <span className="font-title-md text-[14px] leading-tight font-bold truncate max-w-[130px]">
+                    {user?.nombre_completo || user?.email?.split('@')[0]}
+                  </span>
+                </div>
+              </Link>
+            ) : (
+              <Link to="/login" className="hidden md:flex flex-col items-start p-2 hover:bg-white/10 rounded-DEFAULT transition-colors">
+                <span className="font-label-caps text-label-caps text-on-primary">Hola, Identifícate</span>
+                <span className="font-title-md text-[14px] leading-tight font-bold">Cuenta y Listas</span>
+              </Link>
+            )}
             
-            <button className="md:hidden p-2 hover:bg-white/10 rounded-full transition-colors flex items-center justify-center">
-              <span className="material-symbols-outlined">person</span>
-            </button>
+            {isAuthenticated ? (
+              <Link to={user?.rol === 'ADMIN' ? '/admin' : '/dashboard'} className="md:hidden p-2 hover:bg-white/10 rounded-full transition-colors flex items-center justify-center">
+                <div className="w-8 h-8 rounded-full bg-primary/20 text-primary-fixed-dim flex items-center justify-center">
+                  <span className="material-symbols-outlined">person</span>
+                </div>
+              </Link>
+            ) : (
+              <Link to="/login" className="md:hidden p-2 hover:bg-white/10 rounded-full transition-colors flex items-center justify-center">
+                <span className="material-symbols-outlined">person</span>
+              </Link>
+            )}
             
             <button 
               onClick={openCart}

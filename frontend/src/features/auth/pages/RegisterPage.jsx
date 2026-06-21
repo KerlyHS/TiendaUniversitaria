@@ -82,7 +82,7 @@ export const RegisterPage = () => {
         password: formData.password,
         consentimiento_lopdp: formData.consentimiento_lopdp,
         is_universidad: userType === 'UNL',
-        rol: userType === 'UNL' ? formData.rol : 'PUBLICO_GENERAL'
+        comunidad_rol: userType === 'UNL' ? formData.rol : ''
       };
 
       await authService.register(payload);

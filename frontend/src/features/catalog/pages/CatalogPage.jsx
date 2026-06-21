@@ -1,11 +1,34 @@
-import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useCart } from '../../../shared/context/CartContext';
 import { useToast } from '../../../shared/context/ToastContext';
-import { mockProducts } from '../../../shared/utils/mockData';
+import { catalogService } from '../../../core/api/services';
 
 export const CatalogPage = () => {
-  const { addToCart } = useCart();
+  const [searchParams] = useSearchParams();
+  const categoriaParam = searchParams.get('categoria')?.toUpperCase();
+  const searchParam = searchParams.get('q')?.toLowerCase();
+
+  const [products, setProducts] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const navigate = useNavigate();
+  const { addToCart, openCart } = useCart();
   const { addToast } = useToast();
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        setIsLoading(true);
+        const res = await catalogService.listProducts();
+        setProducts(res.results || res);
+      } catch (error) {
+        console.error("Error fetching products:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchProducts();
+  }, []);
 
   const handleAddToCart = (product, e) => {
     e.preventDefault();
@@ -15,9 +38,29 @@ export const CatalogPage = () => {
       title: '¡Añadido al carrito!',
       message: `El producto "${product.nombre}" se agregó correctamente.`,
       actionText: 'Ver Carrito',
-      actionUrl: '#' // En este caso el carrito es un cajón, pero podríamos poner una URL si fuera página entera
+      onAction: () => openCart()
     });
   };
+
+  const filteredProducts = products.filter(product => {
+    let matchCategoria = true;
+    let matchSearch = true;
+
+    if (categoriaParam) {
+      if (categoriaParam === 'TEXTIL') matchCategoria = product.categoria === 'TEXTIL';
+      else if (categoriaParam === 'ACCESORIOS') matchCategoria = product.categoria === 'SOUVENIR' || product.categoria === 'ACADEMICO';
+      else if (categoriaParam === 'ALIMENTOS') matchCategoria = product.categoria === 'AGRICOLA';
+      else if (categoriaParam === 'LIBROS') matchCategoria = product.categoria === 'LIBRERIA';
+      else matchCategoria = product.categoria === categoriaParam;
+    }
+
+    if (searchParam) {
+      matchSearch = product.nombre.toLowerCase().includes(searchParam) || 
+                    (product.descripcion && product.descripcion.toLowerCase().includes(searchParam));
+    }
+
+    return matchCategoria && matchSearch;
+  });
 
   return (
     <div className="flex-grow w-full flex flex-col pb-12">
@@ -135,9 +178,9 @@ export const CatalogPage = () => {
             <h2 className="font-title-md text-title-md text-on-surface font-bold relative z-10">Descuento Estudiantes</h2>
             <span className="font-display-lg text-[40px] text-primary font-bold leading-none relative z-10">-15%</span>
             <p className="font-body-sm text-body-sm text-on-surface-variant relative z-10">En todas tus compras presentando tu credencial universitaria en caja o vinculando tu cuenta.</p>
-            <button className="mt-2 bg-transparent border border-primary text-primary hover:bg-primary/5 font-title-md text-title-md px-4 py-2 rounded-DEFAULT transition-colors w-full relative z-10">
+            <Link to="/registro" className="mt-2 text-center bg-transparent border border-primary text-primary hover:bg-primary/5 font-title-md text-title-md px-4 py-2 rounded-DEFAULT transition-colors w-full relative z-10">
               Vincular cuenta
-            </button>
+            </Link>
           </div>
         </section>
 
@@ -149,13 +192,21 @@ export const CatalogPage = () => {
           </div>
           
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-gutter">
-            {mockProducts.map((product, index) => (
-              <div key={product.id} className={`flex flex-col gap-3 group relative cursor-pointer ${index > 2 ? 'hidden md:flex' : ''} ${index > 3 ? 'hidden lg:flex' : ''}`}>
+            {isLoading ? (
+              <div className="col-span-full py-12 flex justify-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              </div>
+            ) : filteredProducts.length > 0 ? filteredProducts.map((product, index) => (
+              <div 
+                key={product.id} 
+                onClick={() => navigate(`/producto/${product.id}`)}
+                className={`flex flex-col gap-3 group relative cursor-pointer ${index > 2 ? 'hidden md:flex' : ''} ${index > 3 ? 'hidden lg:flex' : ''}`}
+              >
                 <div className="w-full aspect-[4/5] bg-surface-container-low rounded-DEFAULT border border-outline-variant overflow-hidden relative">
-                  {product.id === 2 && (
+                  {product.promocion_activa && (
                     <span className="absolute top-2 left-2 bg-error text-on-error font-label-caps text-[10px] px-2 py-1 rounded-sm z-10">-20%</span>
                   )}
-                  <img alt={product.nombre} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" src={product.imagen} />
+                  <img alt={product.nombre} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" src={product.imagen || 'https://via.placeholder.com/400x500?text=Sin+Imagen'} />
                   
                   {/* Quick Add Hover Overlay */}
                   <div className="absolute inset-x-0 bottom-0 p-2 bg-gradient-to-t from-black/50 to-transparent translate-y-full group-hover:translate-y-0 transition-transform hidden md:flex justify-center">
@@ -170,18 +221,24 @@ export const CatalogPage = () => {
                 <div className="flex flex-col gap-1">
                   <h3 className="font-body-lg text-body-lg text-on-surface line-clamp-2 leading-tight">{product.nombre}</h3>
                   <div className="flex items-center gap-2 mt-1">
-                    <span className="font-headline-lg text-[20px] text-primary font-bold">${product.precio.toFixed(2)}</span>
-                    {product.id === 2 && <span className="font-body-sm text-[12px] text-outline line-through">$15.62</span>}
+                    <span className="font-headline-lg text-[20px] text-primary font-bold">${parseFloat(product.precio).toFixed(2)}</span>
+                    {product.promocion_activa && <span className="font-body-sm text-[12px] text-outline line-through">${(parseFloat(product.precio) * 1.2).toFixed(2)}</span>}
                   </div>
                   <span className="font-body-sm text-[12px] text-on-surface-variant flex items-center gap-1">
                     <span className="material-symbols-outlined text-[14px]">
-                      {product.id % 2 === 0 ? 'check_circle' : 'local_shipping'}
+                      {product.stock > 0 ? 'check_circle' : 'inventory_2'}
                     </span> 
-                    {product.id % 2 === 0 ? 'En stock' : 'Envío a sucursal'}
+                    {product.stock > 0 ? `${product.stock} en stock` : 'Agotado'}
                   </span>
                 </div>
               </div>
-            ))}
+            )) : (
+              <div className="col-span-full py-12 flex flex-col items-center justify-center text-center">
+                <span className="material-symbols-outlined text-[48px] text-outline-variant mb-4">search_off</span>
+                <p className="text-on-surface-variant">No se encontraron productos para los filtros seleccionados.</p>
+                <Link to="/catalogo" className="text-primary hover:underline mt-2">Ver todos los productos</Link>
+              </div>
+            )}
           </div>
         </section>
 

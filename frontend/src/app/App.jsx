@@ -5,8 +5,17 @@ import { Layout } from '../shared/components/Layout';
 import { LoginPage } from '../features/auth/pages/LoginPage';
 import { RegisterPage } from '../features/auth/pages/RegisterPage';
 import { CatalogPage } from '../features/catalog/pages/CatalogPage';
+import { ProductDetailPage } from '../features/catalog/pages/ProductDetailPage';
 import { OrdersPage } from '../features/orders/pages/OrdersPage';
 import { OrderDetailPage } from '../features/orders/pages/OrderDetailPage';
+import { CheckoutPage } from '../features/cart/pages/CheckoutPage';
+import { CheckoutSuccessPage } from '../features/orders/pages/CheckoutSuccessPage';
+import { CheckoutCancelPage } from '../features/orders/pages/CheckoutCancelPage';
+import { InventoryAdminPage } from '../features/admin/pages/InventoryAdminPage';
+import { DashboardAdminPage } from '../features/admin/pages/DashboardAdminPage';
+import { CajaAdminPage } from '../features/admin/pages/CajaAdminPage';
+import { VentasAdminPage } from '../features/admin/pages/VentasAdminPage';
+import { AdminLayout } from '../features/admin/layouts/AdminLayout';
 
 // Protected Route
 const ProtectedRoute = ({ children }) => {
@@ -41,13 +50,15 @@ const ProtectedRoute = ({ children }) => {
 
 import { CartProvider } from '../shared/context/CartContext';
 import { ToastProvider } from '../shared/context/ToastContext';
+import { AuthProvider } from '../shared/context/AuthContext';
 
 export const App = () => {
   return (
     <Router>
-      <ToastProvider>
-        <CartProvider>
-          <Routes>
+      <AuthProvider>
+        <ToastProvider>
+          <CartProvider>
+            <Routes>
         {/* Autenticación (Spec-001 / Spec-003) */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/registro" element={<RegisterPage />} />
@@ -56,7 +67,7 @@ export const App = () => {
         <Route element={<Layout />}>
           {/* Catálogo (Spec-002 / Spec-004) */}
           <Route path="/catalogo" element={<CatalogPage />} />
-          <Route path="/catalogo/:productId" element={<CatalogPage />} />
+          <Route path="/producto/:id" element={<ProductDetailPage />} />
 
           {/* Órdenes/Pedidos (Spec-005) - Protegidas */}
           <Route
@@ -83,13 +94,53 @@ export const App = () => {
               </ProtectedRoute>
             }
           />
-
+          <Route
+            path="/checkout"
+            element={
+              <ProtectedRoute>
+                <CheckoutPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/pagos/exito"
+            element={
+              <ProtectedRoute>
+                <CheckoutSuccessPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/pagos/cancelado"
+            element={
+              <ProtectedRoute>
+                <CheckoutCancelPage />
+              </ProtectedRoute>
+            }
+          />
+          
           {/* Root redirect */}
           <Route path="/" element={<Navigate to="/catalogo" />} />
+        </Route>
+
+        {/* Admin Panel */}
+        <Route path="/admin" element={
+          <ProtectedRoute>
+            <AdminLayout />
+          </ProtectedRoute>
+        }>
+          <Route path="dashboard" element={<DashboardAdminPage />} />
+          <Route path="inventario" element={<InventoryAdminPage />} />
+          {/* Fallback temporales */}
+          <Route path="ventas" element={<VentasAdminPage />} />
+          <Route path="caja" element={<CajaAdminPage />} />
+          <Route path="configuracion" element={<div className="p-8">Módulo de Configuración en construcción</div>} />
+          <Route index element={<Navigate to="/admin/dashboard" replace />} />
         </Route>
           </Routes>
         </CartProvider>
       </ToastProvider>
+      </AuthProvider>
     </Router>
   );
 };

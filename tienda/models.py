@@ -75,6 +75,7 @@ class Usuario(AbstractUser):
     # Atributos de Usuario
     rol = models.CharField(max_length=15, choices=Rol.choices, default=Rol.CLIENTE, verbose_name="Rol")
     is_universidad = models.BooleanField(default=False, verbose_name="¿Es de la Universidad?")
+    comunidad_rol = models.CharField(max_length=50, blank=True, verbose_name="Rol en la Comunidad UNL")
     
     # LOPDP Compliance Fields
     consentimiento_lopdp = models.BooleanField(default=False, help_text="Explicit consent to data processing under LOPDP")
@@ -98,13 +99,14 @@ class Producto(models.Model):
     
     aplica_impuesto = models.BooleanField(default=True, verbose_name="¿Aplica Impuesto?")
     is_activo = models.BooleanField(default=True, verbose_name="¿Está Activo?")
-    vencimiento = models.DateField(null=True, blank=True, verbose_name="Fecha de Vencimiento")
+    fecha_llegada = models.DateField(null=True, blank=True, verbose_name="Fecha de Llegada")
+    fecha_caducidad = models.DateField(null=True, blank=True, verbose_name="Fecha de Caducidad")
     
     categoria = models.CharField(max_length=20, choices=CategoriaProducto.choices, default=CategoriaProducto.SOUVENIR, verbose_name="Categoría")
     medida = models.CharField(max_length=15, choices=Medida.choices, default=Medida.UNIDAD, verbose_name="Medida")
     
     stock = models.IntegerField(default=0, verbose_name="Stock")
-    imagen_url = models.URLField(blank=True, null=True, verbose_name="URL de Imagen Externa")
+    imagen = models.ImageField(upload_to='productos/', null=True, blank=True, verbose_name="Imagen del Producto")
     fecha_creacion = models.DateTimeField(auto_now_add=True)
 
     class Meta:

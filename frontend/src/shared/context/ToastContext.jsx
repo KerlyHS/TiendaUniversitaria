@@ -7,9 +7,9 @@ const ToastContext = createContext(null);
 export const ToastProvider = ({ children }) => {
   const [toasts, setToasts] = useState([]);
 
-  const addToast = useCallback(({ title, message, actionText, actionUrl, type = 'success' }) => {
+  const addToast = useCallback(({ title, message, actionText, actionUrl, onAction, type = 'success' }) => {
     const id = Date.now();
-    setToasts(prev => [...prev, { id, title, message, actionText, actionUrl, type }]);
+    setToasts(prev => [...prev, { id, title, message, actionText, actionUrl, onAction, type }]);
     
     // Auto remove after 5 seconds
     setTimeout(() => {
@@ -41,16 +41,29 @@ export const ToastProvider = ({ children }) => {
               </button>
             </div>
             <p className="text-body-sm text-on-surface-variant pl-6">{toast.message}</p>
-            {toast.actionText && toast.actionUrl && (
+            {toast.actionText && (
               <div className="pl-6 mt-1">
-                <Link 
-                  to={toast.actionUrl} 
-                  className="text-body-sm font-bold text-primary hover:text-primary-container flex items-center gap-1"
-                  onClick={() => removeToast(toast.id)}
-                >
-                  <ShoppingCart size={14} />
-                  {toast.actionText}
-                </Link>
+                {toast.onAction ? (
+                  <button 
+                    onClick={() => {
+                      toast.onAction();
+                      removeToast(toast.id);
+                    }}
+                    className="text-body-sm font-bold text-primary hover:text-primary-container flex items-center gap-1"
+                  >
+                    <ShoppingCart size={14} />
+                    {toast.actionText}
+                  </button>
+                ) : toast.actionUrl ? (
+                  <Link 
+                    to={toast.actionUrl} 
+                    className="text-body-sm font-bold text-primary hover:text-primary-container flex items-center gap-1"
+                    onClick={() => removeToast(toast.id)}
+                  >
+                    <ShoppingCart size={14} />
+                    {toast.actionText}
+                  </Link>
+                ) : null}
               </div>
             )}
           </div>

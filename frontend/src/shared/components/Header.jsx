@@ -1,6 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../core/hooks/useAuth.js';
 import { useState } from 'react';
+import { User } from 'lucide-react';
 
 /**
  * Header Component - TiendaUniversitaria
@@ -61,12 +62,16 @@ export const Header = () => {
           {isAuthenticated ? (
             <div className="user-menu">
               <button
-                className="btn-user"
+                className="btn-user flex items-center gap-2 px-3 py-2 rounded-lg bg-surface-container hover:bg-surface-container-high transition-colors text-on-surface"
                 onClick={() => setMenuOpen(!menuOpen)}
                 aria-expanded={menuOpen}
                 aria-label="Menú de usuario"
               >
-                <span>{user?.email}</span> ▼
+                <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+                  <User size={18} />
+                </div>
+                <span className="font-title-sm hidden sm:block">{user?.nombre_completo || user?.email}</span>
+                <span className="text-xs text-on-surface-variant">▼</span>
               </button>
 
               {menuOpen && (

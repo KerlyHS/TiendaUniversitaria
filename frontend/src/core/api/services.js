@@ -33,11 +33,16 @@ export const authService = {
    * POST /api/v1/token/
    */
   login: async (username, password) => {
-    const response = await apiClient.post('/token/', {
-      username,
+    const response = await apiClient.post('/auth/login/', {
+      email: username,
       password,
     });
-    return response.data;
+    // Convert access_token to access so it's compatible with standard simplejwt response
+    return {
+      ...response.data,
+      access: response.data.access_token,
+      refresh: response.data.refresh_token,
+    };
   },
 
   /**
@@ -115,6 +120,23 @@ export const catalogService = {
     const response = await apiClient.delete(`/productos/${id}/`);
     return response.data;
   },
+};
+
+// ============================================================================
+// PAYMENTS SERVICES - Spec-006
+// ============================================================================
+
+export const paymentService = {
+  /**
+   * Spec-006: Prepara el Checkout (Stripe Elements)
+   * POST /api/v1/pagos/crear-payment-intent/
+   */
+  createPaymentIntent: async (pedidoId) => {
+    const response = await apiClient.post('/pagos/crear-payment-intent/', {
+      pedido_id: pedidoId
+    });
+    return response.data;
+  }
 };
 
 // ============================================================================
