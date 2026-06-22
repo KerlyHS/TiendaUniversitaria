@@ -1,0 +1,58 @@
+import { Product } from '../types/product';
+
+export const mockProducts: Product[] = [
+    {
+        id: '1',
+        code: 'LIB-2024',
+        name: 'Investigaciones Científicas UNL',
+        price: 24.50,
+        category: 'book',
+        imageUrl: 'https://via.placeholder.com/400x400/1e293b/ffffff?text=Libros',
+        hasIva: true,
+    },
+    {
+        id: '2',
+        code: 'MOD-INST',
+        name: 'Sudadera Institucional UNL',
+        price: 35.00,
+        category: 'clothing',
+        imageUrl: 'https://via.placeholder.com/400x400/1e293b/ffffff?text=Sudadera',
+        hasIva: true,
+    },
+    {
+        id: '3',
+        code: 'ACC-001',
+        name: 'Cuadernos Premium UNL',
+        price: 4.25,
+        category: 'accessory',
+        imageUrl: 'https://via.placeholder.com/400x400/1e293b/ffffff?text=Cuaderno',
+        hasIva: true,
+    },
+    {
+        id: '4',
+        code: 'AGRO-01',
+        name: 'Manzanas Orgánicas',
+        price: 1.80,
+        category: 'food',
+        imageUrl: 'https://via.placeholder.com/400x400/1e293b/ffffff?text=Manzanas',
+        hasIva: true,
+    },
+    {
+        id: '5',
+        code: 'HOME-22',
+        name: 'Taza Coleccionable',
+        price: 6.50,
+        category: 'home',
+        imageUrl: 'https://via.placeholder.com/400x400/1e293b/ffffff?text=Taza',
+        hasIva: true,
+    },
+    {
+        id: '6',
+        code: 'AGRO-05',
+        name: 'Miel de Abeja 500g',
+        price: 8.00,
+        category: 'food',
+        imageUrl: 'https://via.placeholder.com/400x400/1e293b/ffffff?text=Miel',
+        hasIva: true,
+    },
+];
