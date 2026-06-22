@@ -4,7 +4,7 @@ project:
 
 website:
   title: "Docs - Tienda Universitaria"
-  description: "Documentación oficial del API Backend de la Tienda Universitaria"
+  description: "Documentación oficial de la Tienda Universitaria (Backend & Frontend)"
   sidebar:
     style: "docked"
     search: true
@@ -13,9 +13,16 @@ website:
         contents:
           - index.qmd
           - setup.qmd
-      - section: "Referencia Arquitectura SDD"
+          - integracion-frontend-backend.qmd
+      - section: "Seguridad y Autenticación"
+        contents:
+          - autenticacion-jwt.qmd
+          - seguridad-tokens.qmd
+      - section: "Especificaciones de Negocio"
         contents:
           - specs.qmd
+          - catalogo-productos.qmd
+          - ordenes-pedidos.qmd
       - section: "Referencia API REST"
         contents:
           - api.qmd
