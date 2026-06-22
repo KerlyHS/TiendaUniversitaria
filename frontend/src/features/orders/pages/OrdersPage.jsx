@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { Package, User, LogOut, Edit2 } from 'lucide-react';
 import { StatusBadge } from '../../../shared/components/UI/StatusBadge';
 import { useAuth } from '../../../core/hooks/useAuth';
+import { authService } from '../../../core/api/services';
+import { useToast } from '../../../shared/context/ToastContext';
 
 // Mock Data
 const mockOrders = [
@@ -23,6 +25,47 @@ export const OrdersPage = () => {
   const [activeTab, setActiveTab] = useState(
     location.pathname.includes('pedidos') ? 'pedidos' : 'informacion'
   );
+
+  const { addToast } = useToast();
+  const [isEditing, setIsEditing] = useState(false);
+  const [formData, setFormData] = useState({
+    nombre_completo: user?.nombre_completo || '',
+    identificacion: user?.identificacion || '',
+    telefono: user?.telefono || '',
+    direccion: user?.direccion || '',
+  });
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Sync state if user loads later
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        nombre_completo: user.nombre_completo || '',
+        identificacion: user.identificacion || '',
+        telefono: user.telefono || '',
+        direccion: user.direccion || '',
+      });
+    }
+  }, [user]);
+
+  const handleInputChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleSaveProfile = async () => {
+    try {
+      setIsSaving(true);
+      const res = await authService.updateProfile(formData);
+      // Actualizar contexto si es posible (depende de cómo esté hecho useAuth, pero podemos recargar la página o solo mostrar éxito)
+      addToast({ title: 'Éxito', message: 'Perfil actualizado correctamente.' });
+      setIsEditing(false);
+      // Option: window.location.reload() or let useAuth re-fetch
+    } catch (error) {
+      addToast({ title: 'Error', message: 'No se pudo actualizar el perfil.', type: 'error' });
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const handleLogout = () => {
     logout();
@@ -85,23 +128,77 @@ export const OrdersPage = () => {
         {/* Tab Content */}
         {activeTab === 'informacion' ? (
           <div className="bg-white p-8 rounded-lg border border-gray-200 shadow-sm relative">
-            <button className="absolute top-8 right-8 flex items-center gap-2 px-4 py-2 text-primary font-medium border border-primary/30 rounded-soft hover:bg-primary/5 transition-colors">
-              <Edit2 size={16} />
-              Editar
-            </button>
+            {!isEditing ? (
+              <button 
+                onClick={() => setIsEditing(true)}
+                className="absolute top-8 right-8 flex items-center gap-2 px-4 py-2 text-primary font-medium border border-primary/30 rounded-soft hover:bg-primary/5 transition-colors"
+              >
+                <Edit2 size={16} />
+                Editar
+              </button>
+            ) : (
+              <div className="absolute top-8 right-8 flex items-center gap-2">
+                <button 
+                  onClick={() => {
+                    setIsEditing(false);
+                    setFormData({
+                      nombre_completo: user?.nombre_completo || '',
+                      identificacion: user?.identificacion || '',
+                      telefono: user?.telefono || '',
+                      direccion: user?.direccion || '',
+                    });
+                  }}
+                  className="px-4 py-2 text-gray-500 font-medium border border-gray-300 rounded-soft hover:bg-gray-50 transition-colors"
+                  disabled={isSaving}
+                >
+                  Cancelar
+                </button>
+                <button 
+                  onClick={handleSaveProfile}
+                  className="px-4 py-2 bg-primary text-white font-medium rounded-soft hover:bg-primary-dark transition-colors disabled:opacity-50"
+                  disabled={isSaving}
+                >
+                  {isSaving ? 'Guardando...' : 'Guardar'}
+                </button>
+              </div>
+            )}
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-4">
               <div>
                 <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Nombre Completo</p>
-                <p className="text-secondary font-medium text-lg">{user?.nombre_completo || 'Usuario Estudiante'}</p>
+                {isEditing ? (
+                  <input type="text" name="nombre_completo" value={formData.nombre_completo} onChange={handleInputChange} className="w-full border border-gray-300 rounded px-3 py-2 outline-none focus:border-primary" />
+                ) : (
+                  <p className="text-secondary font-medium text-lg">{user?.nombre_completo || 'Usuario Estudiante'}</p>
+                )}
               </div>
               <div>
                 <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Identificación</p>
-                <p className="text-secondary font-medium text-lg">{user?.identificacion || 'No registrada'}</p>
+                {isEditing ? (
+                  <input type="text" name="identificacion" value={formData.identificacion} onChange={handleInputChange} className="w-full border border-gray-300 rounded px-3 py-2 outline-none focus:border-primary" />
+                ) : (
+                  <p className="text-secondary font-medium text-lg">{user?.identificacion || 'No registrada'}</p>
+                )}
               </div>
               <div>
-                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Correo Electrónico</p>
-                <p className="text-secondary font-medium text-lg">{user?.email}</p>
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Teléfono</p>
+                {isEditing ? (
+                  <input type="text" name="telefono" value={formData.telefono} onChange={handleInputChange} className="w-full border border-gray-300 rounded px-3 py-2 outline-none focus:border-primary" />
+                ) : (
+                  <p className="text-secondary font-medium text-lg">{user?.telefono || 'No registrado'}</p>
+                )}
+              </div>
+              <div>
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Dirección</p>
+                {isEditing ? (
+                  <input type="text" name="direccion" value={formData.direccion} onChange={handleInputChange} className="w-full border border-gray-300 rounded px-3 py-2 outline-none focus:border-primary" />
+                ) : (
+                  <p className="text-secondary font-medium text-lg">{user?.direccion || 'No registrada'}</p>
+                )}
+              </div>
+              <div>
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Correo Electrónico (No Editable)</p>
+                <p className="text-secondary font-medium text-lg opacity-70">{user?.email}</p>
               </div>
               <div>
                 <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Rol / Tipo</p>

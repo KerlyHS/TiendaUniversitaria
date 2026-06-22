@@ -16,6 +16,14 @@ export const ProductDetailPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
   const [recommendations, setRecommendations] = useState([]);
+  const [selectedVariation, setSelectedVariation] = useState(null);
+
+  // Determinar el precio y stock en base a la variación seleccionada
+  const currentPrice = selectedVariation && selectedVariation.precio_fijo 
+    ? parseFloat(selectedVariation.precio_fijo) 
+    : (product ? parseFloat(product.precio) + (selectedVariation ? parseFloat(selectedVariation.precio_adicional || 0) : 0) : 0);
+  
+  const currentStock = selectedVariation ? selectedVariation.stock : (product ? product.stock : 0);
 
   useEffect(() => {
     const fetchProductAndRecommendations = async () => {
@@ -41,7 +49,7 @@ export const ProductDetailPage = () => {
   }, [id]);
 
   const handleIncrement = () => {
-    if (product && quantity < product.stock) {
+    if (product && quantity < currentStock) {
       setQuantity(prev => prev + 1);
     }
   };
@@ -53,10 +61,15 @@ export const ProductDetailPage = () => {
   };
 
   const handleAddToCart = () => {
-    addToCart(product, quantity);
+    const itemToAdd = {
+      ...product,
+      precio: currentPrice, // override con el precio final
+      selectedVariation
+    };
+    addToCart(itemToAdd, quantity, selectedVariation);
     addToast({
       title: '¡Añadido al carrito!',
-      message: `${quantity}x "${product.nombre}" se agregó correctamente.`,
+      message: `${quantity}x "${product.nombre}" ${selectedVariation ? '('+selectedVariation.nombre+')' : ''} se agregó correctamente.`,
       actionText: 'Ver Carrito',
       onAction: () => openCart()
     });
@@ -126,12 +139,58 @@ export const ProductDetailPage = () => {
               {product.nombre}
             </h1>
             
+            
             <div className="mb-6">
               <span className="font-display-md text-[32px] text-primary font-bold">
-                $ {parseFloat(product.precio).toFixed(2).replace('.', ',')}
+                $ {currentPrice.toFixed(2).replace('.', ',')}
               </span>
               <p className="text-body-sm text-on-surface-variant mt-1">Precio oficial para toda la comunidad.</p>
             </div>
+
+            {product.fecha_caducidad && (
+              <div className="mb-4 inline-block bg-error-container text-on-error-container px-3 py-1 rounded-full text-label-sm font-bold">
+                Fecha de Caducidad: {new Date(product.fecha_caducidad).toLocaleDateString('es-ES')}
+              </div>
+            )}
+
+            {product.variaciones && product.variaciones.length > 0 && (
+              <div className="mb-6">
+                <span className="font-title-md text-on-surface block mb-3">Opciones:</span>
+                <div className="flex flex-wrap gap-2">
+                  {product.variaciones.map((variacion) => {
+                    const isSelected = selectedVariation && selectedVariation.id === variacion.id;
+                    const isOutOfStock = variacion.stock <= 0;
+                    return (
+                      <button
+                        key={variacion.id}
+                        onClick={() => {
+                          if (!isOutOfStock) {
+                            setSelectedVariation(variacion);
+                            setQuantity(1); // Reset quantity
+                          }
+                        }}
+                        disabled={isOutOfStock}
+                        className={`px-4 py-2 rounded-md border font-title-sm transition-colors ${
+                          isSelected
+                            ? 'bg-primary text-on-primary border-primary'
+                            : isOutOfStock
+                              ? 'bg-surface-container-low text-outline border-outline-variant cursor-not-allowed opacity-60'
+                              : 'bg-surface text-on-surface border-outline hover:border-primary hover:text-primary'
+                        }`}
+                      >
+                        {variacion.nombre}
+                      </button>
+                    );
+                  })}
+                </div>
+                {selectedVariation && selectedVariation.stock <= 0 && (
+                  <p className="text-error text-label-sm mt-2 font-medium">Por el momento no hay esta opción en stock.</p>
+                )}
+                {(!selectedVariation || currentStock <= 0) && (
+                   <p className="text-outline text-label-sm mt-2">Selecciona una opción para comprar.</p>
+                )}
+              </div>
+            )}
 
             <hr className="border-outline-variant mb-6" />
 
@@ -169,7 +228,7 @@ export const ProductDetailPage = () => {
                 </div>
                 <button 
                   onClick={handleIncrement}
-                  disabled={quantity >= product.stock}
+                  disabled={quantity >= currentStock}
                   className="w-10 h-full flex items-center justify-center text-on-surface hover:bg-surface-container-low disabled:opacity-50 transition-colors"
                 >
                   <Plus size={18} />
@@ -179,7 +238,7 @@ export const ProductDetailPage = () => {
               {/* Add to Cart Button */}
               <button 
                 onClick={handleAddToCart}
-                disabled={product.stock < 1}
+                disabled={currentStock < 1 || (product.variaciones?.length > 0 && !selectedVariation) || (selectedVariation && selectedVariation.stock <= 0)}
                 className="flex-grow bg-[#006633] text-white hover:bg-[#005522] h-12 rounded-DEFAULT flex items-center justify-center gap-2 font-title-md text-title-md shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <ShoppingCart size={20} />

@@ -84,6 +84,7 @@ export const CheckoutPage = () => {
         // 1. Crear el Pedido
         const detalles = cartItems.map(item => ({
           producto_id: item.id,
+          variacion_id: item.selectedVariation?.id || null,
           cantidad: item.cantidad
         }));
 
@@ -165,12 +166,17 @@ export const CheckoutPage = () => {
             </h2>
             
             <div className="space-y-4 mb-6 max-h-60 overflow-y-auto pr-2 no-scrollbar">
-              {cartItems.map(item => (
-                <div key={item.id} className="flex justify-between text-sm">
-                  <span className="text-on-surface-variant flex-1 truncate pr-2">{item.cantidad}x {item.nombre}</span>
-                  <span className="text-on-surface font-medium">${(item.precio * item.cantidad).toFixed(2)}</span>
-                </div>
-              ))}
+              {cartItems.map(item => {
+                const uniqueKey = `${item.id}-${item.selectedVariation?.id || 'base'}`;
+                return (
+                  <div key={uniqueKey} className="flex justify-between text-sm">
+                    <span className="text-on-surface-variant flex-1 truncate pr-2">
+                      {item.cantidad}x {item.nombre} {item.selectedVariation ? `(${item.selectedVariation.nombre})` : ''}
+                    </span>
+                    <span className="text-on-surface font-medium">${(item.precio * item.cantidad).toFixed(2)}</span>
+                  </div>
+                );
+              })}
             </div>
 
             <div className="border-t border-outline-variant/30 pt-4 space-y-2">

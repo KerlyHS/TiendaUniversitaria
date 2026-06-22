@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Minus, Plus } from 'lucide-react-native';
+import { Colors } from '../constants/Colors';
 
 interface QuantitySelectorProps {
     quantity: number;
@@ -16,13 +17,13 @@ export const QuantitySelector: React.FC<QuantitySelectorProps> = ({ quantity, on
                 onPress={onDecrease}
                 disabled={quantity <= 1}
             >
-                <Minus color={quantity <= 1 ? '#cbd5e1' : '#1e293b'} size={20} />
+                <Minus color={quantity <= 1 ? Colors.border : Colors.onSurface} size={20} />
             </TouchableOpacity>
 
             <Text style={styles.quantity}>{quantity}</Text>
 
             <TouchableOpacity style={styles.button} onPress={onIncrease}>
-                <Plus color="#1e293b" size={20} />
+                <Plus color={Colors.onSurface} size={20} />
             </TouchableOpacity>
         </View>
     );
@@ -33,9 +34,9 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         borderWidth: 1,
-        borderColor: '#e2e8f0',
+        borderColor: Colors.border,
         borderRadius: 8,
-        backgroundColor: '#f8fafc',
+        backgroundColor: Colors.background,
     },
     button: {
         padding: 12,
@@ -45,7 +46,7 @@ const styles = StyleSheet.create({
     quantity: {
         fontSize: 16,
         fontWeight: '600',
-        color: '#1e293b',
+        color: Colors.onSurface,
         paddingHorizontal: 16,
         minWidth: 48,
         textAlign: 'center',

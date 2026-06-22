@@ -13,6 +13,7 @@ from .serializers import (
     PedidoListSerializer, PedidoUpdateStateSerializer, VentaSerializer,
     DetalleVentaSerializer, CajaSerializer
 )
+from rest_framework import generics, viewsets, status, filters
 
 class ProductoViewSet(viewsets.ModelViewSet):
     """
@@ -20,9 +21,101 @@ class ProductoViewSet(viewsets.ModelViewSet):
     Lectura: Pública. 
     Escritura: Requiere autenticación (Idealmente Administrador/Bodeguero).
     """
-    queryset = Producto.objects.filter(is_activo=True).order_by('nombre')
+    queryset = Producto.objects.filter(is_activo=True).order_by('-fecha_creacion')
     serializer_class = ProductoSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['nombre', 'codigo', 'categoria']
+
+    def create(self, request, *args, **kwargs):
+        variaciones_data = request.data.get('variaciones_data', None)
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        producto = serializer.instance
+        self._handle_variaciones(producto, variaciones_data)
+        headers = self.get_success_headers(serializer.data)
+        
+        # Devolver data fresca para incluir variaciones
+        fresh_serializer = self.get_serializer(producto)
+        return Response(fresh_serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        variaciones_data = request.data.get('variaciones_data', None)
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        producto = serializer.instance
+        if variaciones_data is not None:
+            self._handle_variaciones(producto, variaciones_data)
+            
+        fresh_serializer = self.get_serializer(producto)
+        return Response(fresh_serializer.data)
+        
+    def _handle_variaciones(self, producto, variaciones_data):
+        import json
+        from .models import ProductoVariacion
+        if variaciones_data:
+            try:
+                if isinstance(variaciones_data, str):
+                    variaciones = json.loads(variaciones_data)
+                else:
+                    variaciones = variaciones_data
+                    
+                ids_a_mantener = []
+                for var_data in variaciones:
+                    vid = var_data.get('id')
+                    stock = int(var_data.get('stock', 0))
+                    precio_adicional = float(var_data.get('precio_adicional', 0.0)) if var_data.get('precio_adicional') else 0.0
+                    precio_fijo_raw = var_data.get('precio_fijo')
+                    precio_fijo = float(precio_fijo_raw) if precio_fijo_raw is not None and precio_fijo_raw != "" else None
+                    nombre = var_data.get('nombre')
+                    
+                    if not nombre: continue # Omitir inválidos
+                    
+                    # Tratar de buscar por ID o por nombre para evitar duplicados al actualizar
+                    v = None
+                    if vid:
+                        try:
+                            v = ProductoVariacion.objects.get(id=vid, producto=producto)
+                        except ProductoVariacion.DoesNotExist:
+                            pass
+                    
+                    if not v:
+                        try:
+                            v = ProductoVariacion.objects.get(nombre=nombre, producto=producto)
+                        except ProductoVariacion.DoesNotExist:
+                            pass
+
+                    if v:
+                        v.nombre = nombre
+                        v.stock = stock
+                        v.precio_adicional = precio_adicional
+                        v.precio_fijo = precio_fijo
+                        v.save()
+                        ids_a_mantener.append(v.id)
+                    else:
+                        v = ProductoVariacion.objects.create(
+                            producto=producto,
+                            nombre=nombre,
+                            stock=stock,
+                            precio_adicional=precio_adicional,
+                            precio_fijo=precio_fijo
+                        )
+                        ids_a_mantener.append(v.id)
+                
+                # Borrar las que ya no están
+                producto.variaciones.exclude(id__in=ids_a_mantener).delete()
+                
+                # Actualizar stock global si hay variaciones
+                if ids_a_mantener:
+                    producto.stock = sum(v.stock for v in producto.variaciones.all())
+                    producto.save(update_fields=['stock'])
+                
+            except Exception as e:
+                print("Error procesando variaciones:", e)
 
 class PromocionViewSet(viewsets.ModelViewSet):
     queryset = Promocion.objects.filter(is_use=True)

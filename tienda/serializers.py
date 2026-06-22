@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from .models import (
-    Usuario, PrivacyPolicy, Producto, Promocion,
+    Usuario, PrivacyPolicy, Producto, ProductoVariacion, Promocion,
     Pedido, Venta, DetalleVenta, Caja
 )
 from django.utils import timezone
@@ -26,6 +26,12 @@ def generate_order_number():
 # SERIALIZERS - PRODUCTOS
 # ============================================================
 
+class ProductoVariacionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProductoVariacion
+        fields = '__all__'
+        read_only_fields = ['id']
+
 class ProductoSerializer(serializers.ModelSerializer):
     """
     # Serializer de Productos
@@ -35,16 +41,18 @@ class ProductoSerializer(serializers.ModelSerializer):
     - Validación de stock >= 0
     - Campos de solo lectura: id, fecha_creacion
     """
+    variaciones = ProductoVariacionSerializer(many=True, read_only=True)
+    
     class Meta:
         model = Producto
         fields = '__all__'
         read_only_fields = ['id', 'fecha_creacion']
     
     def validate_precio(self, value):
-        """Validar que el precio sea positivo"""
-        if value < 0.01:
+        """Validar que el precio sea no negativo (0 permitido para productos con variaciones)"""
+        if value < 0:
             raise serializers.ValidationError(
-                "El precio debe ser mayor que 0.00"
+                "El precio no puede ser negativo"
             )
         return value
     
@@ -81,11 +89,13 @@ class DetalleVentaSerializer(serializers.ModelSerializer):
     - `fecha_creacion`: Auto-generado
     """
     producto_nombre = serializers.CharField(source='nombre_producto', read_only=True)
+    variacion_nombre = serializers.CharField(source='variacion.nombre', read_only=True, default='')
     
     class Meta:
         model = DetalleVenta
         fields = [
             'id', 'producto', 'producto_nombre', 'nombre_producto',
+            'variacion', 'variacion_nombre',
             'cantidad', 'precio_unitario', 'subtotal', 'descripcion',
             'fecha_creacion'
         ]
@@ -148,7 +158,7 @@ class PedidoCreateSerializer(serializers.Serializer):
     detalles = serializers.ListField(
         child=serializers.DictField(),
         min_length=1,
-        help_text="Lista de items: [{'producto_id': 1, 'cantidad': 2}, ...]"
+        help_text="Lista de items: [{'producto_id': 1, 'variacion_id': 2, 'cantidad': 2}, ...]"
     )
     
     def validate_detalles(self, value):
@@ -179,8 +189,9 @@ class PedidoCreateSerializer(serializers.Serializer):
             
             # Validar que la cantidad sea positiva
             try:
-                cantidad = int(cantidad)
-                if cantidad < 1:
+                from decimal import Decimal
+                cantidad = Decimal(str(cantidad))
+                if cantidad <= 0:
                     raise ValueError
             except (ValueError, TypeError):
                 raise serializers.ValidationError(
@@ -201,20 +212,36 @@ class PedidoCreateSerializer(serializers.Serializer):
                     f"Producto '{producto.nombre}' no está disponible"
                 )
             
-            # Validar que haya stock suficiente
-            if producto.stock < cantidad:
-                raise serializers.ValidationError(
-                    f"Stock insuficiente para '{producto.nombre}'. "
-                    f"Disponible: {producto.stock}, Solicitado: {cantidad}"
-                )
+            # Variacion logic
+            variacion_id = detalle.get('variacion_id')
+            variacion = None
+            if variacion_id:
+                try:
+                    variacion = ProductoVariacion.objects.get(id=variacion_id, producto=producto)
+                    if variacion.stock < cantidad:
+                        raise serializers.ValidationError(f"Stock insuficiente en la variación '{variacion.nombre}'.")
+                except ProductoVariacion.DoesNotExist:
+                    raise serializers.ValidationError(f"Variación {variacion_id} no válida para el producto {producto_id}")
+            else:
+                if producto.stock < cantidad:
+                    raise serializers.ValidationError(
+                        f"Stock insuficiente para '{producto.nombre}'. "
+                        f"Disponible: {producto.stock}, Solicitado: {cantidad}"
+                    )
             
             # Actualizar el detalle con valores calculados
             detalle['producto'] = producto
+            detalle['variacion'] = variacion
             detalle['cantidad'] = cantidad
             detalle['nombre_producto'] = producto.nombre
             detalle['descripcion'] = producto.descripcion or ""
-            detalle['precio_unitario'] = producto.precio
-            detalle['subtotal'] = cantidad * producto.precio
+            
+            precio_base = variacion.precio_fijo if variacion and variacion.precio_fijo else producto.precio
+            if variacion and variacion.precio_adicional:
+                precio_base += variacion.precio_adicional
+            
+            detalle['precio_unitario'] = precio_base
+            detalle['subtotal'] = cantidad * precio_base
         
         return value
     
@@ -251,7 +278,12 @@ class PedidoCreateSerializer(serializers.Serializer):
                 producto = Producto.objects.select_for_update().get(id=detalle_data['producto'].id)
                 cantidad = detalle_data['cantidad']
                 
-                if producto.stock < cantidad:
+                variacion = detalle_data.get('variacion')
+                if variacion:
+                    variacion = ProductoVariacion.objects.select_for_update().get(id=variacion.id)
+                    if variacion.stock < cantidad:
+                        raise serializers.ValidationError(f"Stock insuficiente para la variación '{variacion.nombre}'")
+                elif producto.stock < cantidad:
                     raise serializers.ValidationError(f"Stock insuficiente para '{producto.nombre}'. Disponible: {producto.stock}, Solicitado: {cantidad}")
                     
                 precio_unitario = Decimal(str(detalle_data['precio_unitario']))
@@ -260,6 +292,7 @@ class PedidoCreateSerializer(serializers.Serializer):
                 DetalleVenta.objects.create(
                     pedido=pedido,  # Vincular al Pedido
                     producto=producto,
+                    variacion=variacion,
                     nombre_producto=detalle_data['nombre_producto'],
                     descripcion=detalle_data['descripcion'],
                     cantidad=cantidad,
@@ -268,8 +301,12 @@ class PedidoCreateSerializer(serializers.Serializer):
                 )
                 
                 # Reducir stock
-                producto.stock -= cantidad
-                producto.save()
+                if variacion:
+                    variacion.stock -= cantidad
+                    variacion.save()
+                else:
+                    producto.stock -= cantidad
+                    producto.save()
                 
                 # Calcular totales
                 item_subtotal = Decimal(str(detalle_data['subtotal']))
@@ -417,9 +454,14 @@ class PedidoUpdateStateSerializer(serializers.ModelSerializer):
             # Si se cancela, liberar el stock
             if new_estado == 'CANCELADO' and old_estado != 'CANCELADO':
                 for detalle in instance.detalles_venta.all():
-                    producto = detalle.producto
-                    producto.stock += detalle.cantidad
-                    producto.save()
+                    if detalle.variacion:
+                        variacion = detalle.variacion
+                        variacion.stock += detalle.cantidad
+                        variacion.save()
+                    else:
+                        producto = detalle.producto
+                        producto.stock += detalle.cantidad
+                        producto.save()
             
             instance.estado = new_estado
             instance.save()

@@ -14,27 +14,32 @@ export const CartProvider = ({ children }) => {
     localStorage.setItem('unl_cart', JSON.stringify(cartItems));
   }, [cartItems]);
 
-  const addToCart = useCallback((product, quantity = 1) => {
+  const addToCart = useCallback((product, quantity = 1, selectedVariation = null) => {
     setCartItems(prev => {
-      const existing = prev.find(item => item.id === product.id);
+      // Diferenciar por producto Y variación
+      const existing = prev.find(item => 
+        item.id === product.id && 
+        (item.selectedVariation?.id === selectedVariation?.id)
+      );
+
       if (existing) {
         return prev.map(item => 
-          item.id === product.id 
+          item.id === product.id && (item.selectedVariation?.id === selectedVariation?.id)
             ? { ...item, cantidad: item.cantidad + quantity }
             : item
         );
       }
-      return [...prev, { ...product, cantidad: quantity }];
+      return [...prev, { ...product, cantidad: quantity, selectedVariation }];
     });
   }, []);
 
-  const removeFromCart = useCallback((productId) => {
-    setCartItems(prev => prev.filter(item => item.id !== productId));
+  const removeFromCart = useCallback((productId, variationId = null) => {
+    setCartItems(prev => prev.filter(item => !(item.id === productId && item.selectedVariation?.id === variationId)));
   }, []);
 
-  const updateQuantity = useCallback((productId, delta) => {
+  const updateQuantity = useCallback((productId, variationId, delta) => {
     setCartItems(prev => prev.map(item => {
-      if (item.id === productId) {
+      if (item.id === productId && item.selectedVariation?.id === variationId) {
         const newQuantity = Math.max(1, item.cantidad + delta);
         return { ...item, cantidad: newQuantity };
       }

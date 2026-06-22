@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, StyleSheet, FlatList, StatusBar, Alert } from 'react-native';
 import { Header } from '../components/Header';
 import { PromotionalBanner } from '../components/PromotionalBanner';
+import { Colors } from '../constants/Colors';
 import { ProductCard } from '../components/ProductCard';
 import { BottomNavigation } from '../components/BottomNavigation';
 import { ClothingProductModal } from '../components/ClothingProductModal';
@@ -37,7 +38,7 @@ export const HomeScreen: React.FC = () => {
 
     return (
         <View style={styles.container}>
-            <StatusBar barStyle="light-content" backgroundColor="#111827" />
+            <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
 
             <Header />
 
@@ -75,7 +76,7 @@ export const HomeScreen: React.FC = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f8fafc', // Fondo gris muy suave (Slate 50)
+        backgroundColor: Colors.surface, // Fondo web
     },
     listContent: {
         paddingBottom: 24,

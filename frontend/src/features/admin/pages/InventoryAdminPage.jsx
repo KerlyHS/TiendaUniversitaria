@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Plus, Edit2, Trash2, X, Image as ImageIcon } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, Image as ImageIcon, Search } from 'lucide-react';
 import apiClient from '../../../core/api/apiClient';
 import { useToast } from '../../../shared/context/ToastContext';
 
@@ -7,6 +7,7 @@ export const InventoryAdminPage = () => {
   const { addToast } = useToast();
   const [products, setProducts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
   
   // State for the Form Modal
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -26,13 +27,43 @@ export const InventoryAdminPage = () => {
     is_activo: true,
     aplica_impuesto: true,
   });
+  const [variations, setVariations] = useState([]);
+  const [agricolaData, setAgricolaData] = useState({ kiloPrecio: '', kiloStock: '', unidadPrecio: '', unidadStock: '' });
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
+
+  // Calcular stock total automáticamente si hay variaciones
+  useEffect(() => {
+    if (formData.categoria === 'AGRICOLA') {
+      const total = (parseInt(agricolaData.kiloStock) || 0) + (parseInt(agricolaData.unidadStock) || 0);
+      setFormData(prev => ({ ...prev, stock: total.toString() }));
+    } else if (variations.length > 0) {
+      const total = variations.reduce((sum, v) => sum + (parseInt(v.stock) || 0), 0);
+      setFormData(prev => ({ ...prev, stock: total.toString() }));
+    }
+  }, [variations, agricolaData, formData.categoria]);
+
+  const handleVariationChange = (index, field, value) => {
+    const newVars = [...variations];
+    newVars[index][field] = value;
+    setVariations(newVars);
+  };
+
+  const addVariation = () => {
+    setVariations([...variations, { nombre: '', stock: 0, precio_adicional: 0 }]);
+  };
+
+  const removeVariation = (index) => {
+    const newVars = [...variations];
+    newVars.splice(index, 1);
+    setVariations(newVars);
+  };
 
   const fetchProducts = async () => {
     try {
       setIsLoading(true);
-      const res = await apiClient.get('/productos/');
+      const url = searchTerm ? `/productos/?search=${searchTerm}` : '/productos/';
+      const res = await apiClient.get(url);
       // Manejar la paginación de DRF si existe
       setProducts(res.data.results || res.data);
     } catch (error) {
@@ -44,8 +75,11 @@ export const InventoryAdminPage = () => {
   };
 
   useEffect(() => {
-    fetchProducts();
-  }, []);
+    const delayDebounceFn = setTimeout(() => {
+      fetchProducts();
+    }, 400);
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchTerm]);
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -70,6 +104,8 @@ export const InventoryAdminPage = () => {
       categoria: 'SOUVENIR', medida: 'UNIDAD', fecha_llegada: '', fecha_caducidad: '',
       is_activo: true, aplica_impuesto: true,
     });
+    setVariations([]);
+    setAgricolaData({ kiloPrecio: '', kiloStock: '', unidadPrecio: '', unidadStock: '' });
     setSelectedFile(null);
     setPreviewUrl(null);
     setIsFormOpen(true);
@@ -90,6 +126,29 @@ export const InventoryAdminPage = () => {
       is_activo: product.is_activo,
       aplica_impuesto: product.aplica_impuesto,
     });
+    
+    if (product.categoria === 'AGRICOLA') {
+      const kilo = product.variaciones?.find(v => v.nombre === '1 Kilo') || {};
+      const unidad = product.variaciones?.find(v => v.nombre === '1 Unidad') || {};
+      setAgricolaData({
+        kiloPrecio: kilo.precio_fijo || '',
+        kiloStock: kilo.stock || '',
+        kiloId: kilo.id || null,
+        unidadPrecio: unidad.precio_fijo || '',
+        unidadStock: unidad.stock || '',
+        unidadId: unidad.id || null,
+      });
+      setVariations([]);
+    } else {
+      setAgricolaData({ kiloPrecio: '', kiloStock: '', unidadPrecio: '', unidadStock: '' });
+      setVariations(product.variaciones ? product.variaciones.map(v => ({
+        id: v.id,
+        nombre: v.nombre,
+        stock: v.stock,
+        precio_adicional: v.precio_adicional
+      })) : []);
+    }
+    
     setSelectedFile(null);
     setPreviewUrl(product.imagen || null);
     setIsFormOpen(true);
@@ -112,13 +171,36 @@ export const InventoryAdminPage = () => {
     // Create FormData because we might send a file
     const data = new FormData();
     Object.keys(formData).forEach(key => {
-      if (formData[key] !== null && formData[key] !== '') {
-        data.append(key, formData[key]);
-      }
+      // Omitir vacíos para código y fechas para evitar bugs
+      if (key === 'codigo' && formData[key] === '') return;
+      if ((key === 'fecha_llegada' || key === 'fecha_caducidad') && formData[key] === '') return;
+      
+      data.append(key, formData[key]);
     });
     
     if (selectedFile) {
       data.append('imagen', selectedFile);
+    }
+    
+    // Append variations as a JSON string
+    let finalVariations = [];
+    if (formData.categoria === 'AGRICOLA') {
+      // Si es agrícola, mandamos un precio de 0 si no hay
+      if (!formData.precio) {
+        data.set('precio', '0');
+      }
+      finalVariations = [
+        { id: agricolaData.kiloId, nombre: '1 Kilo', stock: parseInt(agricolaData.kiloStock) || 0, precio_fijo: parseFloat(agricolaData.kiloPrecio) || 0 },
+        { id: agricolaData.unidadId, nombre: '1 Unidad', stock: parseInt(agricolaData.unidadStock) || 0, precio_fijo: parseFloat(agricolaData.unidadPrecio) || 0 }
+      ];
+    } else {
+      finalVariations = variations;
+    }
+
+    if (finalVariations.length > 0) {
+      data.append('variaciones_data', JSON.stringify(finalVariations));
+    } else {
+      data.append('variaciones_data', JSON.stringify([]));
     }
 
     try {
@@ -137,7 +219,14 @@ export const InventoryAdminPage = () => {
       fetchProducts();
     } catch (error) {
       console.error(error.response?.data);
-      addToast({ title: 'Error', message: 'Revisa los datos e intenta de nuevo.', type: 'error' });
+      let errorMsg = 'Revisa los datos e intenta de nuevo.';
+      if (error.response?.data && typeof error.response.data === 'object' && !Array.isArray(error.response.data)) {
+        // extract the first field error
+        const firstKey = Object.keys(error.response.data)[0];
+        const firstError = error.response.data[firstKey];
+        errorMsg = `${firstKey.toUpperCase()}: ${Array.isArray(firstError) ? firstError[0] : firstError}`;
+      }
+      addToast({ title: 'Error', message: errorMsg, type: 'error' });
     }
   };
 
@@ -146,12 +235,24 @@ export const InventoryAdminPage = () => {
       
       <div className="flex justify-between items-center mb-8">
         <h1 className="font-display-sm text-[28px] text-on-surface font-bold">Gestión de Inventario</h1>
-        <button 
-          onClick={openNewForm}
-          className="bg-primary text-on-primary px-4 py-2 rounded-DEFAULT font-title-sm flex items-center gap-2 hover:bg-primary-container hover:text-on-primary-container transition-colors shadow-sm"
-        >
-          <Plus size={18} /> Nuevo Producto
-        </button>
+        <div className="flex gap-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+            <input 
+              type="text" 
+              placeholder="Buscar producto..." 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 pr-4 py-2 border border-outline-variant rounded-DEFAULT focus:outline-none focus:border-primary text-sm w-64 bg-white"
+            />
+          </div>
+          <button 
+            onClick={openNewForm}
+            className="bg-primary text-on-primary px-4 py-2 rounded-DEFAULT font-title-sm flex items-center gap-2 hover:bg-primary-container hover:text-on-primary-container transition-colors shadow-sm"
+          >
+            <Plus size={18} /> Nuevo Producto
+          </button>
+        </div>
       </div>
 
       {/* Table Section */}
@@ -281,14 +382,73 @@ export const InventoryAdminPage = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1">
-                  <label className="text-label-md text-on-surface-variant">Precio ($) *</label>
-                  <input required type="number" step="0.01" min="0" name="precio" value={formData.precio} onChange={handleInputChange} className="px-3 py-2 border border-outline rounded bg-surface focus:border-primary outline-none" />
+                  <label className="text-label-md text-on-surface-variant">Precio Base ($) {formData.categoria !== 'AGRICOLA' && '*'}</label>
+                  <input required={formData.categoria !== 'AGRICOLA'} type="number" step="0.01" min="0" name="precio" value={formData.precio} onChange={handleInputChange} disabled={formData.categoria === 'AGRICOLA'} className="px-3 py-2 border border-outline rounded bg-surface focus:border-primary outline-none disabled:bg-gray-100 disabled:text-gray-500" placeholder={formData.categoria === 'AGRICOLA' ? "N/A" : ""} />
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-label-md text-on-surface-variant">Stock Inicial *</label>
-                  <input required type="number" min="0" name="stock" value={formData.stock} onChange={handleInputChange} className="px-3 py-2 border border-outline rounded bg-surface focus:border-primary outline-none" />
+                  <input required type="number" min="0" name="stock" value={formData.stock} onChange={handleInputChange} disabled={variations.length > 0 || formData.categoria === 'AGRICOLA'} className="px-3 py-2 border border-outline rounded bg-surface focus:border-primary outline-none disabled:bg-gray-100 disabled:text-gray-500" />
+                  {(variations.length > 0 || formData.categoria === 'AGRICOLA') && <span className="text-xs text-primary">Se calcula automáticamente</span>}
                 </div>
               </div>
+
+              {/* Seccion de Variaciones */}
+              {formData.categoria === 'AGRICOLA' ? (
+                <div className="flex flex-col gap-4 p-4 bg-surface-container-low rounded-lg border border-outline-variant">
+                  <label className="font-title-sm text-on-surface">Precios de Venta (Obligatorios para Agrícolas)</label>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="flex flex-col gap-2 p-3 bg-white rounded border border-outline-variant">
+                      <span className="font-bold text-sm">Venta por 1 Kilo</span>
+                      <div>
+                        <label className="text-xs text-on-surface-variant">Precio ($)</label>
+                        <input type="number" step="0.01" min="0" required value={agricolaData.kiloPrecio} onChange={e => setAgricolaData({...agricolaData, kiloPrecio: e.target.value})} className="w-full text-sm px-2 py-1 border border-outline rounded focus:border-primary outline-none" />
+                      </div>
+                      <div>
+                        <label className="text-xs text-on-surface-variant">Stock (Cant. de Kilos)</label>
+                        <input type="number" min="0" required value={agricolaData.kiloStock} onChange={e => setAgricolaData({...agricolaData, kiloStock: e.target.value})} className="w-full text-sm px-2 py-1 border border-outline rounded focus:border-primary outline-none" />
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-2 p-3 bg-white rounded border border-outline-variant">
+                      <span className="font-bold text-sm">Venta por 1 Unidad</span>
+                      <div>
+                        <label className="text-xs text-on-surface-variant">Precio ($)</label>
+                        <input type="number" step="0.01" min="0" required value={agricolaData.unidadPrecio} onChange={e => setAgricolaData({...agricolaData, unidadPrecio: e.target.value})} className="w-full text-sm px-2 py-1 border border-outline rounded focus:border-primary outline-none" />
+                      </div>
+                      <div>
+                        <label className="text-xs text-on-surface-variant">Stock (Cant. de Unidades)</label>
+                        <input type="number" min="0" required value={agricolaData.unidadStock} onChange={e => setAgricolaData({...agricolaData, unidadStock: e.target.value})} className="w-full text-sm px-2 py-1 border border-outline rounded focus:border-primary outline-none" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-2 p-4 bg-surface-container-low rounded-lg border border-outline-variant">
+                  <div className="flex justify-between items-center mb-2">
+                    <label className="font-title-sm text-on-surface">Opciones / Variaciones (Tallas, Pesos)</label>
+                    <button type="button" onClick={addVariation} className="text-xs font-bold bg-primary text-white px-2 py-1 rounded hover:bg-primary-dark">+ Añadir Opción</button>
+                  </div>
+                  {variations.length === 0 ? (
+                    <p className="text-xs text-on-surface-variant italic">No hay variaciones. Se usará el precio y stock principal.</p>
+                  ) : (
+                    <div className="flex flex-col gap-2">
+                      {variations.map((v, idx) => (
+                        <div key={idx} className="flex gap-2 items-center bg-white p-2 border border-outline-variant rounded">
+                          <div className="flex-1">
+                            <input placeholder="Nombre (Ej: Talla S)" value={v.nombre} onChange={e => handleVariationChange(idx, 'nombre', e.target.value)} className="w-full text-sm px-2 py-1 border border-outline rounded" />
+                          </div>
+                          <div className="w-20">
+                            <input type="number" placeholder="Stock" min="0" value={v.stock} onChange={e => handleVariationChange(idx, 'stock', e.target.value)} className="w-full text-sm px-2 py-1 border border-outline rounded" />
+                          </div>
+                          <div className="w-24">
+                            <input type="number" step="0.01" placeholder="Precio Extra" value={v.precio_adicional} onChange={e => handleVariationChange(idx, 'precio_adicional', e.target.value)} className="w-full text-sm px-2 py-1 border border-outline rounded" />
+                          </div>
+                          <button type="button" onClick={() => removeVariation(idx)} className="p-1 text-error hover:bg-error/10 rounded"><Trash2 size={16}/></button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Fechas para Alimentos */}
               <div className="grid grid-cols-2 gap-4 p-4 bg-surface-container-low rounded-lg border border-outline-variant">

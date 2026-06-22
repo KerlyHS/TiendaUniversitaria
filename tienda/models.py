@@ -94,7 +94,7 @@ class Usuario(AbstractUser):
 class Producto(models.Model):
     codigo = models.CharField(max_length=20, unique=True, null=True, blank=True, verbose_name="Código")
     nombre = models.CharField(max_length=150, verbose_name="Nombre del Producto")
-    descripcion = models.TextField(verbose_name="Descripción")
+    descripcion = models.TextField(verbose_name="Descripción", blank=True, null=True)
     precio = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Precio")
     
     aplica_impuesto = models.BooleanField(default=True, verbose_name="¿Aplica Impuesto?")
@@ -115,6 +115,20 @@ class Producto(models.Model):
 
     def __str__(self):
         return f"[{self.codigo}] {self.nombre}"
+
+class ProductoVariacion(models.Model):
+    producto = models.ForeignKey(Producto, on_delete=models.CASCADE, related_name='variaciones')
+    nombre = models.CharField(max_length=50, verbose_name="Nombre de Variación", help_text="Ej: Talla S, Kilo, Unidad")
+    stock = models.IntegerField(default=0, verbose_name="Stock de Variación")
+    precio_adicional = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, verbose_name="Precio Adicional")
+    precio_fijo = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name="Precio Fijo Override")
+    
+    class Meta:
+        verbose_name = "Variación de Producto"
+        verbose_name_plural = "Variaciones de Producto"
+
+    def __str__(self):
+        return f"{self.producto.nombre} - {self.nombre}"
 
 class Promocion(models.Model):
     fecha_inicio = models.DateField()
@@ -252,14 +266,23 @@ class DetalleVenta(models.Model):
         verbose_name="Nombre del Producto",
         help_text="Snapshot del nombre al momento de la venta"
     )
+    variacion = models.ForeignKey(
+        ProductoVariacion,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name="Variación Seleccionada"
+    )
     descripcion = models.TextField(
         blank=True,
         verbose_name="Descripción"
     )
-    cantidad = models.IntegerField(
-        default=1,
+    cantidad = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=1.00,
         verbose_name="Cantidad",
-        validators=[MinValueValidator(1)]
+        validators=[MinValueValidator(0.01)]
     )
     
     # Precio histórico
