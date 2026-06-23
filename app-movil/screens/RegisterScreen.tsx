@@ -66,6 +66,17 @@ export const RegisterScreen: React.FC = () => {
             return;
         }
 
+        const phoneClean = telefono.trim();
+        if (phoneClean.length !== 10) {
+            Alert.alert('Teléfono inválido', 'El teléfono debe tener exactamente 10 dígitos.');
+            return;
+        }
+
+        if (!phoneClean.startsWith('09')) {
+            Alert.alert('Teléfono inválido', 'El teléfono debe iniciar obligatoriamente con 09.');
+            return;
+        }
+
         if (userType === 'UNL' && !email.trim().toLowerCase().endsWith('@unl.edu.ec')) {
             Alert.alert('Correo institucional obligatorio', 'Si eres de la Comunidad UNL, tu correo debe terminar obligatoriamente en @unl.edu.ec');
             return;
@@ -244,9 +255,15 @@ export const RegisterScreen: React.FC = () => {
                                     placeholder="Ej. 0999999999"
                                     placeholderTextColor={Colors.muted}
                                     value={telefono}
-                                    onChangeText={(text) => setTelefono(text.replace(/[^0-9+]/g, ''))}
+                                    onChangeText={(text) => {
+                                        const cleaned = text.replace(/[^0-9]/g, '');
+                                        if (cleaned.length <= 10) {
+                                            setTelefono(cleaned);
+                                        }
+                                    }}
                                     keyboardType="phone-pad"
                                     editable={!isLoading}
+                                    maxLength={10}
                                 />
                             </View>
                         </View>

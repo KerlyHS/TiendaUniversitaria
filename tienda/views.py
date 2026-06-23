@@ -14,6 +14,7 @@ from .serializers import (
     DetalleVentaSerializer, CajaSerializer
 )
 from rest_framework import generics, viewsets, status, filters
+from django_filters.rest_framework import DjangoFilterBackend
 
 class ProductoViewSet(viewsets.ModelViewSet):
     """
@@ -24,8 +25,10 @@ class ProductoViewSet(viewsets.ModelViewSet):
     queryset = Producto.objects.filter(is_activo=True).order_by('-fecha_creacion')
     serializer_class = ProductoSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
-    filter_backends = [filters.SearchFilter]
-    search_fields = ['nombre', 'codigo', 'categoria']
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['categoria']
+    search_fields = ['nombre', 'codigo', 'categoria', 'descripcion']
+    ordering_fields = ['precio', 'fecha_creacion']
 
     def create(self, request, *args, **kwargs):
         variaciones_data = request.data.get('variaciones_data', None)
@@ -53,6 +56,15 @@ class ProductoViewSet(viewsets.ModelViewSet):
             
         fresh_serializer = self.get_serializer(producto)
         return Response(fresh_serializer.data)
+
+    def destroy(self, request, *args, **kwargs):
+        """
+        Soft delete para evitar errores de integridad con Detalles de Venta anteriores.
+        """
+        instance = self.get_object()
+        instance.is_activo = False
+        instance.save(update_fields=['is_activo'])
+        return Response(status=status.HTTP_204_NO_CONTENT)
         
     def _handle_variaciones(self, producto, variaciones_data):
         import json
@@ -302,35 +314,69 @@ class CajaViewSet(viewsets.ModelViewSet):
             )
             
             from decimal import Decimal
+            import math
             subtotal = Decimal('0.00')
             impuesto_total = Decimal('0.00')
             
             for detalle in detalles_data:
                 producto_id = detalle.get('producto_id')
-                cantidad = int(detalle.get('cantidad', 1))
+                cantidad = Decimal(str(detalle.get('cantidad', 1)))
                 
                 try:
                     producto = Producto.objects.select_for_update().get(id=producto_id)
                 except Producto.DoesNotExist:
                     raise serializers.ValidationError(f"Producto {producto_id} no existe.")
                 
-                if producto.stock < cantidad:
-                    raise serializers.ValidationError(f"Stock insuficiente para {producto.nombre}.")
+                # Check for food category variations
+                variacion = None
+                precio_unitario = producto.precio
+                es_alimento = producto.categoria in ['AGRICOLA', 'HORTALIZAS', 'FRUTAS', 'CARNES', 'LACTEOS', 'BEBIDAS']
+                
+                if es_alimento and producto.variaciones.exists():
+                    # Look for variation containing "libra" or "lb" case-insensitively
+                    libra_var = None
+                    for var in producto.variaciones.all():
+                        if 'libra' in var.nombre.lower() or 'lb' in var.nombre.lower():
+                            libra_var = var
+                            break
+                    if not libra_var:
+                        libra_var = producto.variaciones.first()
                     
-                subtotal_item = producto.precio * cantidad
+                    variacion = libra_var
+                    if variacion:
+                        precio_unitario = variacion.precio_fijo if variacion.precio_fijo is not None else producto.precio
+                
+                cantidad_descontar = int(math.ceil(cantidad))
+                
+                if variacion:
+                    if variacion.stock < cantidad_descontar:
+                        raise serializers.ValidationError(f"Stock insuficiente en la variación '{variacion.nombre}' para {producto.nombre}.")
+                else:
+                    if producto.stock < cantidad_descontar:
+                        raise serializers.ValidationError(f"Stock insuficiente para {producto.nombre}.")
+                
+                subtotal_item = precio_unitario * cantidad
                 
                 DetalleVenta.objects.create(
                     pedido=pedido,
                     producto=producto,
                     nombre_producto=producto.nombre,
+                    variacion=variacion,
                     descripcion=producto.descripcion or '',
                     cantidad=cantidad,
-                    precio_unitario=producto.precio,
+                    precio_unitario=precio_unitario,
                     subtotal=subtotal_item
                 )
                 
-                producto.stock -= cantidad
-                producto.save()
+                if variacion:
+                    variacion.stock -= cantidad_descontar
+                    variacion.save()
+                    # Refresh and update global product stock
+                    producto.stock = sum(v.stock for v in producto.variaciones.all())
+                    producto.save()
+                else:
+                    producto.stock -= cantidad_descontar
+                    producto.save()
                 
                 subtotal += subtotal_item
                 if producto.aplica_impuesto:
@@ -561,6 +607,35 @@ class PagoViewSet(viewsets.ViewSet):
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+    @action(detail=False, methods=['get'], url_path='comprobante')
+    def comprobante(self, request):
+        payment_intent_id = request.query_params.get('payment_intent')
+        if not payment_intent_id:
+            return Response({"error": "Falta el parámetro payment_intent"}, status=status.HTTP_400_BAD_REQUEST)
+            
+        try:
+            transaccion = Transaccion.objects.get(stripe_session_id=payment_intent_id)
+            
+            # Validar pertenencia del pedido
+            pedido = transaccion.pedido
+            if pedido.cliente != request.user and request.user.rol not in ['ADMIN', 'GERENTE']:
+                return Response({"detail": "No tienes permiso para descargar este comprobante."}, status=status.HTTP_403_FORBIDDEN)
+                
+            from .services.pdf_receipt import generate_receipt_pdf
+            from django.http import HttpResponse
+            
+            buffer = generate_receipt_pdf(transaccion)
+            response = HttpResponse(buffer.getvalue(), content_type='application/pdf')
+            response['Content-Disposition'] = f'attachment; filename="comprobante_{pedido.numero_pedido}.pdf"'
+            return response
+            
+        except Transaccion.DoesNotExist:
+            return Response({"error": "Transacción no encontrada"}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return Response({"error": "Error al generar el PDF"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 class StripeWebhookView(APIView):
     authentication_classes = []
     permission_classes = []
@@ -651,8 +726,8 @@ class DashboardStatsView(APIView):
         ]
 
         # Alertas de Stock
-        alertas_stock = Producto.objects.filter(is_activo=True, stock__lte=5).values('id', 'nombre', 'stock', 'imagen')[:5]
-        alertas_list = [{"id": a['id'], "nombre": a['nombre'], "stock": a['stock'], "imagen": a['imagen']} for a in alertas_stock]
+        alertas_stock = Producto.objects.filter(is_activo=True, stock__lte=5).values('id', 'nombre', 'stock', 'imagen', 'codigo')[:5]
+        alertas_list = [{"id": a['id'], "nombre": a['nombre'], "stock": a['stock'], "imagen": a['imagen'], "codigo": a['codigo'] or ''} for a in alertas_stock]
 
         # Órdenes Recientes
         ordenes_recientes_qs = Pedido.objects.order_by('-fecha_creacion')[:5]

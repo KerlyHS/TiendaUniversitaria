@@ -60,6 +60,16 @@ export const RegisterPage = () => {
       return;
     }
 
+    if (formData.telefono.trim().length !== 10) {
+      setErrorMsg('El teléfono debe tener exactamente 10 dígitos.');
+      return;
+    }
+
+    if (!formData.telefono.trim().startsWith('09')) {
+      setErrorMsg('El teléfono debe iniciar obligatoriamente con 09.');
+      return;
+    }
+
     if (!formData.consentimiento_lopdp) {
       setErrorMsg('Debe aceptar la Política de Privacidad (LOPDP).');
       return;
@@ -232,11 +242,17 @@ export const RegisterPage = () => {
               type="tel"
               name="telefono"
               value={formData.telefono}
-              onChange={handleInputChange}
+              onChange={(e) => {
+                const cleanedValue = e.target.value.replace(/[^0-9]/g, '');
+                if (cleanedValue.length <= 10) {
+                  setFormData(prev => ({ ...prev, telefono: cleanedValue }));
+                }
+              }}
               placeholder="0999999999"
               icon={Phone}
               required
               disabled={isLoading}
+              maxLength={10}
             />
 
             {userType === 'UNL' && (

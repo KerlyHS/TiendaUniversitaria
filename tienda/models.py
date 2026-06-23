@@ -39,6 +39,11 @@ class CategoriaProducto(models.TextChoices):
     TEXTIL = 'TEXTIL', _('Textil')
     SOUVENIR = 'SOUVENIR', _('Souvenir')
     TEMPORAL = 'TEMPORAL', _('Temporal')
+    HORTALIZAS = 'HORTALIZAS', _('Hortalizas')
+    FRUTAS = 'FRUTAS', _('Frutas')
+    CARNES = 'CARNES', _('Carnes')
+    LACTEOS = 'LACTEOS', _('Lácteos')
+    BEBIDAS = 'BEBIDAS', _('Bebidas')
 
 class Medida(models.TextChoices):
     GRAMO = 'GRAMO', _('Gramo')

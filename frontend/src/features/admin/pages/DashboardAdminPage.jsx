@@ -166,24 +166,40 @@ export const DashboardAdminPage = () => {
             {alertas_stock.length === 0 ? (
               <p className="text-body-sm text-on-surface-variant">No hay alertas de stock.</p>
             ) : (
-              alertas_stock.map((item) => (
-                <div key={item.id} className="bg-white rounded-xl p-3 flex items-center justify-between border border-error/10 shadow-sm">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-surface-container rounded flex items-center justify-center overflow-hidden">
-                      {item.imagen ? (
-                        <img src={item.imagen} alt={item.nombre} className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="text-outline">📦</div>
-                      )}
+              alertas_stock.map((item) => {
+                const handleReponer = () => {
+                  navigate('/admin/inventario', { 
+                    state: { 
+                      searchProductCode: item.codigo, 
+                      searchProductName: item.nombre 
+                    } 
+                  });
+                };
+                
+                return (
+                  <div key={item.id} className="bg-white rounded-xl p-3 flex items-center justify-between border border-error/10 shadow-sm">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-surface-container rounded flex items-center justify-center overflow-hidden">
+                        {item.imagen ? (
+                          <img src={item.imagen} alt={item.nombre} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="text-outline">📦</div>
+                        )}
+                      </div>
+                      <div>
+                        <h4 className="text-body-sm font-bold text-on-surface line-clamp-1">{item.nombre}</h4>
+                        <p className="text-label-sm text-error font-bold">Quedan {item.stock} u.</p>
+                      </div>
                     </div>
-                    <div>
-                      <h4 className="text-body-sm font-bold text-on-surface line-clamp-1">{item.nombre}</h4>
-                      <p className="text-label-sm text-error font-bold">Quedan {item.stock} u.</p>
-                    </div>
+                    <button 
+                      onClick={handleReponer}
+                      className="text-label-sm font-bold text-primary hover:text-primary-container px-2"
+                    >
+                      Reponer
+                    </button>
                   </div>
-                  <button className="text-label-sm font-bold text-primary hover:text-primary-container px-2">Reponer</button>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>

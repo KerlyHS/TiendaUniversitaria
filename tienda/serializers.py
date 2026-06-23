@@ -490,6 +490,7 @@ class PrivacyPolicySerializer(serializers.ModelSerializer):
 
 class UsuarioSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
+    telefono = serializers.CharField(required=True, allow_blank=False)
     fecha_registro = serializers.DateTimeField(source='date_joined', read_only=True)
 
     class Meta:
@@ -511,6 +512,21 @@ class UsuarioSerializer(serializers.ModelSerializer):
     def validate_consentimiento_lopdp(self, value):
         if not value:
             raise serializers.ValidationError("Explicit LOPDP consent is required to register.")
+        return value
+
+    def validate_telefono(self, value):
+        if not value:
+            raise serializers.ValidationError("El número de teléfono es obligatorio.")
+        
+        if not value.isdigit():
+            raise serializers.ValidationError("El teléfono solo debe contener números.")
+        
+        if len(value) != 10:
+            raise serializers.ValidationError("El teléfono debe tener exactamente 10 dígitos.")
+        
+        if not value.startswith("09"):
+            raise serializers.ValidationError("El teléfono debe iniciar con 09.")
+            
         return value
 
     def create(self, validated_data):

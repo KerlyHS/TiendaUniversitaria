@@ -4,6 +4,7 @@ import { ShoppingCart, Plus, Minus, Truck } from 'lucide-react';
 import { useCart } from '../../../shared/context/CartContext';
 import { useToast } from '../../../shared/context/ToastContext';
 import { catalogService } from '../../../core/api/services';
+import { getProductDisplayPrice } from '../../../shared/utils/priceHelper';
 
 export const ProductDetailPage = () => {
   const { id } = useParams();
@@ -262,7 +263,9 @@ export const ProductDetailPage = () => {
           <h2 className="font-display-sm text-[28px] text-on-surface font-bold">Recomendados para ti</h2>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {recommendations.map((rec) => (
+            {recommendations.map((rec) => {
+              const displayInfo = getProductDisplayPrice(rec);
+              return (
               <Link to={`/producto/${rec.id}`} key={rec.id} className="group flex flex-col gap-3 bg-surface border border-outline-variant rounded-xl overflow-hidden hover:shadow-md hover:border-primary transition-all pb-4 h-full">
                 <div className="w-full aspect-[4/3] bg-surface-container-lowest relative overflow-hidden">
                   <img src={rec.imagen || 'https://via.placeholder.com/400x300?text=Sin+Imagen'} alt={rec.nombre} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
@@ -270,10 +273,14 @@ export const ProductDetailPage = () => {
                 <div className="px-4 flex flex-col flex-grow">
                   <span className="text-label-sm text-on-surface-variant mb-1 uppercase">{getCategoryName(rec.categoria) || 'Tienda'}</span>
                   <h3 className="font-body-lg text-on-surface line-clamp-2 leading-tight mb-3 flex-grow">{rec.nombre}</h3>
-                  <span className="font-title-lg text-primary font-bold">$ {parseFloat(rec.precio).toFixed(2).replace('.', ',')}</span>
+                  <span className="font-title-lg text-primary font-bold">
+                    $ {displayInfo.precio.toFixed(2).replace('.', ',')}
+                    {displayInfo.unidad && <span className="text-body-sm text-on-surface-variant font-normal ml-1">/ {displayInfo.unidad}</span>}
+                  </span>
                 </div>
               </Link>
-            ))}
+            );
+            })}
           </div>
         </section>
 

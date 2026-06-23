@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { catalogService } from '../../../core/api/services';
 import apiClient from '../../../core/api/apiClient';
 import { useToast } from '../../../shared/context/ToastContext';
+import { getProductDisplayPrice } from '../../../shared/utils/priceHelper';
 
 export const CajaAdminPage = () => {
   const [productos, setProductos] = useState([]);
@@ -83,28 +84,72 @@ export const CajaAdminPage = () => {
     }
   };
 
+  const getCashierProductInfo = (product) => {
+    const FOOD_CATEGORIES = ['AGRICOLA', 'HORTALIZAS', 'FRUTAS', 'CARNES', 'LACTEOS', 'BEBIDAS'];
+    const esPesable = FOOD_CATEGORIES.includes(product.categoria);
+    
+    let precio = Number(product.precio);
+    let unidad = '';
+    let variacionId = null;
+
+    if (esPesable && product.variaciones && product.variaciones.length > 0) {
+      // Prioridad: buscar una variación de Libra/Lb
+      const libraVar = product.variaciones.find(v => 
+        v.nombre.toLowerCase().includes('libra') || 
+        v.nombre.toLowerCase().includes('lb')
+      );
+      if (libraVar) {
+        precio = Number(libraVar.precio_fijo ?? product.precio);
+        unidad = 'Lb';
+        variacionId = libraVar.id;
+      } else {
+        // Fallback a la primera variación
+        const firstVar = product.variaciones[0];
+        precio = Number(firstVar.precio_fijo ?? product.precio);
+        unidad = firstVar.nombre;
+        variacionId = firstVar.id;
+      }
+    }
+    
+    return { esPesable, precio, unidad, variacionId };
+  };
+
   const agregarAlCarrito = (prod) => {
     if (prod.stock <= 0) {
       showToast('No hay stock de este producto', 'warning');
       return;
     }
     
+    const { esPesable, precio, unidad, variacionId } = getCashierProductInfo(prod);
+    
     setCarrito(prev => {
       const exist = prev.find(item => item.producto_id === prod.id);
       if (exist) {
-        if (exist.cantidad >= prod.stock) {
-          showToast('Stock máximo alcanzado para este producto', 'warning');
-          return prev;
+        if (esPesable) {
+          const nuevaCantidad = Number(exist.cantidad) + 1;
+          if (nuevaCantidad > prod.stock) {
+            showToast('Stock máximo alcanzado para este producto', 'warning');
+            return prev;
+          }
+          return prev.map(item => item.producto_id === prod.id ? { ...item, cantidad: nuevaCantidad, subtotal: Number((nuevaCantidad * item.precio).toFixed(2)) } : item);
+        } else {
+          if (exist.cantidad >= prod.stock) {
+            showToast('Stock máximo alcanzado para este producto', 'warning');
+            return prev;
+          }
+          return prev.map(item => item.producto_id === prod.id ? { ...item, cantidad: item.cantidad + 1, subtotal: (item.cantidad + 1) * item.precio } : item);
         }
-        return prev.map(item => item.producto_id === prod.id ? { ...item, cantidad: item.cantidad + 1, subtotal: (item.cantidad + 1) * item.precio } : item);
       }
       return [...prev, {
         producto_id: prod.id,
-        nombre: prod.nombre,
-        precio: Number(prod.precio),
+        nombre: prod.nombre + (unidad ? ` (${unidad})` : ''),
+        precio: precio,
         cantidad: 1,
-        subtotal: Number(prod.precio),
-        max_stock: prod.stock
+        subtotal: precio,
+        max_stock: prod.stock,
+        esPesable,
+        unidad,
+        variacionId
       }];
     });
   };
@@ -139,7 +184,7 @@ export const CajaAdminPage = () => {
       const payload = {
         cliente_id: cliente ? cliente.id : null,
         metodo_pago: metodoPago,
-        detalles: carrito.map(c => ({ producto_id: c.producto_id, cantidad: c.cantidad }))
+        detalles: carrito.map(c => ({ producto_id: c.producto_id, cantidad: Number(c.cantidad) || 1 }))
       };
       
       const response = await apiClient.post('/cajas/procesar-venta/', payload);
@@ -257,22 +302,27 @@ export const CajaAdminPage = () => {
         </div>
         <div className="flex-1 overflow-y-auto p-4">
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            {productosFiltrados.map(prod => (
-              <div 
-                key={prod.id} 
-                onClick={() => agregarAlCarrito(prod)}
-                className={`border rounded-lg p-3 cursor-pointer transition-all ${prod.stock > 0 ? 'hover:border-primary hover:shadow-md bg-white border-outline-variant' : 'bg-surface-container-low border-outline-variant opacity-50 cursor-not-allowed'}`}
-              >
-                <div className="text-xs text-on-surface-variant mb-1">{prod.codigo}</div>
-                <div className="font-bold text-sm text-on-surface line-clamp-2 h-10">{prod.nombre}</div>
-                <div className="flex justify-between items-center mt-3">
-                  <span className="font-bold text-primary">${Number(prod.precio).toFixed(2)}</span>
-                  <span className={`text-xs px-2 py-1 rounded-full ${prod.stock > 0 ? 'bg-secondary-container text-on-secondary-container' : 'bg-error-container text-on-error-container'}`}>
-                    Stock: {prod.stock}
-                  </span>
+            {productosFiltrados.map(prod => {
+              const display = getProductDisplayPrice(prod);
+              return (
+                <div 
+                  key={prod.id} 
+                  onClick={() => agregarAlCarrito(prod)}
+                  className={`border rounded-lg p-3 cursor-pointer transition-all ${prod.stock > 0 ? 'hover:border-primary hover:shadow-md bg-white border-outline-variant' : 'bg-surface-container-low border-outline-variant opacity-50 cursor-not-allowed'}`}
+                >
+                  <div className="text-xs text-on-surface-variant mb-1">{prod.codigo}</div>
+                  <div className="font-bold text-sm text-on-surface line-clamp-2 h-10">{prod.nombre}</div>
+                  <div className="flex justify-between items-center mt-3">
+                    <span className="font-bold text-primary">
+                      ${display.precio.toFixed(2)}{display.unidad ? ` / ${display.unidad}` : ''}
+                    </span>
+                    <span className={`text-xs px-2 py-1 rounded-full ${prod.stock > 0 ? 'bg-secondary-container text-on-secondary-container' : 'bg-error-container text-on-error-container'}`}>
+                      Stock: {prod.stock}
+                    </span>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>
@@ -345,10 +395,40 @@ export const CajaAdminPage = () => {
                   </button>
                 </div>
                 <div className="flex justify-between items-center">
-                  <div className="flex items-center gap-2 bg-surface-container rounded-lg px-2 py-1">
-                    <button onClick={() => cambiarCantidad(item.producto_id, -1)} className="hover:text-primary"><span className="material-symbols-outlined text-sm">remove</span></button>
-                    <span className="text-sm font-bold w-6 text-center">{item.cantidad}</span>
-                    <button onClick={() => cambiarCantidad(item.producto_id, 1)} className="hover:text-primary"><span className="material-symbols-outlined text-sm">add</span></button>
+                  <div className="flex items-center gap-2">
+                    {item.esPesable ? (
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0.01"
+                          max={item.max_stock}
+                          value={item.cantidad}
+                          onChange={(e) => {
+                            const val = parseFloat(e.target.value);
+                            if (!isNaN(val) && val > 0 && val <= item.max_stock) {
+                              setCarrito(prev => prev.map(c => c.producto_id === item.producto_id ? { ...c, cantidad: val, subtotal: Number((val * c.precio).toFixed(2)) } : c));
+                            } else if (e.target.value === '') {
+                              setCarrito(prev => prev.map(c => c.producto_id === item.producto_id ? { ...c, cantidad: '', subtotal: 0 } : c));
+                            }
+                          }}
+                          onBlur={(e) => {
+                            const val = parseFloat(e.target.value);
+                            if (isNaN(val) || val <= 0) {
+                              setCarrito(prev => prev.map(c => c.producto_id === item.producto_id ? { ...c, cantidad: 1, subtotal: c.precio } : c));
+                            }
+                          }}
+                          className="w-20 px-2 py-1 border border-outline-variant rounded bg-white text-sm font-bold text-center outline-none focus:border-primary"
+                        />
+                        <span className="text-xs text-on-surface-variant font-bold">{item.unidad}</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 bg-surface-container rounded-lg px-2 py-1">
+                        <button onClick={() => cambiarCantidad(item.producto_id, -1)} className="hover:text-primary"><span className="material-symbols-outlined text-sm">remove</span></button>
+                        <span className="text-sm font-bold w-6 text-center">{item.cantidad}</span>
+                        <button onClick={() => cambiarCantidad(item.producto_id, 1)} className="hover:text-primary"><span className="material-symbols-outlined text-sm">add</span></button>
+                      </div>
+                    )}
                   </div>
                   <span className="font-bold text-primary">${Number(item.subtotal).toFixed(2)}</span>
                 </div>

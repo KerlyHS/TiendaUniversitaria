@@ -31,8 +31,7 @@ class ProductoApiTests(TestCase):
             descripcion="Camiseta de algodón 100%",
             precio=15.50,
             stock=100,
-            categoria="TEXTIL",
-            imagen_url="https://example.com/camiseta.jpg"
+            categoria="TEXTIL"
         )
         self.p2 = Producto.objects.create(
             codigo="P002",
@@ -40,8 +39,7 @@ class ProductoApiTests(TestCase):
             descripcion="Gorra ajustable negra",
             precio=8.00,
             stock=50,
-            categoria="TEXTIL",
-            imagen_url="https://example.com/gorra.jpg"
+            categoria="TEXTIL"
         )
         self.p3 = Producto.objects.create(
             codigo="P003",
@@ -50,7 +48,6 @@ class ProductoApiTests(TestCase):
             precio=12.00,
             stock=30,
             categoria="INSTITUCIONAL",
-            imagen_url="https://example.com/bolsa.jpg",
             is_activo=False  # Producto inactivo
         )
         
@@ -159,8 +156,7 @@ class ProductoApiTests(TestCase):
             "descripcion": "Sudadera gris oficial",
             "precio": 25.00,
             "stock": 40,
-            "categoria": "TEXTIL",
-            "imagen_url": "https://example.com/sudadera.jpg"
+            "categoria": "TEXTIL"
         }
         
         res = self.client.post(self.list_url, data, format='json')
@@ -246,8 +242,7 @@ class ProductoApiTests(TestCase):
             "descripcion": "Camiseta de algodón 100%",
             "precio": 18.00,
             "stock": 80,
-            "categoria": "TEXTIL",
-            "imagen_url": "https://example.com/camiseta.jpg"
+            "categoria": "TEXTIL"
         }
         
         res = self.client.put(detail_url, data, format='json')
@@ -365,6 +360,7 @@ class RegistrationApiTests(TestCase):
             "nombre_completo": "Jane Doe",
             "email": "jane.doe@unl.edu.ec",
             "password": "secure_password123",
+            "telefono": "0999999999",
             "consentimiento_lopdp": False
         }
         res = self.client.post(self.register_url, data, format='json')
@@ -376,6 +372,7 @@ class RegistrationApiTests(TestCase):
             "nombre_completo": "Jane Doe",
             "email": "not-an-email",
             "password": "secure_password123",
+            "telefono": "0999999999",
             "consentimiento_lopdp": True
         }
         res = self.client.post(self.register_url, data, format='json')
@@ -388,6 +385,7 @@ class RegistrationApiTests(TestCase):
             "nombre_completo": "John Doe",
             "email": "john.doe@unl.edu.ec",
             "password": "secure_password123",
+            "telefono": "0999999999",
             "consentimiento_lopdp": True,
             "campo_extra": "dato no deseado"
         }

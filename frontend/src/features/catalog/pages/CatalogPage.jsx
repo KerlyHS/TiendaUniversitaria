@@ -3,6 +3,9 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useCart } from '../../../shared/context/CartContext';
 import { useToast } from '../../../shared/context/ToastContext';
 import { catalogService } from '../../../core/api/services';
+import { getProductDisplayPrice } from '../../../shared/utils/priceHelper';
+
+const FOOD_CATEGORIES = ['AGRICOLA', 'HORTALIZAS', 'FRUTAS', 'CARNES', 'LACTEOS', 'BEBIDAS'];
 
 export const CatalogPage = () => {
   const [searchParams] = useSearchParams();
@@ -33,6 +36,13 @@ export const CatalogPage = () => {
   const handleAddToCart = (product, e) => {
     e.preventDefault();
     e.stopPropagation();
+
+    // Redirigir al detalle si es textil o de categoría de alimentos (para elegir variaciones obligatorias)
+    if (product.categoria === 'TEXTIL' || FOOD_CATEGORIES.includes(product.categoria)) {
+      navigate(`/producto/${product.id}`);
+      return;
+    }
+
     addToCart(product, 1);
     addToast({
       title: '¡Añadido al carrito!',
@@ -49,7 +59,7 @@ export const CatalogPage = () => {
     if (categoriaParam) {
       if (categoriaParam === 'TEXTIL') matchCategoria = product.categoria === 'TEXTIL';
       else if (categoriaParam === 'ACCESORIOS') matchCategoria = product.categoria === 'SOUVENIR' || product.categoria === 'ACADEMICO';
-      else if (categoriaParam === 'ALIMENTOS') matchCategoria = product.categoria === 'AGRICOLA';
+      else if (categoriaParam === 'ALIMENTOS') matchCategoria = FOOD_CATEGORIES.includes(product.categoria);
       else if (categoriaParam === 'LIBROS') matchCategoria = product.categoria === 'LIBRERIA';
       else matchCategoria = product.categoria === categoriaParam;
     }
@@ -196,7 +206,9 @@ export const CatalogPage = () => {
               <div className="col-span-full py-12 flex justify-center">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
               </div>
-            ) : filteredProducts.length > 0 ? filteredProducts.map((product, index) => (
+            ) : filteredProducts.length > 0 ? filteredProducts.map((product, index) => {
+              const displayInfo = getProductDisplayPrice(product);
+              return (
               <div 
                 key={product.id} 
                 onClick={() => navigate(`/producto/${product.id}`)}
@@ -221,8 +233,15 @@ export const CatalogPage = () => {
                 <div className="flex flex-col gap-1">
                   <h3 className="font-body-lg text-body-lg text-on-surface line-clamp-2 leading-tight">{product.nombre}</h3>
                   <div className="flex items-center gap-2 mt-1">
-                    <span className="font-headline-lg text-[20px] text-primary font-bold">${parseFloat(product.precio).toFixed(2)}</span>
-                    {product.promocion_activa && <span className="font-body-sm text-[12px] text-outline line-through">${(parseFloat(product.precio) * 1.2).toFixed(2)}</span>}
+                    <span className="font-headline-lg text-[20px] text-primary font-bold">
+                      ${displayInfo.precio.toFixed(2)}
+                      {displayInfo.unidad && <span className="text-body-sm text-on-surface-variant font-normal ml-1">/ {displayInfo.unidad}</span>}
+                    </span>
+                    {product.promocion_activa && (
+                      <span className="font-body-sm text-[12px] text-outline line-through">
+                        ${(displayInfo.precio * 1.2).toFixed(2)}
+                      </span>
+                    )}
                   </div>
                   <span className="font-body-sm text-[12px] text-on-surface-variant flex items-center gap-1">
                     <span className="material-symbols-outlined text-[14px]">
@@ -232,7 +251,8 @@ export const CatalogPage = () => {
                   </span>
                 </div>
               </div>
-            )) : (
+            );
+            }) : (
               <div className="col-span-full py-12 flex flex-col items-center justify-center text-center">
                 <span className="material-symbols-outlined text-[48px] text-outline-variant mb-4">search_off</span>
                 <p className="text-on-surface-variant">No se encontraron productos para los filtros seleccionados.</p>
