@@ -54,12 +54,17 @@ export const authService = {
     return response.data;
   },
 
-  /**
-   * Spec-003: Logout (blacklist token)
-   * POST /api/v1/logout/
-   */
   logout: async () => {
     const response = await apiClient.post('/logout/');
+    return response.data;
+  },
+
+  /**
+   * Actualizar Perfil de Usuario
+   * PUT /api/v1/usuarios/me/
+   */
+  updateProfile: async (userData) => {
+    const response = await apiClient.put('/usuarios/me/', userData);
     return response.data;
   },
 };

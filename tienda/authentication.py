@@ -266,10 +266,20 @@ class UserProfileSerializer(serializers.ModelSerializer):
         return value
     
     def validate_telefono(self, value):
-        if value and not value.isdigit() and not all(c.isdigit() or c == '+' or c == '-' for c in value):
-            raise serializers.ValidationError(
-                "El teléfono solo debe contener dígitos."
-            )
+        # Permite vacío/None si no se envía o se borra (ya que es opcional en la base de datos),
+        # pero si se proporciona, debe cumplir con las validaciones estrictas.
+        if not value:
+            return value
+        
+        if not value.isdigit():
+            raise serializers.ValidationError("El teléfono solo debe contener números.")
+        
+        if len(value) != 10:
+            raise serializers.ValidationError("El teléfono debe tener exactamente 10 dígitos.")
+        
+        if not value.startswith("09"):
+            raise serializers.ValidationError("El teléfono debe iniciar con 09.")
+            
         return value
 
 

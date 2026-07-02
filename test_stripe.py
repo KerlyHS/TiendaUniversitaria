@@ -1,19 +1,23 @@
 import os
 import django
 
-# 1. Configurar entorno Django
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings')
-django.setup()
-from django.conf import settings
-settings.DATABASES['default'] = {'ENGINE': 'django.db.backends.sqlite3', 'NAME': ':memory:'}
-
-from django.core.management import call_command
-call_command('migrate', verbosity=0)
-
-from tienda.models import Usuario, Producto, Pedido, DetalleVenta, PrivacyPolicy
-from tienda.services.payment import StripePaymentService
-
 def run_test():
+    # 1. Configurar entorno Django
+    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings')
+    django.setup()
+    from django.conf import settings
+    settings.DATABASES['default'] = {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': ':memory:',
+        'ATOMIC_REQUESTS': False,
+    }
+
+    from django.core.management import call_command
+    call_command('migrate', verbosity=0)
+
+    from tienda.models import Usuario, Producto, Pedido, DetalleVenta, PrivacyPolicy
+    from tienda.services.payment import StripePaymentService
+
     print("--- INICIANDO PRUEBA DE STRIPE ---")
     
     # 2. Crear datos de prueba temporales

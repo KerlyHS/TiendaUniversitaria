@@ -42,31 +42,37 @@ export const OffCanvasCart = () => {
               <p>Tu carrito está vacío.</p>
             </div>
           ) : (
-            cartItems.map(item => (
-              <div key={item.id} className="flex gap-4">
-                <div className="w-20 h-20 bg-surface-container-low rounded-soft flex-shrink-0 border border-outline-variant/50 overflow-hidden">
-                  {item.imagen && <img src={item.imagen} alt={item.nombre} className="w-full h-full object-cover" />}
-                </div>
-                <div className="flex-1 flex flex-col">
-                  <h4 className="text-sm font-semibold text-on-surface leading-tight">{item.nombre}</h4>
-                  <div className="text-primary font-bold mt-1">${Number(item.precio).toFixed(2)}</div>
-                  
-                  <div className="flex items-center justify-between mt-auto">
-                    <div className="flex items-center border border-outline-variant rounded">
-                      <button onClick={() => updateQuantity(item.id, -1)} className="px-2 py-1 text-on-surface hover:bg-surface-container">-</button>
-                      <span className="px-2 text-sm font-medium">{item.cantidad}</span>
-                      <button onClick={() => updateQuantity(item.id, 1)} className="px-2 py-1 text-on-surface hover:bg-surface-container">+</button>
+            cartItems.map(item => {
+              const uniqueKey = `${item.id}-${item.selectedVariation?.id || 'base'}`;
+              return (
+                <div key={uniqueKey} className="flex gap-4">
+                  <div className="w-20 h-20 bg-surface-container-low rounded-soft flex-shrink-0 border border-outline-variant/50 overflow-hidden">
+                    {item.imagen && <img src={item.imagen} alt={item.nombre} className="w-full h-full object-cover" />}
+                  </div>
+                  <div className="flex-1 flex flex-col">
+                    <h4 className="text-sm font-semibold text-on-surface leading-tight">
+                      {item.nombre} 
+                      {item.selectedVariation && <span className="block text-xs text-on-surface-variant font-normal mt-0.5 opacity-80">{item.selectedVariation.nombre}</span>}
+                    </h4>
+                    <div className="text-primary font-bold mt-1">${Number(item.precio).toFixed(2)}</div>
+                    
+                    <div className="flex items-center justify-between mt-auto">
+                      <div className="flex items-center border border-outline-variant rounded">
+                        <button onClick={() => updateQuantity(item.id, item.selectedVariation?.id, -1)} className="px-2 py-1 text-on-surface hover:bg-surface-container">-</button>
+                        <span className="px-2 text-sm font-medium">{item.cantidad}</span>
+                        <button onClick={() => updateQuantity(item.id, item.selectedVariation?.id, 1)} className="px-2 py-1 text-on-surface hover:bg-surface-container">+</button>
+                      </div>
+                      <button 
+                        onClick={() => removeFromCart(item.id, item.selectedVariation?.id)}
+                        className="text-on-surface-variant hover:text-error p-1 transition-colors"
+                      >
+                        <Trash2 size={16} />
+                      </button>
                     </div>
-                    <button 
-                      onClick={() => removeFromCart(item.id)}
-                      className="text-on-surface-variant hover:text-error p-1 transition-colors"
-                    >
-                      <Trash2 size={16} />
-                    </button>
                   </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
 

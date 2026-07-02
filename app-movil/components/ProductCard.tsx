@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, Dimensions } from 'react-native';
 import { Product } from '../types/product';
+import { Colors } from '../constants/Colors';
 
 interface ProductCardProps {
     product: Product;
@@ -42,10 +43,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onPress }) =>
 const styles = StyleSheet.create({
     card: {
         width: CARD_WIDTH,
-        backgroundColor: '#ffffff',
+        backgroundColor: Colors.white,
         borderRadius: 8,
         margin: CARD_MARGIN,
-        shadowColor: '#000',
+        shadowColor: Colors.black,
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.05,
         shadowRadius: 4,
@@ -55,7 +56,7 @@ const styles = StyleSheet.create({
     imageContainer: {
         width: '100%',
         height: CARD_WIDTH, // Aspect ratio 1:1
-        backgroundColor: '#f1f5f9',
+        backgroundColor: Colors.background,
     },
     image: {
         width: '100%',
@@ -66,13 +67,13 @@ const styles = StyleSheet.create({
     },
     code: {
         fontSize: 12,
-        color: '#94a3b8',
+        color: Colors.muted,
         marginBottom: 4,
     },
     name: {
         fontSize: 14,
         fontWeight: '600',
-        color: '#1e293b',
+        color: Colors.onSurface,
         marginBottom: 8,
         height: 40, // Fija la altura para 2 líneas
     },
@@ -83,11 +84,11 @@ const styles = StyleSheet.create({
     price: {
         fontSize: 16,
         fontWeight: 'bold',
-        color: '#0ea5e9', // Azul cian para el precio según diseño
+        color: Colors.primary, // Verde UNL para el precio
     },
     iva: {
         fontSize: 12,
-        color: '#0ea5e9',
+        color: Colors.primary,
         fontWeight: '600',
     },
 });

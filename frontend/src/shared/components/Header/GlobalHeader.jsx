@@ -4,6 +4,7 @@ import { useCart } from '../../../shared/context/CartContext';
 import { CustomSearchEngine } from '../../../shared/utils/searchEngine';
 import { catalogService } from '../../../core/api/services';
 import { useAuth } from '../../../core/hooks/useAuth';
+import { getProductDisplayPrice } from '../../utils/priceHelper';
 
 export const GlobalHeader = () => {
   const { totalItems, openCart } = useCart();
@@ -117,10 +118,12 @@ export const GlobalHeader = () => {
             {showResults && searchQuery.length >= 2 && (
               <div className="absolute top-full left-0 right-0 mt-1 bg-surface-container-lowest border border-outline-variant shadow-lg rounded-DEFAULT max-h-96 overflow-y-auto z-[100]">
                 {searchResults.length > 0 ? (
-                  searchResults.map(result => (
+                  searchResults.map(result => {
+                    const displayInfo = getProductDisplayPrice(result);
+                    return (
                     <Link 
                       key={result.id} 
-                      to={`/catalogo/${result.id}`}
+                      to={`/producto/${result.id}`}
                       onClick={() => setShowResults(false)}
                       className="flex items-center gap-3 p-3 hover:bg-surface-container-low transition-colors border-b border-outline-variant/30 last:border-b-0"
                     >
@@ -131,9 +134,13 @@ export const GlobalHeader = () => {
                         <span className="font-body-sm font-bold text-on-surface">{result.nombre}</span>
                         <span className="text-xs text-on-surface-variant">{result.categoria?.nombre}</span>
                       </div>
-                      <div className="font-bold text-primary">${Number(result.precio).toFixed(2)}</div>
+                      <div className="font-bold text-primary">
+                        ${displayInfo.precio.toFixed(2)}
+                        {displayInfo.unidad && <span className="text-xs text-on-surface-variant font-normal ml-0.5">/ {displayInfo.unidad}</span>}
+                      </div>
                     </Link>
-                  ))
+                  );
+                  })
                 ) : (
                   <div className="p-4 text-center text-on-surface-variant font-body-sm">
                     No se encontraron resultados para "{searchQuery}"

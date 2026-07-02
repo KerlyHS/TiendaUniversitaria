@@ -1,0 +1,527 @@
+---
+title: "Seguridad de Tokens - TiendaUniversitaria"
+subtitle: "Guía de buenas prácticas para manejo seguro de JWT"
+date: "2024"
+author: "TiendaUniversitaria Security Team"
+format: 
+  html:
+    toc: true
+    toc-depth: 3
+    code-fold: false
+    theme: cosmo
+---
+
+# Seguridad de Tokens JWT
+
+## 1. Principios Fundamentales
+
+### 1.1 Principio de Menor Privilegio
+
+Los tokens deben tener permisos limitados al mínimo necesario.
+
+```javascript
+// ❌ MALO - Token con permisos excesivos
+const token = {
+  user_id: 1,
+  email: "usuario@example.com",
+  rol: "admin",  // Nunca debería incluir rol en el token
+  todas_las_permisos: true
+};
+
+// ✅ BUENO - Token minimalista
+const token = {
+  user_id: 1,
+  email: "usuario@example.com",
+  exp: 1234567890
+};
+
+// Las permisos se validan en backend consultando la BD
+```
+
+### 1.2 Confidencialidad
+
+Los tokens deben ser tratados como información confidencial.
+
+```javascript
+// ❌ MALO - Exponer tokens
+console.log(token);  // Nunca loguear tokens
+const url = `${api}/profile?token=${token}`;  // Nunca en URL
+document.body.innerText = token;  // Nunca mostrar en página
+
+// ✅ BUENO - Proteger tokens
+const token = localStorage.getItem('access_token');  // Solo lectura
+// Nunca mostrar al usuario
+// Usar HTTPS para transmisión
+```
+
+### 1.3 Integridad
+
+El token no debe ser modificado en tránsito.
+
+```javascript
+// El servidor valida la firma
+// Si el token fue modificado, la firma no coincidirá
+// Resultado: 401 Unauthorized
+
+// Python/Django hace esto automáticamente
+```
+
+## 2. Almacenamiento Seguro
+
+### 2.1 Comparación de Opciones
+
+| Opción | Seguridad | Accesibilidad | Caso de Uso |
+|--------|-----------|---------------|-----------|
+| localStorage | Media | Alta (JS) | Desarrollo |
+| sessionStorage | Media | Media (pestaña) | Demo |
+| Memory (variable) | Alta | Baja (se pierde con refresh) | No recomendado |
+| httpOnly Cookies | Alta | Baja (automática) | Producción |
+| Secure Cookies | Muy Alta | Baja (automática) | Producción + HTTPS |
+
+### 2.2 Implementación Segura en React
+
+```javascript
+// src/utils/tokenStorage.ts
+
+interface TokenStorage {
+  getAccessToken(): string | null;
+  setAccessToken(token: string): void;
+  getRefreshToken(): string | null;
+  setRefreshToken(token: string): void;
+  clearTokens(): void;
+}
+
+// Desarrollo: localStorage (simple pero menos seguro)
+const localStorageImpl: TokenStorage = {
+  getAccessToken: () => localStorage.getItem('access_token'),
+  setAccessToken: (token) => localStorage.setItem('access_token', token),
+  getRefreshToken: () => localStorage.getItem('refresh_token'),
+  setRefreshToken: (token) => localStorage.setItem('refresh_token', token),
+  clearTokens: () => {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+  }
+};
+
+// Producción: httpOnly Cookies (más seguro)
+// Requiere que el backend establezca cookies
+const cookieImpl: TokenStorage = {
+  getAccessToken: () => getCookieValue('access_token'),
+  setAccessToken: () => {}, // No hacer nada, servidor lo hace
+  getRefreshToken: () => getCookieValue('refresh_token'),
+  setRefreshToken: () => {}, // No hacer nada, servidor lo hace
+  clearTokens: () => {
+    // Logout endpoint limpia cookies automáticamente
+  }
+};
+
+// Usar en desarrollo
+export const tokenStorage = localStorageImpl;
+```
+
+### 2.3 Configurar Django para httpOnly Cookies
+
+```python
+# core/settings.py
+
+# Producción: Usar httpOnly Cookies
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(hours=24),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    
+    # Configuración de cookies
+    'AUTH_COOKIE': 'access_token',
+    'AUTH_COOKIE_REFRESH': 'refresh_token',
+    'AUTH_COOKIE_SECURE': True,  # Solo HTTPS
+    'AUTH_COOKIE_HTTP_ONLY': True,  # No accesible desde JS
+    'AUTH_COOKIE_SAME_SITE': 'Strict',  # CSRF protection
+}
+
+# CORS debe permitir credenciales
+CORS_ALLOW_CREDENTIALS = True
+```
+
+## 3. Validación en Backend
+
+### 3.1 Verificar Token en Cada Request
+
+```python
+# tienda/views.py
+
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework_simplejwt.authentication import JWTAuthentication
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_user_profile(request):
+    """
+    Solo usuarios autenticados pueden acceder.
+    Django REST Framework verifica automáticamente el JWT.
+    """
+    user = request.user
+    return Response({
+        'id': user.id,
+        'email': user.email,
+        'nombre': user.nombre_completo
+    })
+```
+
+### 3.2 Validación Personalizada
+
+```python
+# tienda/authentication.py
+
+from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework.exceptions import AuthenticationFailed
+
+class CustomJWTAuthentication(JWTAuthentication):
+    def authenticate(self, request):
+        result = super().authenticate(request)
+        if result is None:
+            return None
+        
+        user, validated_token = result
+        
+        # Validaciones adicionales
+        if not user.is_active:
+            raise AuthenticationFailed('Usuario inactivo')
+        
+        if user.has_been_banned():
+            raise AuthenticationFailed('Usuario baneado')
+        
+        # Log para auditoría
+        AuditLog.objects.create(
+            user=user,
+            action='API_ACCESS',
+            endpoint=request.path,
+            timestamp=now()
+        )
+        
+        return user, validated_token
+```
+
+## 4. Manejo de Errores
+
+### 4.1 No Exponer Información Sensible
+
+```python
+# ❌ MALO - Información excesiva
+{
+    "detail": "Token JWT inválido para usuario con ID 42",
+    "token_type": "access",
+    "signature": "abc123..."
+}
+
+# ✅ BUENO - Información mínima
+{
+    "detail": "Token inválido o expirado"
+}
+```
+
+### 4.2 Implementar Rate Limiting
+
+```python
+# core/settings.py
+
+REST_FRAMEWORK = {
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle'
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '100/hour',
+        'user': '1000/hour',
+        'auth_login': '5/hour',  # 5 intentos por hora
+    }
+}
+```
+
+```python
+# tienda/views.py
+from rest_framework.throttling import ScopedRateThrottle
+
+class LoginView(APIView):
+    throttle_scope = 'auth_login'
+    throttle_classes = [ScopedRateThrottle]
+    
+    def post(self, request):
+        # Máximo 5 intentos de login por hora
+        ...
+```
+
+## 5. Renovación de Tokens
+
+### 5.1 Política de Expiración
+
+```python
+# core/settings.py
+
+SIMPLE_JWT = {
+    # Corta duración: facilita revocación pero requiere refresh frecuente
+    'ACCESS_TOKEN_LIFETIME': timedelta(hours=24),
+    
+    # Más larga duración: permite período de gracia para refresh
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    
+    # Rotación de refresh tokens (mejora seguridad)
+    'ROTATE_REFRESH_TOKENS': True,
+}
+```
+
+### 5.2 Manejo de Expiración en Frontend
+
+```javascript
+// src/services/api.ts
+
+const setupInterceptors = (apiClient) => {
+  // Interceptor de respuesta
+  apiClient.interceptors.response.use(
+    (response) => response,
+    async (error) => {
+      const { config, response } = error;
+      
+      // Si token expiró (401)
+      if (response?.status === 401 && !config._retry) {
+        config._retry = true;
+        
+        try {
+          // Intentar renovar
+          const newToken = await refreshAccessToken();
+          config.headers.Authorization = `Bearer ${newToken}`;
+          return apiClient(config);
+        } catch (refreshError) {
+          // Si refresh falla, ir a login
+          window.location.href = '/login';
+          return Promise.reject(refreshError);
+        }
+      }
+      
+      return Promise.reject(error);
+    }
+  );
+};
+
+const refreshAccessToken = async () => {
+  const refreshToken = localStorage.getItem('refresh_token');
+  const response = await axios.post('/auth/refresh/', {
+    refresh: refreshToken
+  });
+  
+  localStorage.setItem('access_token', response.data.access);
+  return response.data.access;
+};
+```
+
+## 6. Logout Seguro
+
+### 6.1 Token Blacklist
+
+```python
+# tienda/models.py
+
+from django.db import models
+from django.utils import timezone
+
+class TokenBlacklist(models.Model):
+    """Almacena tokens revocados (logout, cambio de contraseña)"""
+    token = models.TextField()
+    user = models.ForeignKey(Usuario, on_delete=models.CASCADE)
+    blacklisted_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    
+    class Meta:
+        ordering = ['-blacklisted_at']
+        indexes = [
+            models.Index(fields=['token']),
+            models.Index(fields=['expires_at']),
+        ]
+    
+    def __str__(self):
+        return f"Token de {self.user.email} (revocado el {self.blacklisted_at})"
+```
+
+```python
+# tienda/authentication.py
+
+from tienda.models import TokenBlacklist
+from rest_framework_simplejwt.tokens import RefreshToken
+
+class LogoutView(APIView):
+    permission_classes = [AllowAny]
+    
+    def post(self, request):
+        refresh_token = request.data.get('refresh')
+        
+        if not refresh_token:
+            return Response(
+                {"error": "Refresh token requerido"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            # Parsear el token
+            token = RefreshToken(refresh_token)
+            
+            # Obtener información del token
+            token_exp = token.payload['exp']
+            from datetime import datetime
+            expires_at = datetime.fromtimestamp(token_exp)
+            
+            # Agregar a blacklist
+            TokenBlacklist.objects.create(
+                token=refresh_token,
+                user=request.user if request.user.is_authenticated else None,
+                expires_at=expires_at
+            )
+            
+            return Response(
+                {"status": "success", "message": "Sesión cerrada"},
+                status=status.HTTP_200_OK
+            )
+        except Exception as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+```
+
+### 6.2 Limpiar Blacklist Expirada
+
+```python
+# tienda/management/commands/cleanup_token_blacklist.py
+
+from django.core.management.base import BaseCommand
+from django.utils import timezone
+from tienda.models import TokenBlacklist
+
+class Command(BaseCommand):
+    help = 'Limpiar tokens expirados de la blacklist'
+    
+    def handle(self, *args, **options):
+        now = timezone.now()
+        deleted_count, _ = TokenBlacklist.objects.filter(
+            expires_at__lt=now
+        ).delete()
+        
+        self.stdout.write(
+            self.style.SUCCESS(
+                f'Eliminados {deleted_count} tokens expirados'
+            )
+        )
+
+# Ejecutar diariamente con Celery o cron
+```
+
+## 7. Auditoría y Logging
+
+### 7.1 Registrar Acceso
+
+```python
+# tienda/middleware.py
+
+import logging
+from django.utils import timezone
+
+logger = logging.getLogger(__name__)
+
+class TokenAuditMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+    
+    def __call__(self, request):
+        # Registrar antes del request
+        if hasattr(request, 'user') and request.user.is_authenticated:
+            logger.info(
+                f"Usuario {request.user.email} accedió a {request.path}",
+                extra={
+                    'user_id': request.user.id,
+                    'path': request.path,
+                    'method': request.method,
+                    'ip': self.get_client_ip(request),
+                    'timestamp': timezone.now().isoformat()
+                }
+            )
+        
+        response = self.get_response(request)
+        return response
+    
+    @staticmethod
+    def get_client_ip(request):
+        """Obtener IP del cliente"""
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            return x_forwarded_for.split(',')[0]
+        return request.META.get('REMOTE_ADDR')
+```
+
+## 8. CSRF Protection
+
+### 8.1 Configuración CSRF
+
+```python
+# core/settings.py
+
+CSRF_TRUSTED_ORIGINS = [
+    'http://localhost:3000',
+    'http://localhost:5173',
+    'https://tuendauniversitaria.ec',
+]
+
+# Para formularios HTML tradicionales
+CSRF_COOKIE_SECURE = True  # Solo HTTPS
+CSRF_COOKIE_HTTPONLY = False  # JS necesita leerlo
+CSRF_COOKIE_SAMESITE = 'Strict'
+```
+
+### 8.2 Headers en Respuesta
+
+```python
+# tienda/authentication.py
+
+class LoginView(APIView):
+    def post(self, request):
+        # ... lógica de login
+        
+        response = Response({...})
+        
+        # Agregar headers de seguridad
+        response['X-Content-Type-Options'] = 'nosniff'
+        response['X-Frame-Options'] = 'DENY'
+        response['X-XSS-Protection'] = '1; mode=block'
+        response['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+        
+        return response
+```
+
+## 9. Checklist de Seguridad
+
+- [ ] Tokens almacenados en lugar seguro (httpOnly cookies en prod)
+- [ ] HTTPS obligatorio en producción
+- [ ] Expiración corta para access tokens (24h)
+- [ ] Expiración razonable para refresh tokens (7d)
+- [ ] Rate limiting en endpoints de autenticación
+- [ ] Token blacklist implementado para logout
+- [ ] Validación de token en cada request protegido
+- [ ] CORS configurado correctamente
+- [ ] CSRF protection habilitado
+- [ ] Logging y auditoría de acceso
+- [ ] Manejo seguro de errores (no exponer información)
+- [ ] Refresh token rotation habilitado
+- [ ] Headers de seguridad agregados
+- [ ] Tests de seguridad implementados
+- [ ] Documentación de políticas de tokens
+
+## 10. Referencias de Seguridad
+
+- [OWASP JWT Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/JSON_Web_Token_for_Java_Cheat_Sheet.html)
+- [Auth0 JWT Best Practices](https://auth0.com/intro-to-jwt)
+- [RFC 8949 - Concise Binary Object Representation](https://tools.ietf.org/html/rfc8949)
+- [OWASP Authentication Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html)
+
+---
+
+**Versión**: 1.0.0  
+**Última actualización**: 2024  
+**Clasificación**: Interno  
+**Responsable**: Security Team

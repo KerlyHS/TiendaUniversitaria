@@ -1,12 +1,21 @@
 import React from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, SafeAreaView, Platform } from 'react-native';
 import { Bell } from 'lucide-react-native';
+import { useNavigation } from '@react-navigation/native';
+import { Colors } from '../constants/Colors';
 
 export const Header: React.FC = () => {
+    const navigation = useNavigation<any>();
+
     return (
         <SafeAreaView style={styles.safeArea}>
             <View style={styles.container}>
-                <TouchableOpacity style={styles.avatarContainer} accessibilityRole="button" accessibilityLabel="Perfil de usuario">
+                <TouchableOpacity 
+                    style={styles.avatarContainer} 
+                    accessibilityRole="button" 
+                    accessibilityLabel="Perfil de usuario"
+                    onPress={() => navigation.navigate('Profile')}
+                >
                     <Image
                         source={{ uri: 'https://i.pravatar.cc/100?img=11' }}
                         style={styles.avatar}
@@ -18,7 +27,7 @@ export const Header: React.FC = () => {
                 </View>
 
                 <TouchableOpacity style={styles.iconContainer} accessibilityRole="button" accessibilityLabel="Notificaciones">
-                    <Bell color="#ffffff" size={24} />
+                    <Bell color={Colors.onPrimary} size={24} />
                 </TouchableOpacity>
             </View>
         </SafeAreaView>
@@ -27,7 +36,7 @@ export const Header: React.FC = () => {
 
 const styles = StyleSheet.create({
     safeArea: {
-        backgroundColor: '#111827', // Fondo azul marino muy oscuro
+        backgroundColor: Colors.primary,
         paddingTop: Platform.OS === 'android' ? 25 : 0,
     },
     container: {
@@ -36,7 +45,7 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         paddingHorizontal: 16,
         paddingVertical: 12,
-        backgroundColor: '#111827',
+        backgroundColor: Colors.primary,
     },
     avatarContainer: {
         width: 40,
@@ -44,7 +53,7 @@ const styles = StyleSheet.create({
         borderRadius: 20,
         overflow: 'hidden',
         borderWidth: 2,
-        borderColor: '#ffffff',
+        borderColor: Colors.onPrimary,
     },
     avatar: {
         width: '100%',
@@ -55,7 +64,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     title: {
-        color: '#ffffff',
+        color: Colors.onPrimary,
         fontSize: 18,
         fontWeight: 'bold',
         letterSpacing: 0.5,

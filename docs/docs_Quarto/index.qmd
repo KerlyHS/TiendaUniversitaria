@@ -1,15 +1,26 @@
 ---
-title: "Tienda Universitaria Backend API"
+title: "Documentación - Tienda Universitaria"
 ---
 
-Bienvenido a la documentación oficial del Backend de la **Tienda Universitaria**.
+Bienvenido a la documentación oficial de la **Tienda Universitaria**, que abarca tanto el **Backend API (Django + DRF)** como el **Frontend Web (React + Vite)**.
 
-Este proyecto provee una API REST desarrollada en **Django** y **Django Rest Framework (DRF)**. Está diseñado bajo una arquitectura "Headless", lo que permite integrarse sin problemas con un frontend en React u otros clientes web/móviles.
+Este proyecto ha sido desarrollado bajo una arquitectura desacoplada ("Headless"), permitiendo una integración fluida e independiente entre la lógica del negocio del servidor y la interfaz interactiva del usuario.
 
-## Características Principales
+## 🚀 Secciones de la Documentación
 
-*   **Cumplimiento LOPDP**: Garantiza el registro con consentimiento explícito e inmutable de acuerdo con las normativas ecuatorianas.
-*   **Minimización de Datos**: Colección estricta de datos esenciales.
-*   **Catálogo de Productos**: API de lectura rápida para vitrinas virtuales.
+### 1. Inicio e Instalación
+*   [Guía de Instalación y Configuración](setup.qmd): Pasos para configurar el entorno de desarrollo local (Python, Django, React, dependencias).
+*   [Integración Frontend-Backend y Flujo JWT](integracion-frontend-backend.qmd): Detalle de conectividad por proxy, flujo de login/logout y el ciclo de vida del token de acceso.
 
-Para comenzar, revisa la [Guía de Instalación (Setup)](setup.qmd) o explora directamente los [Endpoints de la API](api.qmd).
+### 🔐 2. Seguridad y Autenticación
+*   [Flujo Detallado JWT](autenticacion-jwt.qmd): Especificaciones de djangorestframework-simplejwt, tokens de acceso/refresco y rotación.
+*   [Seguridad de Tokens y Buenas Prácticas](seguridad-tokens.qmd): Almacenamiento seguro, prevención de XSS/CSRF y auditoría.
+
+### 📦 3. Especificaciones y Requisitos de Negocio
+*   [Especificaciones SDD](specs.qmd): Resumen de las reglas de negocio e historias de usuario (Spec-Kit).
+*   [Catálogo de Productos](catalogo-productos.qmd): Gestión de vitrina virtual, categorías, impuestos e imágenes externas.
+*   [Sistema de Órdenes y Pedidos](ordenes-pedidos.qmd): Flujo de compras, control atómico de stock y máquina de estados.
+
+### 🧪 4. Desarrollo, API y Pruebas
+*   [Referencia de la API REST](api.qmd): Catálogo de endpoints con ejemplos de payloads de solicitud y respuesta.
+*   [Análisis de Calidad y Cobertura (QA)](testing.qmd): Cobertura de tests unitarios y de integración de la suite del proyecto.

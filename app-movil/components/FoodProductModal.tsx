@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView, SafeAreaView } from 'react-native';
 import { X } from 'lucide-react-native';
+import { Colors } from '../constants/Colors';
 import { Product } from '../types/product';
 import { QuantitySelector } from './QuantitySelector';
 
@@ -36,7 +37,7 @@ export const FoodProductModal: React.FC<FoodProductModalProps> = ({ product, vis
                     <View style={styles.header}>
                         <Text style={styles.title}>Opciones de Venta</Text>
                         <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-                            <X color="#64748b" size={24} />
+                            <X color={Colors.secondaryText} size={24} />
                         </TouchableOpacity>
                     </View>
 
@@ -84,23 +85,22 @@ export const FoodProductModal: React.FC<FoodProductModalProps> = ({ product, vis
 };
 
 const styles = StyleSheet.create({
-    // Mismos estilos que ClothingProductModal
-    overlay: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.5)', justifyContent: 'flex-end' },
-    bottomSheet: { backgroundColor: '#ffffff', borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '80%' },
-    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
-    title: { fontSize: 18, fontWeight: '700', color: '#1e293b' },
+    overlay: { flex: 1, backgroundColor: Colors.overlay, justifyContent: 'flex-end' },
+    bottomSheet: { backgroundColor: Colors.white, borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '80%' },
+    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, borderBottomWidth: 1, borderBottomColor: Colors.background },
+    title: { fontSize: 18, fontWeight: '700', color: Colors.onSurface },
     closeButton: { padding: 4 },
     content: { padding: 20 },
-    productName: { fontSize: 20, fontWeight: 'bold', color: '#1e293b', marginBottom: 8 },
-    price: { fontSize: 22, fontWeight: '700', color: '#0ea5e9', marginBottom: 24 },
+    productName: { fontSize: 20, fontWeight: 'bold', color: Colors.onSurface, marginBottom: 8 },
+    price: { fontSize: 22, fontWeight: '700', color: Colors.primary, marginBottom: 24 },
     section: { marginBottom: 24 },
-    sectionTitle: { fontSize: 16, fontWeight: '600', color: '#475569', marginBottom: 12 },
+    sectionTitle: { fontSize: 16, fontWeight: '600', color: Colors.secondaryText, marginBottom: 12 },
     typeContainer: { flexDirection: 'row', gap: 12 },
-    typeButton: { flex: 1, height: 48, borderRadius: 8, borderWidth: 1, borderColor: '#e2e8f0', justifyContent: 'center', alignItems: 'center', backgroundColor: '#f8fafc' },
-    typeButtonActive: { borderColor: '#34d399', backgroundColor: '#ecfdf5' },
-    typeText: { fontSize: 16, fontWeight: '600', color: '#64748b' },
-    typeTextActive: { color: '#059669' },
-    footer: { padding: 20, borderTopWidth: 1, borderTopColor: '#f1f5f9', backgroundColor: '#ffffff' },
-    addToCartButton: { backgroundColor: '#10b981', borderRadius: 12, height: 56, justifyContent: 'center', alignItems: 'center' },
-    addToCartText: { color: '#ffffff', fontSize: 16, fontWeight: 'bold' },
+    typeButton: { flex: 1, height: 48, borderRadius: 8, borderWidth: 1, borderColor: Colors.border, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background },
+    typeButtonActive: { borderColor: Colors.primary, backgroundColor: Colors.primaryContainer + '20' },
+    typeText: { fontSize: 16, fontWeight: '600', color: Colors.secondaryText },
+    typeTextActive: { color: Colors.primary },
+    footer: { padding: 20, borderTopWidth: 1, borderTopColor: Colors.background, backgroundColor: Colors.white },
+    addToCartButton: { backgroundColor: Colors.primaryContainer, borderRadius: 12, height: 56, justifyContent: 'center', alignItems: 'center' },
+    addToCartText: { color: Colors.onPrimary, fontSize: 16, fontWeight: 'bold' },
 });

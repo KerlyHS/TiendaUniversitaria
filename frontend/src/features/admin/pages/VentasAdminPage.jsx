@@ -18,8 +18,8 @@ export const VentasAdminPage = () => {
   const cargarVentas = async () => {
     try {
       setLoading(true);
-      const data = await apiClient.get('/ventas/');
-      setVentas(data);
+      const res = await apiClient.get('/ventas/');
+      setVentas(res.data.results || res.data);
     } catch (error) {
       showToast('Error al cargar historial de ventas', 'error');
     } finally {

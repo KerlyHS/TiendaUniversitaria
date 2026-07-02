@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView, SafeAreaView } from 'react-native';
 import { X } from 'lucide-react-native';
+import { Colors } from '../constants/Colors';
 import { Product } from '../types/product';
 import { QuantitySelector } from './QuantitySelector';
 
@@ -39,7 +40,7 @@ export const ClothingProductModal: React.FC<ClothingProductModalProps> = ({ prod
                     <View style={styles.header}>
                         <Text style={styles.title}>Opciones de Prenda</Text>
                         <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-                            <X color="#64748b" size={24} />
+                            <X color={Colors.secondaryText} size={24} />
                         </TouchableOpacity>
                     </View>
 
@@ -86,11 +87,11 @@ export const ClothingProductModal: React.FC<ClothingProductModalProps> = ({ prod
 const styles = StyleSheet.create({
     overlay: {
         flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        backgroundColor: Colors.overlay,
         justifyContent: 'flex-end',
     },
     bottomSheet: {
-        backgroundColor: '#ffffff',
+        backgroundColor: Colors.white,
         borderTopLeftRadius: 24,
         borderTopRightRadius: 24,
         maxHeight: '80%',
@@ -101,12 +102,12 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         padding: 20,
         borderBottomWidth: 1,
-        borderBottomColor: '#f1f5f9',
+        borderBottomColor: Colors.background,
     },
     title: {
         fontSize: 18,
         fontWeight: '700',
-        color: '#1e293b',
+        color: Colors.onSurface,
     },
     closeButton: {
         padding: 4,
@@ -117,13 +118,13 @@ const styles = StyleSheet.create({
     productName: {
         fontSize: 20,
         fontWeight: 'bold',
-        color: '#1e293b',
+        color: Colors.onSurface,
         marginBottom: 8,
     },
     price: {
         fontSize: 22,
         fontWeight: '700',
-        color: '#0ea5e9',
+        color: Colors.primary,
         marginBottom: 24,
     },
     section: {
@@ -132,7 +133,7 @@ const styles = StyleSheet.create({
     sectionTitle: {
         fontSize: 16,
         fontWeight: '600',
-        color: '#475569',
+        color: Colors.secondaryText,
         marginBottom: 12,
     },
     sizesContainer: {
@@ -144,38 +145,38 @@ const styles = StyleSheet.create({
         height: 48,
         borderRadius: 8,
         borderWidth: 1,
-        borderColor: '#e2e8f0',
+        borderColor: Colors.border,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: '#f8fafc',
+        backgroundColor: Colors.background,
     },
     sizeButtonActive: {
-        borderColor: '#34d399',
-        backgroundColor: '#ecfdf5',
+        borderColor: Colors.primary,
+        backgroundColor: Colors.primaryContainer + '20',
     },
     sizeText: {
         fontSize: 16,
         fontWeight: '600',
-        color: '#64748b',
+        color: Colors.secondaryText,
     },
     sizeTextActive: {
-        color: '#059669',
+        color: Colors.primary,
     },
     footer: {
         padding: 20,
         borderTopWidth: 1,
-        borderTopColor: '#f1f5f9',
-        backgroundColor: '#ffffff',
+        borderTopColor: Colors.background,
+        backgroundColor: Colors.white,
     },
     addToCartButton: {
-        backgroundColor: '#10b981', // Verde Institucional
+        backgroundColor: Colors.primaryContainer, // Verde Institucional
         borderRadius: 12,
         height: 56,
         justifyContent: 'center',
         alignItems: 'center',
     },
     addToCartText: {
-        color: '#ffffff',
+        color: Colors.onPrimary,
         fontSize: 16,
         fontWeight: 'bold',
     },

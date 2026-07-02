@@ -1,13 +1,17 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { CheckCircle2, Package, ArrowRight } from 'lucide-react';
+import { CheckCircle2, Package, ArrowRight, Download } from 'lucide-react';
 import { Button } from '../../../shared/components/UI/Button';
 import { useCart } from '../../../shared/context/CartContext';
+import apiClient from '../../../core/api/apiClient';
+import { useToast } from '../../../shared/context/ToastContext';
 
 export const CheckoutSuccessPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { clearCart } = useCart();
+  const { addToast } = useToast();
+  const [isDownloading, setIsDownloading] = useState(false);
   
   // The payment intent ID will be present in the URL if using Stripe Elements return_url
   const paymentIntent = searchParams.get('payment_intent');
@@ -16,6 +20,27 @@ export const CheckoutSuccessPage = () => {
     // Clear the cart on successful checkout
     clearCart();
   }, [clearCart]);
+
+  const handleDownloadReceipt = async () => {
+    if (!paymentIntent) return;
+    try {
+      setIsDownloading(true);
+      const res = await apiClient.get(`/pagos/comprobante/?payment_intent=${paymentIntent}`, {
+        responseType: 'blob'
+      });
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `comprobante_${paymentIntent}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode.removeChild(link);
+    } catch (error) {
+      addToast({ title: 'Error', message: 'No se pudo descargar el comprobante.', type: 'error' });
+    } finally {
+      setIsDownloading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-surface-container-lowest flex flex-col items-center justify-center p-6">
@@ -34,9 +59,20 @@ export const CheckoutSuccessPage = () => {
         </p>
 
         {paymentIntent && (
-          <div className="bg-surface-container-low p-4 rounded-xl mb-8 text-sm text-on-surface-variant flex flex-col gap-1">
-            <span className="font-bold uppercase text-xs tracking-wider opacity-70">Referencia de Transacción</span>
-            <span className="font-mono">{paymentIntent}</span>
+          <div className="bg-surface-container-low p-4 rounded-xl mb-8 text-sm text-on-surface-variant flex flex-col gap-3">
+            <div>
+              <span className="font-bold uppercase text-xs tracking-wider opacity-70 block mb-1">Referencia de Transacción</span>
+              <span className="font-mono">{paymentIntent}</span>
+            </div>
+            <Button 
+              onClick={handleDownloadReceipt}
+              disabled={isDownloading}
+              variant="outline"
+              className="w-full flex items-center justify-center gap-2 border-primary text-primary hover:bg-primary/5 mt-2"
+            >
+              <Download size={18} />
+              {isDownloading ? 'Generando...' : 'Descargar Comprobante (PDF)'}
+            </Button>
           </div>
         )}
 
