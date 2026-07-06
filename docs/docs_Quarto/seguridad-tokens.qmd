@@ -59,7 +59,7 @@ const token = localStorage.getItem('access_token');  // Solo lectura
 El token no debe ser modificado en tránsito.
 
 ```javascript
-// El servidor valida la firma
+// El servidor valida la firmay
 // Si el token fue modificado, la firma no coincidirá
 // Resultado: 401 Unauthorized
 

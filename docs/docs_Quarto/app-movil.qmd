@@ -1,0 +1,68 @@
+---
+title: "Aplicación Móvil (React Native + Expo)"
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    theme: cosmo
+    code-fold: false
+---
+
+# Aplicación Móvil - Tienda Universitaria UNL
+
+La aplicación móvil de la Tienda Universitaria UNL está construida utilizando el framework **React Native** bajo el ecosistema de **Expo**. Esta plataforma comparte el mismo modelo de base de datos que la plataforma web, consumiendo la API REST expuesta por el backend de Django.
+
+## 1. Arquitectura y Stack Tecnológico
+
+*   **Framework:** React Native + Expo Go.
+*   **Lenguaje:** TypeScript (`.tsx`).
+*   **Enrutamiento:** `@react-navigation/native-stack`.
+*   **Cliente HTTP:** `axios`.
+*   **Pasarela de Pagos:** `@stripe/stripe-react-native`.
+*   **Manejo de Archivos:** `expo-file-system`, `expo-sharing`.
+
+## 2. Configuración y Variables de Entorno
+
+La configuración crítica del entorno debe residir en el archivo `.env` ubicado en la raíz del directorio de la aplicación (`app-movil/`). Expo expone estas variables si inician con el prefijo `EXPO_PUBLIC_`.
+
+```env
+# Ejemplo de configuración .env
+EXPO_PUBLIC_API_URL=http://192.168.1.100:8000/api
+EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
+```
+
+::: {.callout-warning}
+**Importante:** Nunca incluir llaves secretas de Stripe en el frontend móvil. Tampoco se debe usar `localhost` como IP cuando se realicen pruebas en dispositivos reales, ya que apuntará al propio teléfono y no al servidor de desarrollo.
+:::
+
+## 3. Catálogo de Productos Dinámico
+
+El catálogo principal (`HomeScreen.tsx`) dejó de utilizar información ficticia (`mockProducts`) para conectarse directamente al servidor Django.
+
+### Flujo de Datos
+1.  Al montar la pantalla, `useEffect` invoca la función asíncrona de obtención de datos mediante `axios`.
+2.  Se establecen tres estados: `isLoading` (para mostrar indicadores de carga nativos), `error` (para permitir reintentos visuales), y `products`.
+3.  Los datos del backend (`is_food`, `is_ropa`, `tiene_iva`) se mapean al tipado estricto `Product` esperado por los componentes UI nativos (`ProductCard.tsx`).
+
+## 4. Integración de Pasarela de Pagos (Stripe)
+
+La aplicación utiliza la funcionalidad nativa **PaymentSheet** de Stripe, proporcionando un flujo de caja (checkout) optimizado y seguro para tarjetas de crédito/débito.
+
+### Componente `CheckoutScreen.tsx`
+
+La integración se basa en la comunicación cliente-servidor:
+1.  **Solicitud de Intención:** La aplicación solicita al backend Django un `client_secret` a través de `/pagos/crear-payment-intent/`, asociándolo a un pedido específico.
+2.  **Inicialización:** `initPaymentSheet` de `@stripe/stripe-react-native` recibe el secreto devuelto por el servidor.
+3.  **Presentación:** `presentPaymentSheet` invoca la UI nativa. En caso de error o cancelación, se alerta al usuario. En caso de éxito, se redirige al flujo de descarga del comprobante.
+
+## 5. Comprobante Electrónico (PDF)
+
+Para no saturar al dispositivo con cálculos de librerías PDF, la app móvil invoca el mismo generador implementado en `ReportLab` dentro de Django, descargando el binario resultante.
+
+### Servicio `ReceiptService.ts`
+
+El servicio combina dos librerías del SDK de Expo:
+*   **`expo-file-system`:** Para transmitir el flujo del PDF remoto hacia la memoria o almacenamiento temporal del dispositivo local.
+*   **`expo-sharing`:** Para invocar la ventana modal de intercambio nativa del OS (iOS/Android), permitiendo al cliente imprimir, guardar en archivos, o enviar su recibo por correo/WhatsApp.
+
+Este patrón reduce las dependencias (bundle size) de la app móvil y centraliza el formato del comprobante para ambas plataformas web y app.
