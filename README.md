@@ -55,9 +55,82 @@ Consolidarnos como el portal oficial de productos y servicios de la UNL, donde l
 - **Productos Sostenibles y de Calidad**: Contribuye al desarrollo sostenible y social.
 - **Fomento de Emprendimientos**: Apoya a los estudiantes en la creación de sus propios negocios.
 
-## Instalación
+## Instalación y Despliegue Local
 
-### Requisitos
+El proyecto está dividido en tres componentes principales: Backend (Django), Web Frontend (React) y Aplicación Móvil (React Native/Expo). Al clonar el repositorio, la base de datos (con productos e inventario de prueba) y las imágenes vienen incluidas por defecto.
 
-- Python 3.8 o superior.
-- Django 6.0.4.
+### Requisitos Previos
+- [Python 3.10+](https://www.python.org/downloads/)
+- [Node.js 18+](https://nodejs.org/es/) (Incluye `npm`)
+- [Expo Go](https://expo.dev/client) instalado en tu dispositivo móvil (Android/iOS)
+
+---
+
+### Paso 1: Levantar el Backend (Django)
+
+1. Abre una terminal y sitúate en la raíz del proyecto.
+2. Crea un entorno virtual e inicialízalo:
+   ```bash
+   python -m venv venv
+   # En Windows:
+   venv\Scripts\activate
+   # En macOS/Linux:
+   source venv/bin/activate
+   ```
+3. Instala las dependencias de Python:
+   ```bash
+   pip install -r requirements.txt
+   ```
+4. Levanta el servidor backend (La base de datos SQLite y la media ya están configuradas globalmente):
+   ```bash
+   python manage.py runserver 0.0.0.0:8000
+   ```
+   > El backend ahora corre en `http://localhost:8000`
+
+---
+
+### Paso 2: Levantar el Frontend Web (React)
+
+1. Abre una nueva pestaña en tu terminal y navega a la carpeta del frontend:
+   ```bash
+   cd frontend
+   ```
+2. Instala las dependencias de Node:
+   ```bash
+   npm install
+   ```
+3. Inicia el servidor de desarrollo Vite:
+   ```bash
+   npm run dev
+   ```
+   > La página web de Tienda Universitaria se abrirá en `http://localhost:5173`
+
+---
+
+### Paso 3: Levantar la Aplicación Móvil (React Native / Expo)
+
+Para visualizar el catálogo desde el celular, asegúrate de que tu celular y tu computadora estén conectados a la **misma red Wi-Fi**.
+
+1. Abre otra pestaña de terminal y navega a la carpeta móvil:
+   ```bash
+   cd app-movil
+   ```
+2. Instala las dependencias de Expo:
+   ```bash
+   npm install
+   ```
+3. Configura tu IP: 
+   Abre el archivo `app-movil/.env` y reemplaza la IP `192.168.X.X` por tu IP IPv4 local (puedes obtenerla ejecutando `ipconfig` en Windows o `ifconfig` en Mac).
+   ```env
+   EXPO_PUBLIC_API_URL=http://<TU_IP_LOCAL>:8000/api
+   ```
+4. Inicia el emulador Expo:
+   ```bash
+   npx expo start -c
+   ```
+5. Escanea el código QR que aparece en tu terminal con la app **Expo Go** en tu celular.
+
+### Credenciales de Acceso
+Como la base de datos se distribuye junto al repositorio de forma global, puedes usar las credenciales de administración por defecto para probar el panel de control:
+- **Usuario:** SuperAdmin (O el usuario que hayas creado previamente)
+- Las imágenes, catálogo e historial de pedidos ya están configurados para correr automáticamente (`out-of-the-box`).
