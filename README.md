@@ -1,15 +1,394 @@
-# Tienda Universitaria - API Service
+# Tienda Universitaria
+
+![Logo de Tienda Universitaria](img/LogoTienda.png)
+
+## Descripción
+
+**Tienda Universitaria** es una plataforma web desarrollada para la **Universidad Nacional de Loja (UNL)**, cuyo propósito es comercializar productos elaborados en las quintas experimentales y por los emprendimientos estudiantiles, fortaleciendo el vínculo entre la universidad y la comunidad.
+
+El sistema permite gestionar usuarios, productos, pedidos, inventario, caja y procesos de compra mediante una plataforma web moderna, contribuyendo al desarrollo académico, social y empresarial de la institución.
+
+---
+
+# Guía de Instalación y Ejecución
+
+## Requisitos Previos
+
+Antes de comenzar, asegúrate de tener instalado en tu equipo:
+
+- Git
+- Python 3.8 o superior
+- Node.js
+- npm
+
+Puedes verificar las versiones instaladas ejecutando:
+
+```bash
+python --version
+node --version
+npm --version
+git --version
+```
+
+---
+
+## Clonar el repositorio
+
+Clona el proyecto desde GitHub:
+
+```bash
+git clone https://github.com/KerlyHS/TiendaUniversitaria.git
+```
+
+Ingresa a la carpeta del proyecto:
+
+```bash
+cd TiendaUniversitaria
+```
+
+---
+
+# Instalación del Backend (Django)
+
+## 1. Crear el entorno virtual
+
+```bash
+python -m venv venv
+```
+
+---
+
+## 2. Activar el entorno virtual
+
+### Windows
+
+```bash
+venv\Scripts\activate
+```
+
+### Linux / macOS
+
+```bash
+source venv/bin/activate
+```
+
+Cuando el entorno esté activo observarás algo similar a:
+
+```text
+(venv)
+```
+
+al inicio de la terminal.
+
+---
+
+## 3. Instalar las dependencias
+
+```bash
+pip install -r requirements.txt
+```
+
+---
+
+## 4. Aplicar las migraciones
+
+```bash
+python manage.py migrate
+```
+
+---
+
+## 5. (Opcional) Crear un superusuario
+
+Si deseas acceder al panel administrativo:
+
+```bash
+python manage.py createsuperuser
+```
+
+Completa la información solicitada.
+
+---
+
+## 6. Iniciar el servidor Django
+
+```bash
+python manage.py runserver
+```
+
+El backend estará disponible en:
+
+```
+http://localhost:8000
+```
+
+Panel administrativo:
+
+```
+http://localhost:8000/admin
+```
+
+---
+
+# Instalación del Frontend
+
+Abre una nueva terminal.
+
+Ingresa a la carpeta del frontend:
+
+```bash
+cd frontend
+```
+
+Instala las dependencias:
+
+```bash
+npm install
+```
+
+Inicia el servidor de desarrollo:
+
+```bash
+npm run dev
+```
+
+El frontend estará disponible en la dirección que indique Vite (generalmente):
+
+```
+http://localhost:5173
+```
+
+---
+
+# Orden recomendado para ejecutar el sistema
+
+## Terminal 1
+
+Backend
+
+```bash
+venv\Scripts\activate
+python manage.py runserver
+```
+
+---
+
+## Terminal 2
+
+Frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+---
+
+# Acceso al sistema
+
+| Servicio | URL |
+|----------|-----|
+| Frontend Web | http://localhost:5173 |
+| Backend API | http://localhost:8000 |
+| Panel Administrativo | http://localhost:8000/admin |
+
+---
+
+# Actualizar el proyecto
+
+Si ya tienes el proyecto descargado y deseas obtener la última versión:
+
+```bash
+git pull origin main
+```
+
+---
+
+# Base de Datos
+
+Durante el desarrollo el proyecto utiliza **SQLite**.
+
+La base de datos se encuentra en la raíz del proyecto con el nombre:
+
+```
+db.sqlite3
+```
+
+Si el archivo no existe, puede generarse ejecutando:
+
+```bash
+python manage.py migrate
+```
+
+> **Importante:** Si el equipo de desarrollo trabaja con una base de datos compartida que contiene usuarios, productos o información de prueba, esta deberá ser proporcionada por el administrador del proyecto.
+
+---
+
+# Estructura General del Proyecto
+
+```
+TiendaUniversitaria
+│
+├── core/
+├── tienda/
+├── frontend/
+├── docs/
+├── img/
+├── requirements.txt
+├── manage.py
+├── db.sqlite3
+└── README.md
+```
+
+---
+
+# Problemas Frecuentes
+
+## Python no encontrado
+
+Verifica que Python esté instalado y agregado al PATH del sistema.
+
+Comprueba con:
+
+```bash
+python --version
+```
+
+---
+
+## El entorno virtual no está activado
+
+Actívalo nuevamente.
+
+Windows:
+
+```bash
+venv\Scripts\activate
+```
+
+Linux:
+
+```bash
+source venv/bin/activate
+```
+
+---
+
+## Error al instalar dependencias del Backend
+
+Actualiza pip:
+
+```bash
+python -m pip install --upgrade pip
+```
+
+Luego vuelve a ejecutar:
+
+```bash
+pip install -r requirements.txt
+```
+
+---
+
+## Error con npm
+
+Si ocurre algún problema con las dependencias del frontend:
+
+Elimina la carpeta:
+
+```
+node_modules
+```
+
+y el archivo:
+
+```
+package-lock.json
+```
+
+Luego instala nuevamente:
+
+```bash
+npm install
+```
+
+---
+
+## Migraciones pendientes
+
+Ejecuta:
+
+```bash
+python manage.py migrate
+```
+
+---
+
+## No aparece la base de datos
+
+Si el archivo **db.sqlite3** no existe:
+
+```bash
+python manage.py migrate
+```
+
+---
+
+## Los productos o usuarios no aparecen
+
+Verifica que la base de datos utilizada sea la correcta.
+
+Si estás trabajando con una base de datos compartida, solicita la copia actualizada al administrador del proyecto.
+
+---
+
+## El frontend no puede conectarse al backend
+
+Comprueba que:
+
+- El backend esté ejecutándose.
+- El frontend esté ejecutándose.
+- Ambos utilicen los puertos configurados.
+- No exista un firewall bloqueando la conexión.
+
+---
+
+# Recomendaciones
+
+- Mantén siempre dos terminales abiertas: una para el Backend y otra para el Frontend.
+- Activa el entorno virtual antes de ejecutar cualquier comando de Django.
+- No elimines la base de datos sin realizar una copia de seguridad.
+- Mantén el proyecto actualizado utilizando:
+
+```bash
+git pull origin main
+```
+
+- Revisa el archivo `.env.template` si el proyecto requiere configurar variables de entorno.
+
+---
+
+# API Service
 
 ## Overview
+
 This service provides the backend API for the Tienda Universitaria, ensuring LOPDP compliance for user registration and data management.
+
+---
 
 ## API Endpoints
 
 ### User Registration
-- **URL**: `/api/v1/usuarios/registro/`
-- **Method**: `POST`
-- **Description**: Registers a new user with mandatory LOPDP consent.
-- **Request Body**:
+
+**URL**
+
+```
+POST /api/v1/usuarios/registro/
+```
+
+**Request Body**
+
 ```json
 {
   "nombre_completo": "John Doe",
@@ -19,130 +398,57 @@ This service provides the backend API for the Tienda Universitaria, ensuring LOP
 }
 ```
 
+---
+
 ### Privacy Policy
-- **URL**: `/api/v1/politica-privacidad/`
-- **Method**: `GET`
-- **Description**: Retrieves the latest active privacy policy.
+
+**URL**
+
+```
+GET /api/v1/politica-privacidad/
+```
+
+Obtiene la última versión activa de la política de privacidad.
+
+---
 
 ## Technical Stack
-- **Framework**: Django 6.0.4
-- **API**: Django Rest Framework (DRF)
-- **Database**: SQLite (Dev) / PostgreSQL (Prod)
+
+- Django 6.0.4
+- Django REST Framework (DRF)
+- SQLite (Development)
+- PostgreSQL (Production)
+
+---
 
 ## Compliance
-- **LOPDP Art. 39**: Privacy by Design.
-- **Data Minimization**: Only essential user data is collected.
-- **Consent Audit**: Every user registration includes a timestamped consent linked to a specific policy version.
 
-# Tienda Universitaria
+- LOPDP Art. 39 – Privacy by Design
+- Data Minimization
+- Consent Audit
 
-![Logo de Tienda Universitaria](img/LogoTienda.png)
+---
 
-**Tienda Universitaria** es una plataforma online de la **Universidad Nacional de Loja (UNL)**, que busca vincular a la comunidad universitaria con productos generados en las actividades académicas, como las **quintas experimentales**, y con los emprendimientos estudiantiles. El proyecto tiene como objetivo promover la comercialización de productos elaborados por los estudiantes y ofrecerlos a la comunidad, contribuyendo al desarrollo social, académico y empresarial de los mismos.
-
-## Misión
+# Misión
 
 Somos el espacio de vinculación de la Universidad Nacional de Loja que comercializa y promociona los productos generados en las quintas experimentales y los emprendimientos estudiantiles, fortaleciendo la formación académica de pregrado y contribuyendo al bienestar de la comunidad a través de una oferta de calidad, sostenible y de beneficio social.
 
-## Visión
+---
 
-Consolidarnos como el portal oficial de productos y servicios de la UNL, donde la tecnología y el talento universitario se unen para servir a Loja. Visualizamos una comunidad donde cada estudiante tenga las herramientas digitales para potenciar sus emprendimientos y donde la ciudadanía reconozca en nuestra tienda online la excelencia, la transparencia y el compromiso social de nuestra institución.
+# Visión
 
-## Características del Proyecto
+Consolidarnos como el portal oficial de productos y servicios de la Universidad Nacional de Loja, donde la tecnología y el talento universitario se unen para servir a la comunidad. Visualizamos una plataforma moderna, transparente y confiable que impulse los emprendimientos universitarios y fortalezca el desarrollo social y económico de la región.
 
-- **Vinculación Universitaria**: Promueve los productos de los estudiantes y las actividades académicas.
-- **Plataforma Online**: Accesible para toda la comunidad universitaria.
-- **Productos Sostenibles y de Calidad**: Contribuye al desarrollo sostenible y social.
-- **Fomento de Emprendimientos**: Apoya a los estudiantes en la creación de sus propios negocios.
+---
 
-## Instalación
+# Características del Proyecto
 
-### Requisitos
-
-- Python 3.8 o superior.
-- Django 6.0.4.
-
-# Guía de Instalación y Ejecución
-
-## Requisitos
-- Python 3.8 o superior
-- Node.js y npm
-- Git
-
-## Clonar el repositorio
-Para obtener el proyecto, abre una terminal y ejecuta:
-```bash
-git clone <URL_DEL_REPOSITORIO>
-cd TiendaUniversitaria
-```
-
-## Instalación del Backend
-
-1. Crear un entorno virtual:
-```bash
-python -m venv venv
-```
-
-2. Activar el entorno virtual:
-- En Windows:
-```bash
-venv\Scripts\activate
-```
-- En macOS/Linux:
-```bash
-source venv/bin/activate
-```
-
-3. Instalar las dependencias (requirements):
-```bash
-pip install -r requirements.txt
-```
-
-4. Aplicar migraciones:
-El proyecto utiliza SQLite en desarrollo (`db.sqlite3`). Para preparar la base de datos, ejecuta:
-```bash
-python manage.py migrate
-```
-
-5. Ejecutar el servidor Django:
-```bash
-python manage.py runserver
-```
-
-## Instalación del Frontend
-
-1. En una nueva terminal, ingresar a la carpeta frontend:
-```bash
-cd frontend
-```
-
-2. Instalar las dependencias de Node:
-```bash
-npm install
-```
-
-3. Ejecutar el servidor de desarrollo de Vite:
-```bash
-npm run dev
-```
-
-## Orden recomendado para ejecutar el sistema
-1. **Backend primero**: Ejecuta el servidor Django (`python manage.py runserver`) para levantar la API.
-2. **Frontend después**: En otra terminal, ejecuta el servidor Vite (`npm run dev`) para levantar la interfaz gráfica.
-
-## Acceso al sistema
-- **Frontend (Interfaz Web)**: http://localhost:3000
-- **Backend (API y Panel de Administración)**: http://localhost:8000
-
-## Problemas comunes
-
-- **Python no encontrado**: Asegúrate de tener Python instalado y añadido al PATH del sistema.
-- **Entorno virtual no activado**: Si los comandos fallan por dependencias faltantes, verifica que el entorno virtual esté activo (generalmente se muestra `(venv)` en tu terminal). Si no es así, vuelve a activarlo.
-- **Errores con npm install**: Si la instalación de dependencias del frontend falla, verifica tener Node.js actualizado. Si el problema persiste, borra la carpeta `node_modules` y el archivo `package-lock.json`, y ejecuta `npm install` nuevamente.
-- **Migraciones pendientes**: Si la aplicación web muestra errores de base de datos, detén el servidor, asegúrate de tener tu entorno virtual activado y vuelve a correr `python manage.py migrate`.
-- **Base de datos inexistente**: No te preocupes si no ves la base de datos al inicio. El archivo `db.sqlite3` se generará automáticamente en la raíz del proyecto al correr las migraciones.
-- **Error de conexión entre frontend y backend**: El frontend está configurado en `vite.config.js` para usar el puerto 3000 y redirigir las peticiones `/api` al puerto 8000. Asegúrate de tener ambos servidores corriendo y en los puertos correctos (8000 para Django y 3000 para React).
-
-## Recomendaciones
-- Mantén dos terminales abiertas durante el desarrollo: una dedicada exclusivamente al backend (Django) y otra al frontend (Vite).
-- Revisa el archivo `.env.template` en caso de que requieras configurar variables de entorno para Stripe u otros servicios.
+- Plataforma web para la comercialización de productos universitarios.
+- Gestión de usuarios con cumplimiento de la LOPDP.
+- Catálogo de productos.
+- Gestión de inventario.
+- Gestión de pedidos.
+- Administración de caja.
+- Panel administrativo.
+- API REST desarrollada con Django REST Framework.
+- Base de datos SQLite para desarrollo y PostgreSQL para producción. 
