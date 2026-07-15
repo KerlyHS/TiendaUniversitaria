@@ -55,82 +55,94 @@ Consolidarnos como el portal oficial de productos y servicios de la UNL, donde l
 - **Productos Sostenibles y de Calidad**: Contribuye al desarrollo sostenible y social.
 - **Fomento de Emprendimientos**: Apoya a los estudiantes en la creación de sus propios negocios.
 
-## Instalación y Despliegue Local
+## Instalación
 
-El proyecto está dividido en tres componentes principales: Backend (Django), Web Frontend (React) y Aplicación Móvil (React Native/Expo). Al clonar el repositorio, la base de datos (con productos e inventario de prueba) y las imágenes vienen incluidas por defecto.
+### Requisitos
 
-### Requisitos Previos
-- [Python 3.10+](https://www.python.org/downloads/)
-- [Node.js 18+](https://nodejs.org/es/) (Incluye `npm`)
-- [Expo Go](https://expo.dev/client) instalado en tu dispositivo móvil (Android/iOS)
+- Python 3.8 o superior.
+- Django 6.0.4.
 
----
+# Guía de Instalación y Ejecución
 
-### Paso 1: Levantar el Backend (Django)
+## Requisitos
+- Python 3.8 o superior
+- Node.js y npm
+- Git
 
-1. Abre una terminal y sitúate en la raíz del proyecto.
-2. Crea un entorno virtual e inicialízalo:
-   ```bash
-   python -m venv venv
-   # En Windows:
-   venv\Scripts\activate
-   # En macOS/Linux:
-   source venv/bin/activate
-   ```
-3. Instala las dependencias de Python:
-   ```bash
-   pip install -r requirements.txt
-   ```
-4. Levanta el servidor backend (La base de datos SQLite y la media ya están configuradas globalmente):
-   ```bash
-   python manage.py runserver 0.0.0.0:8000
-   ```
-   > El backend ahora corre en `http://localhost:8000`
+## Clonar el repositorio
+Para obtener el proyecto, abre una terminal y ejecuta:
+```bash
+git clone <URL_DEL_REPOSITORIO>
+cd TiendaUniversitaria
+```
 
----
+## Instalación del Backend
 
-### Paso 2: Levantar el Frontend Web (React)
+1. Crear un entorno virtual:
+```bash
+python -m venv venv
+```
 
-1. Abre una nueva pestaña en tu terminal y navega a la carpeta del frontend:
-   ```bash
-   cd frontend
-   ```
-2. Instala las dependencias de Node:
-   ```bash
-   npm install
-   ```
-3. Inicia el servidor de desarrollo Vite:
-   ```bash
-   npm run dev
-   ```
-   > La página web de Tienda Universitaria se abrirá en `http://localhost:5173`
+2. Activar el entorno virtual:
+- En Windows:
+```bash
+venv\Scripts\activate
+```
+- En macOS/Linux:
+```bash
+source venv/bin/activate
+```
 
----
+3. Instalar las dependencias (requirements):
+```bash
+pip install -r requirements.txt
+```
 
-### Paso 3: Levantar la Aplicación Móvil (React Native / Expo)
+4. Aplicar migraciones:
+El proyecto utiliza SQLite en desarrollo (`db.sqlite3`). Para preparar la base de datos, ejecuta:
+```bash
+python manage.py migrate
+```
 
-Para visualizar el catálogo desde el celular, asegúrate de que tu celular y tu computadora estén conectados a la **misma red Wi-Fi**.
+5. Ejecutar el servidor Django:
+```bash
+python manage.py runserver
+```
 
-1. Abre otra pestaña de terminal y navega a la carpeta móvil:
-   ```bash
-   cd app-movil
-   ```
-2. Instala las dependencias de Expo:
-   ```bash
-   npm install
-   ```
-3. Configura tu IP: 
-   Abre el archivo `app-movil/.env` y reemplaza la IP `192.168.X.X` por tu IP IPv4 local (puedes obtenerla ejecutando `ipconfig` en Windows o `ifconfig` en Mac).
-   ```env
-   EXPO_PUBLIC_API_URL=http://<TU_IP_LOCAL>:8000/api
-   ```
-4. Inicia el emulador Expo:
-   ```bash
-   npx expo start -c
-   ```
-5. Escanea el código QR que aparece en tu terminal con la app **Expo Go** en tu celular.
+## Instalación del Frontend
 
-### Credenciales de Acceso
-Como la base de datos se distribuye junto al repositorio de forma global, puedes usar las credenciales de administración por defecto para probar el panel de control:
-- **Usuario:** SuperAdmin (O el usuario que hayas creado previamente)
-- Las imágenes, catálogo e historial de pedidos ya están configurados para correr automáticamente (`out-of-the-box`).
+1. En una nueva terminal, ingresar a la carpeta frontend:
+```bash
+cd frontend
+```
+
+2. Instalar las dependencias de Node:
+```bash
+npm install
+```
+
+3. Ejecutar el servidor de desarrollo de Vite:
+```bash
+npm run dev
+```
+
+## Orden recomendado para ejecutar el sistema
+1. **Backend primero**: Ejecuta el servidor Django (`python manage.py runserver`) para levantar la API.
+2. **Frontend después**: En otra terminal, ejecuta el servidor Vite (`npm run dev`) para levantar la interfaz gráfica.
+
+## Acceso al sistema
+- **Frontend (Interfaz Web)**: http://localhost:3000
+- **Backend (API y Panel de Administración)**: http://localhost:8000
+
+## Problemas comunes
+
+- **Python no encontrado**: Asegúrate de tener Python instalado y añadido al PATH del sistema.
+- **Entorno virtual no activado**: Si los comandos fallan por dependencias faltantes, verifica que el entorno virtual esté activo (generalmente se muestra `(venv)` en tu terminal). Si no es así, vuelve a activarlo.
+- **Errores con npm install**: Si la instalación de dependencias del frontend falla, verifica tener Node.js actualizado. Si el problema persiste, borra la carpeta `node_modules` y el archivo `package-lock.json`, y ejecuta `npm install` nuevamente.
+- **Migraciones pendientes**: Si la aplicación web muestra errores de base de datos, detén el servidor, asegúrate de tener tu entorno virtual activado y vuelve a correr `python manage.py migrate`.
+- **Base de datos inexistente**: No te preocupes si no ves la base de datos al inicio. El archivo `db.sqlite3` se generará automáticamente en la raíz del proyecto al correr las migraciones.
+- **Error de conexión entre frontend y backend**: El frontend está configurado en `vite.config.js` para usar el puerto 3000 y redirigir las peticiones `/api` al puerto 8000. Asegúrate de tener ambos servidores corriendo y en los puertos correctos (8000 para Django y 3000 para React).
+
+## Recomendaciones
+- Mantén dos terminales abiertas durante el desarrollo: una dedicada exclusivamente al backend (Django) y otra al frontend (Vite).
+- Revisa el archivo `.env.template` en caso de que requieras configurar variables de entorno para Stripe u otros servicios.
