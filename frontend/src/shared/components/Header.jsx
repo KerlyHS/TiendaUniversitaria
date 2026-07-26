@@ -1,5 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../core/hooks/useAuth.js';
+import { useCart } from '../context/CartContext.jsx';
 import { useState } from 'react';
 import { User } from 'lucide-react';
 
@@ -19,11 +20,12 @@ import { User } from 'lucide-react';
 export const Header = () => {
   const navigate = useNavigate();
   const { isAuthenticated, user, logout } = useAuth();
+  const { totalItems } = useCart();
   const [menuOpen, setMenuOpen] = useState(false);
 
   const handleLogout = async () => {
     await logout();
-    navigate('/login');
+    navigate('/catalogo');
   };
 
   return (
@@ -44,7 +46,7 @@ export const Header = () => {
             </li>
             <li>
               <Link to="/carrito" className="nav-link">
-                🛒 Carrito <span className="cart-badge">0</span>
+                🛒 Carrito {totalItems > 0 ? <span className="cart-badge animate-bounce">{totalItems}</span> : null}
               </Link>
             </li>
             {isAuthenticated && (

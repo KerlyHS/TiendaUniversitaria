@@ -9,7 +9,7 @@ export const AdminLayout = () => {
 
   const handleLogout = () => {
     logout();
-    navigate('/login');
+    navigate('/catalogo');
   };
 
   const navItems = [
