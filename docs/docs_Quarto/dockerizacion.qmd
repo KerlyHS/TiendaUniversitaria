@@ -1,0 +1,72 @@
+---
+title: "Dockerización"
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    theme: cosmo
+    code-fold: false
+---
+
+# Dockerización de la Tienda Universitaria
+
+Este proyecto ha sido configurado para ejecutarse dentro de contenedores de Docker. Esto facilita el desarrollo y evita el clásico problema de "en mi máquina sí funciona", proporcionando un entorno estandarizado, predecible y aislado para cualquier miembro del equipo.
+
+## Arquitectura de Contenedores
+
+La arquitectura Dockerizada está compuesta por dos servicios principales definidos en el archivo `docker-compose.yml`:
+
+1.  **`backend` (Django)**:
+    -   Construido a partir de la imagen `python:3.12-slim`.
+    -   Se expone en el puerto local `8000`.
+    -   Utiliza un volumen (`.:/app`) para que cualquier cambio en el código fuente de Python se refleje de forma inmediata gracias al servidor de desarrollo de Django (`runserver`).
+    -   Mantiene la base de datos `db.sqlite3` sincronizada con tu máquina host.
+
+2.  **`frontend` (React + Vite)**:
+    -   Construido a partir de la imagen `node:20-alpine`.
+    -   Se expone en el puerto local `3000`.
+    -   Utiliza un volumen (`./frontend:/app`) para habilitar el *Hot-Module Replacement* (HMR) de Vite. Si modificas un archivo `.jsx`, verás el cambio en el navegador al instante.
+
+## Requisitos Previos
+
+Antes de levantar el proyecto, asegúrate de tener instalado:
+-   **Docker Desktop** (para Windows o Mac) o **Docker Engine** junto con **Docker Compose** (para Linux).
+-   Que Docker esté actualmente en ejecución en tu sistema.
+
+## Instrucciones de Uso
+
+Para poner en marcha todo el sistema, sigue estos sencillos pasos:
+
+### 1. Levantar el Proyecto
+
+Abre tu terminal (PowerShell, CMD, o la terminal de VS Code) y navega hasta la raíz del proyecto (donde se encuentra el archivo `docker-compose.yml`). Ejecuta:
+
+```bash
+docker-compose up --build
+```
+
+> [!NOTE]
+> El flag `--build` fuerza la construcción de las imágenes. Solo es estrictamente necesario la primera vez que lo corres o cuando modificas los archivos `requirements.txt` o `package.json`. Para las siguientes veces, simplemente puedes usar `docker-compose up`.
+
+### 2. Acceder a las Aplicaciones
+
+Una vez que ambos contenedores estén en ejecución y las consolas no muestren errores, puedes acceder a:
+-   **Frontend (Tienda):** Abre tu navegador en [http://localhost:3000](http://localhost:3000)
+-   **Backend API (Django REST):** Abre tu navegador en [http://localhost:8000/api/](http://localhost:8000/api/)
+-   **Panel de Administración Django:** Abre tu navegador en [http://localhost:8000/admin/](http://localhost:8000/admin/)
+
+### 3. Detener el Proyecto
+
+Para detener de forma segura los contenedores y liberar los puertos, puedes usar la combinación de teclas `Ctrl + C` en la terminal donde está corriendo, o abrir otra terminal en la raíz del proyecto y ejecutar:
+
+```bash
+docker-compose down
+```
+
+> [!TIP]
+> Si deseas ejecutar los contenedores en segundo plano (modo "detached"), usa el comando `docker-compose up -d`. Luego puedes ver los logs en cualquier momento ejecutando `docker-compose logs -f`.
+
+## Solución de Problemas (Troubleshooting)
+
+-   **Error de puertos en uso:** Si Docker arroja un error indicando que los puertos `8000` o `5173` ya están asignados, asegúrate de haber detenido tus servidores locales previos (ej. si tenías `npm run dev` o `python manage.py runserver` corriendo fuera de Docker).
+-   **Errores con dependencias nuevas:** Si se añadió una nueva librería en `requirements.txt` o `package.json`, debes reconstruir las imágenes con `docker-compose up --build`.

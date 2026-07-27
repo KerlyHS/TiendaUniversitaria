@@ -12,7 +12,7 @@ import axios from 'axios';
  * @spec Spec-005: GET /api/v1/pedidos/
  */
 
-const API_BASE_URL = '/api';
+const API_BASE_URL = '/api/v1';
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
