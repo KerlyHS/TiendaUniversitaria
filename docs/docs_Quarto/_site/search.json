@@ -1,0 +1,935 @@
+[
+  {
+    "objectID": "testing.html",
+    "href": "testing.html",
+    "title": "Análisis de Testing y Cobertura (Coverage)",
+    "section": "",
+    "text": "En esta sección se detalla el análisis analítico de los endpoints generados, las aserciones estipuladas por SDD y su porcentaje de estabilidad según Coverage.py.",
+    "crumbs": [
+      "Análisis y Cobertura (QA)",
+      "Análisis de Testing y Cobertura (Coverage)"
+    ]
+  },
+  {
+    "objectID": "testing.html#métricas-de-calidad-de-la-api",
+    "href": "testing.html#métricas-de-calidad-de-la-api",
+    "title": "Análisis de Testing y Cobertura (Coverage)",
+    "section": "Métricas de Calidad de la API",
+    "text": "Métricas de Calidad de la API\nTras ejecutar la suite automatizada (python manage.py test tienda), nuestros endpoints REST lograron una cobertura superior al mínimo exigido de paso a producción (80%).\nResumen General del Baseline: * Total Casos Prueba: 7 * Porcentaje Total de Code Coverage: 97%.\n\nDesglose de Análisis de Endpoints\n\nEndpoint: Registro Usuario ([POST] /api/v1/tienda/register/)\n\nCondiciones Simuladas: Registro Exitoso, Error sin consentimiento, Email malformado e Inyección de campos extras.\nResultado del Test: Status 201 Created para éxito y 400 Bad Request estructurado para todo caso de fallo LOPDP/Minimización.\nCobertura Serializer: 98%.\n\nEndpoint: Listar Productos ([GET] /api/v1/tienda/productos/ y [GET] /api/v1/tienda/productos/{id}/)\n\nCondiciones Simuladas: Paginación de objetos simples sin variantes y coincidencia de búsqueda (P001, P002).\nResultado del Test: HTTP_200_OK verificado en formato Array List de JSON con imágenes vinculadas a enlaces HTTP externos.\nCobertura Vista: 100%.\n\nEndpoint: Política Versionada ([GET] /api/v1/tienda/privacy-policy/latest/)\n\nCondiciones Simuladas: De múltiples iteraciones de política inyectadas a SQLite, siempre recuperar la más reciente.\nResultado del Test: JSON arrojado coincidente en version: v2.0 de forma exacta.\nCobertura Integración: 100%.",
+    "crumbs": [
+      "Análisis y Cobertura (QA)",
+      "Análisis de Testing y Cobertura (Coverage)"
+    ]
+  },
+  {
+    "objectID": "testing.html#observaciones-finales",
+    "href": "testing.html#observaciones-finales",
+    "title": "Análisis de Testing y Cobertura (Coverage)",
+    "section": "Observaciones Finales",
+    "text": "Observaciones Finales\n\nPuntos de fallo tolerantes: (Líneas saltadas). Del 3% restante de código no cubierto, pertenecen a excepciones del generador de URL (try-except block url reverses) o métodos String base (__str__ en el objeto), los cuales no afectan la lógica de respuesta API (JSON) consumible por el Frontend (React).\nConfiabilidad: 100% de la lógica de ruteo transaccional ha pasado por control SDD de Gemini AI.",
+    "crumbs": [
+      "Análisis y Cobertura (QA)",
+      "Análisis de Testing y Cobertura (Coverage)"
+    ]
+  },
+  {
+    "objectID": "setup.html",
+    "href": "setup.html",
+    "title": "Guía de Instalación",
+    "section": "",
+    "text": "Asegúrate de tener instalados:\n\nPython 3.10 o superior.\nGit.",
+    "crumbs": [
+      "Inicio",
+      "Guía de Instalación"
+    ]
+  },
+  {
+    "objectID": "setup.html#requisitos-previos",
+    "href": "setup.html#requisitos-previos",
+    "title": "Guía de Instalación",
+    "section": "",
+    "text": "Asegúrate de tener instalados:\n\nPython 3.10 o superior.\nGit.",
+    "crumbs": [
+      "Inicio",
+      "Guía de Instalación"
+    ]
+  },
+  {
+    "objectID": "setup.html#configuración-del-entorno-local",
+    "href": "setup.html#configuración-del-entorno-local",
+    "title": "Guía de Instalación",
+    "section": "Configuración del Entorno Local",
+    "text": "Configuración del Entorno Local\n\nClonar el repositorio y entrar en la carpeta:\ngit clone &lt;tu-repo-url&gt;\ncd TiendaUniversitaria\nCrear y activar el entorno virtual:\npython -m venv venv\n# En Windows:\n.\\venv\\Scripts\\activate\n# En macOS/Linux:\nsource venv/bin/activate\nCopiar plantilla de variables de entorno:\ncp .env.template .env\nInstalar dependencias:\npip install -r requirements.txt\nAplicar migraciones de Base de Datos:\npython manage.py migrate\nEjecutar el Servidor:\npython manage.py runserver\n\nLa API Basa estará disponible bajo http://localhost:8000/api/v1/.",
+    "crumbs": [
+      "Inicio",
+      "Guía de Instalación"
+    ]
+  },
+  {
+    "objectID": "ordenes-pedidos.html",
+    "href": "ordenes-pedidos.html",
+    "title": "Sistema de Órdenes/Pedidos - TiendaUniversitaria",
+    "section": "",
+    "text": "El sistema de Órdenes/Pedidos de TiendaUniversitaria gestiona el flujo completo desde la creación de pedidos hasta la entrega de productos. Implementa:\n\n✅ Validación de stock en tiempo real\n✅ Máquina de estados para transiciones ordenadas\n✅ Control de permisos por rol\n✅ Numeración única de pedidos (P-YYYYMMDD-XXX)\n✅ Cálculo automático de impuestos (IVA 12%)\n✅ Liberación de stock en cancelación\n\n\n\n\n\nclass Pedido(models.Model):\n    # Identificadores\n    numero_pedido = CharField(unique=True)  # P-20260527-001\n    cliente = ForeignKey(Usuario)           # Cliente que hace la compra\n    \n    # Estado\n    estado = CharField(choices=[\n        'RECIBIDO',      # Pedido creado\n        'PREPARACION',   # En preparación\n        'LISTO',         # Listo para recoger/enviar\n        'ENTREGADO',     # Entregado al cliente\n        'CANCELADO'      # Cancelado\n    ])\n    \n    # Ubicación entrega\n    tipo_entrega = CharField(choices=[\n        'TIENDA',        # Recoger en tienda\n        'DOMICILIO'      # Entrega a domicilio\n    ])\n    \n    # Montos\n    subtotal = DecimalField()    # Sin IVA\n    impuesto = DecimalField()    # IVA 12%\n    total = DecimalField()       # subtotal + impuesto\n    \n    # Timestamps\n    fecha_creacion = DateTimeField(auto_now_add=True)\n    fecha_modificacion = DateTimeField(auto_now=True)\n    \n    # Índices para performance\n    class Meta:\n        ordering = ['-fecha_creacion']\n        indexes = [\n            models.Index(fields=['cliente', 'estado']),\n            models.Index(fields=['numero_pedido']),\n            models.Index(fields=['estado', '-fecha_creacion']),\n        ]\n\n\n\nclass DetalleVenta(models.Model):\n    # Relaciones\n    venta = ForeignKey(Venta, null=True, blank=True)      # Sale completada\n    pedido = ForeignKey(Pedido, null=True, blank=True)    # Order actual\n    producto = ForeignKey(Producto)                        # Item\n    \n    # Snapshot del producto al momento de compra\n    nombre_producto = CharField()      # Nombre histórico\n    cantidad = IntegerField()          # Qty comprada\n    precio_unitario = DecimalField()   # Precio pagado\n    subtotal = DecimalField()          # qty * price",
+    "crumbs": [
+      "Especificaciones de Negocio",
+      "Sistema de Órdenes/Pedidos - TiendaUniversitaria"
+    ]
+  },
+  {
+    "objectID": "ordenes-pedidos.html#modelos-de-base-de-datos",
+    "href": "ordenes-pedidos.html#modelos-de-base-de-datos",
+    "title": "Sistema de Órdenes/Pedidos - TiendaUniversitaria",
+    "section": "",
+    "text": "class Pedido(models.Model):\n    # Identificadores\n    numero_pedido = CharField(unique=True)  # P-20260527-001\n    cliente = ForeignKey(Usuario)           # Cliente que hace la compra\n    \n    # Estado\n    estado = CharField(choices=[\n        'RECIBIDO',      # Pedido creado\n        'PREPARACION',   # En preparación\n        'LISTO',         # Listo para recoger/enviar\n        'ENTREGADO',     # Entregado al cliente\n        'CANCELADO'      # Cancelado\n    ])\n    \n    # Ubicación entrega\n    tipo_entrega = CharField(choices=[\n        'TIENDA',        # Recoger en tienda\n        'DOMICILIO'      # Entrega a domicilio\n    ])\n    \n    # Montos\n    subtotal = DecimalField()    # Sin IVA\n    impuesto = DecimalField()    # IVA 12%\n    total = DecimalField()       # subtotal + impuesto\n    \n    # Timestamps\n    fecha_creacion = DateTimeField(auto_now_add=True)\n    fecha_modificacion = DateTimeField(auto_now=True)\n    \n    # Índices para performance\n    class Meta:\n        ordering = ['-fecha_creacion']\n        indexes = [\n            models.Index(fields=['cliente', 'estado']),\n            models.Index(fields=['numero_pedido']),\n            models.Index(fields=['estado', '-fecha_creacion']),\n        ]\n\n\n\nclass DetalleVenta(models.Model):\n    # Relaciones\n    venta = ForeignKey(Venta, null=True, blank=True)      # Sale completada\n    pedido = ForeignKey(Pedido, null=True, blank=True)    # Order actual\n    producto = ForeignKey(Producto)                        # Item\n    \n    # Snapshot del producto al momento de compra\n    nombre_producto = CharField()      # Nombre histórico\n    cantidad = IntegerField()          # Qty comprada\n    precio_unitario = DecimalField()   # Precio pagado\n    subtotal = DecimalField()          # qty * price",
+    "crumbs": [
+      "Especificaciones de Negocio",
+      "Sistema de Órdenes/Pedidos - TiendaUniversitaria"
+    ]
+  },
+  {
+    "objectID": "ordenes-pedidos.html#crear-pedido",
+    "href": "ordenes-pedidos.html#crear-pedido",
+    "title": "Sistema de Órdenes/Pedidos - TiendaUniversitaria",
+    "section": "2.1 1. Crear Pedido",
+    "text": "2.1 1. Crear Pedido\nPOST /api/pedidos/\n\n2.1.1 Request\n{\n  \"tipo_entrega\": \"TIENDA\",\n  \"detalles\": [\n    {\n      \"producto_id\": 1,\n      \"cantidad\": 2\n    },\n    {\n      \"producto_id\": 3,\n      \"cantidad\": 1\n    }\n  ]\n}\n\n\n2.1.2 Response 201 Created\n{\n  \"id\": 42,\n  \"numero_pedido\": \"P-20260527-001\",\n  \"cliente\": 5,\n  \"cliente_nombre\": \"Juan Pérez\",\n  \"cliente_email\": \"juan@unl.edu.ec\",\n  \"estado\": \"RECIBIDO\",\n  \"tipo_entrega\": \"TIENDA\",\n  \"subtotal\": \"39.00\",\n  \"impuesto\": \"0.00\",\n  \"total\": \"39.00\",\n  \"fecha_creacion\": \"2026-05-27T10:30:00Z\",\n  \"fecha_modificacion\": \"2026-05-27T10:30:00Z\",\n  \"detalles\": [\n    {\n      \"id\": 101,\n      \"producto\": 1,\n      \"nombre_producto\": \"Camiseta UNL\",\n      \"cantidad\": 2,\n      \"precio_unitario\": \"15.50\",\n      \"subtotal\": \"31.00\"\n    },\n    {\n      \"id\": 102,\n      \"producto\": 3,\n      \"nombre_producto\": \"Bolsa Institucional\",\n      \"cantidad\": 1,\n      \"precio_unitario\": \"8.00\",\n      \"subtotal\": \"8.00\"\n    }\n  ],\n  \"venta\": null\n}\n\n\n2.1.3 Error Cases\n400 Bad Request - Stock insuficiente:\n{\n  \"detalles\": [\n    \"Stock insuficiente para 'Camiseta UNL'. Disponible: 5, Solicitado: 10\"\n  ]\n}\n400 Bad Request - Producto no existe:\n{\n  \"detalles\": [\n    \"Producto con ID 999 no existe\"\n  ]\n}\n401 Unauthorized - No autenticado:\n{\n  \"detail\": \"Authentication credentials were not provided.\"\n}",
+    "crumbs": [
+      "Especificaciones de Negocio",
+      "Sistema de Órdenes/Pedidos - TiendaUniversitaria"
+    ]
+  },
+  {
+    "objectID": "ordenes-pedidos.html#listar-pedidos",
+    "href": "ordenes-pedidos.html#listar-pedidos",
+    "title": "Sistema de Órdenes/Pedidos - TiendaUniversitaria",
+    "section": "2.2 2. Listar Pedidos",
+    "text": "2.2 2. Listar Pedidos\nGET /api/pedidos/\n\n2.2.1 Query Parameters\n\nestado: Filter by status (RECIBIDO, PREPARACION, LISTO, ENTREGADO, CANCELADO)\ntipo_entrega: Filter by delivery type (TIENDA, DOMICILIO)\nsearch: Search by numero_pedido or cliente name\nordering: Sort by field (-fecha_creacion, -total, estado)\n\n\n\n2.2.2 Examples\n# Mis pedidos pendientes\nGET /api/pedidos/?estado=RECIBIDO\n\n# Buscar pedido por número\nGET /api/pedidos/?search=P-20260527-001\n\n# Ordenes por entregar, ordenadas por fecha\nGET /api/pedidos/?estado=LISTO&ordering=-fecha_creacion\n\n# Admin: Ver todas las órdenes de hoy\nGET /api/pedidos/?ordering=-fecha_creacion\n\n\n2.2.3 Response 200 OK\n{\n  \"count\": 3,\n  \"next\": null,\n  \"previous\": null,\n  \"results\": [\n    {\n      \"id\": 42,\n      \"numero_pedido\": \"P-20260527-001\",\n      \"estado\": \"RECIBIDO\",\n      \"tipo_entrega\": \"TIENDA\",\n      \"total\": \"39.00\",\n      \"fecha_creacion\": \"2026-05-27T10:30:00Z\",\n      \"cliente\": 5,\n      \"cliente_nombre\": \"Juan Pérez\"\n    },\n    {\n      \"id\": 41,\n      \"numero_pedido\": \"P-20260527-002\",\n      \"estado\": \"PREPARACION\",\n      \"tipo_entrega\": \"DOMICILIO\",\n      \"total\": \"150.50\",\n      \"fecha_creacion\": \"2026-05-27T09:15:00Z\",\n      \"cliente\": 5,\n      \"cliente_nombre\": \"Juan Pérez\"\n    }\n  ]\n}\n\n\n2.2.4 Permission\n\nClientes: Ven solo sus propias órdenes\nAdmins/Staff: Ven todas las órdenes",
+    "crumbs": [
+      "Especificaciones de Negocio",
+      "Sistema de Órdenes/Pedidos - TiendaUniversitaria"
+    ]
+  },
+  {
+    "objectID": "ordenes-pedidos.html#obtener-detalle-de-pedido",
+    "href": "ordenes-pedidos.html#obtener-detalle-de-pedido",
+    "title": "Sistema de Órdenes/Pedidos - TiendaUniversitaria",
+    "section": "2.3 3. Obtener Detalle de Pedido",
+    "text": "2.3 3. Obtener Detalle de Pedido\nGET /api/pedidos/{id}/\n\n2.3.1 Response 200 OK\n{\n  \"id\": 42,\n  \"numero_pedido\": \"P-20260527-001\",\n  \"cliente\": 5,\n  \"cliente_nombre\": \"Juan Pérez\",\n  \"cliente_email\": \"juan@unl.edu.ec\",\n  \"estado\": \"RECIBIDO\",\n  \"tipo_entrega\": \"TIENDA\",\n  \"subtotal\": \"39.00\",\n  \"impuesto\": \"0.00\",\n  \"total\": \"39.00\",\n  \"fecha_creacion\": \"2026-05-27T10:30:00Z\",\n  \"fecha_modificacion\": \"2026-05-27T10:30:00Z\",\n  \"detalles\": [\n    {\n      \"id\": 101,\n      \"producto\": 1,\n      \"nombre_producto\": \"Camiseta UNL\",\n      \"cantidad\": 2,\n      \"precio_unitario\": \"15.50\",\n      \"subtotal\": \"31.00\"\n    },\n    {\n      \"id\": 102,\n      \"producto\": 3,\n      \"nombre_producto\": \"Bolsa Institucional\",\n      \"cantidad\": 1,\n      \"precio_unitario\": \"8.00\",\n      \"subtotal\": \"8.00\"\n    }\n  ],\n  \"venta\": null\n}",
+    "crumbs": [
+      "Especificaciones de Negocio",
+      "Sistema de Órdenes/Pedidos - TiendaUniversitaria"
+    ]
+  },
+  {
+    "objectID": "ordenes-pedidos.html#actualizar-estado-de-pedido",
+    "href": "ordenes-pedidos.html#actualizar-estado-de-pedido",
+    "title": "Sistema de Órdenes/Pedidos - TiendaUniversitaria",
+    "section": "2.4 4. Actualizar Estado de Pedido",
+    "text": "2.4 4. Actualizar Estado de Pedido\nPUT /api/pedidos/{id}/\n\n2.4.1 Request\n{\n  \"estado\": \"PREPARACION\"\n}\n\n\n2.4.2 State Transition Diagram\nRECIBIDO\n  ↓↑\nPREPARACION\n  ↓↑\nLISTO\n  ↓↑\nENTREGADO\n\nCANCELADO (desde cualquier estado)\n\n\n2.4.3 Valid Transitions\n\nRECIBIDO → PREPARACION, CANCELADO\nPREPARACION → LISTO, CANCELADO\nLISTO → ENTREGADO, CANCELADO\nENTREGADO → CANCELADO\nCANCELADO → (final state, sin transiciones)\n\n\n\n2.4.4 Response 200 OK\n{\n  \"id\": 42,\n  \"numero_pedido\": \"P-20260527-001\",\n  \"estado\": \"PREPARACION\",\n  \"total\": \"39.00\",\n  \"fecha_modificacion\": \"2026-05-27T10:35:00Z\",\n  ...\n}\n\n\n2.4.5 Error Cases\n400 Bad Request - Transición inválida:\n{\n  \"estado\": [\n    \"No se puede transicionar de 'ENTREGADO' a 'PREPARACION'\"\n  ]\n}\n403 Forbidden - Permisos insuficientes:\n{\n  \"detail\": \"You do not have permission to perform this action.\"\n}\n404 Not Found - Pedido no existe:\n{\n  \"detail\": \"Not found.\"\n}\n\n\n2.4.6 Permissions\n\nADMINISTRADOR: Puede cambiar cualquier estado\nBODEGUERO: Puede cambiar estado\nCAJERO: Puede cambiar estado\nCLIENTE: No puede cambiar estado (403)",
+    "crumbs": [
+      "Especificaciones de Negocio",
+      "Sistema de Órdenes/Pedidos - TiendaUniversitaria"
+    ]
+  },
+  {
+    "objectID": "ordenes-pedidos.html#eliminar-pedido",
+    "href": "ordenes-pedidos.html#eliminar-pedido",
+    "title": "Sistema de Órdenes/Pedidos - TiendaUniversitaria",
+    "section": "2.5 5. Eliminar Pedido",
+    "text": "2.5 5. Eliminar Pedido\nDELETE /api/pedidos/{id}/\n\n2.5.1 Response\n405 Method Not Allowed - Las órdenes no se pueden borrar, solo cancelar:\n{\n  \"detail\": \"Method \\\"DELETE\\\" not allowed.\"\n}",
+    "crumbs": [
+      "Especificaciones de Negocio",
+      "Sistema de Órdenes/Pedidos - TiendaUniversitaria"
+    ]
+  },
+  {
+    "objectID": "ordenes-pedidos.html#setup-y-configuración",
+    "href": "ordenes-pedidos.html#setup-y-configuración",
+    "title": "Sistema de Órdenes/Pedidos - TiendaUniversitaria",
+    "section": "3.1 Setup y Configuración",
+    "text": "3.1 Setup y Configuración\n// src/api/ordersApi.ts\nimport axios from 'axios';\n\nconst API_BASE_URL = 'http://localhost:8000/api';\n\nconst ordersApi = axios.create({\n  baseURL: `${API_BASE_URL}/pedidos/`,\n  headers: {\n    'Content-Type': 'application/json',\n  },\n});\n\n// Interceptor para agregar token JWT\nordersApi.interceptors.request.use((config) =&gt; {\n  const token = localStorage.getItem('access_token');\n  if (token) {\n    config.headers.Authorization = `Bearer ${token}`;\n  }\n  return config;\n});\n\nexport default ordersApi;",
+    "crumbs": [
+      "Especificaciones de Negocio",
+      "Sistema de Órdenes/Pedidos - TiendaUniversitaria"
+    ]
+  },
+  {
+    "objectID": "ordenes-pedidos.html#crear-pedido-1",
+    "href": "ordenes-pedidos.html#crear-pedido-1",
+    "title": "Sistema de Órdenes/Pedidos - TiendaUniversitaria",
+    "section": "3.2 1. Crear Pedido",
+    "text": "3.2 1. Crear Pedido\n// src/hooks/useCreateOrder.ts\nimport { useState } from 'react';\nimport ordersApi from '../api/ordersApi';\n\nexport const useCreateOrder = () =&gt; {\n  const [loading, setLoading] = useState(false);\n  const [error, setError] = useState&lt;string | null&gt;(null);\n\n  const createOrder = async (orderData: {\n    tipo_entrega: 'TIENDA' | 'DOMICILIO';\n    detalles: Array&lt;{\n      producto_id: number;\n      cantidad: number;\n    }&gt;;\n  }) =&gt; {\n    setLoading(true);\n    setError(null);\n\n    try {\n      const response = await ordersApi.post('/', orderData);\n      return response.data;\n    } catch (err: any) {\n      const errorMsg =\n        err.response?.data?.detalles?.[0] ||\n        err.response?.data?.detail ||\n        'Error al crear la orden';\n      setError(errorMsg);\n      throw err;\n    } finally {\n      setLoading(false);\n    }\n  };\n\n  return { createOrder, loading, error };\n};\n\n3.2.1 Component: Crear Pedido\n// src/components/CreateOrderForm.tsx\nimport React, { useState } from 'react';\nimport { useCreateOrder } from '../hooks/useCreateOrder';\nimport { useCart } from '../hooks/useCart';\n\nexport const CreateOrderForm: React.FC = () =&gt; {\n  const { createOrder, loading, error } = useCreateOrder();\n  const { cartItems, total, clear: clearCart } = useCart();\n  const [tipoEntrega, setTipoEntrega] = useState&lt;'TIENDA' | 'DOMICILIO'&gt;('TIENDA');\n  const [successMessage, setSuccessMessage] = useState('');\n\n  const handleSubmit = async (e: React.FormEvent) =&gt; {\n    e.preventDefault();\n\n    if (cartItems.length === 0) {\n      alert('El carrito está vacío');\n      return;\n    }\n\n    try {\n      const orderData = {\n        tipo_entrega: tipoEntrega,\n        detalles: cartItems.map((item) =&gt; ({\n          producto_id: item.id,\n          cantidad: item.quantity,\n        })),\n      };\n\n      const response = await createOrder(orderData);\n\n      setSuccessMessage(\n        `✅ Orden ${response.numero_pedido} creada exitosamente`\n      );\n      clearCart();\n      setTipoEntrega('TIENDA');\n\n      // Redirigir después de 2 segundos\n      setTimeout(() =&gt; {\n        window.location.href = `/orders/${response.id}`;\n      }, 2000);\n    } catch (err) {\n      console.error('Error creating order:', err);\n    }\n  };\n\n  return (\n    &lt;form onSubmit={handleSubmit} className=\"order-form\"&gt;\n      &lt;h2&gt;Confirmar Pedido&lt;/h2&gt;\n\n      {error && &lt;div className=\"error\"&gt;{error}&lt;/div&gt;}\n      {successMessage && &lt;div className=\"success\"&gt;{successMessage}&lt;/div&gt;}\n\n      &lt;div className=\"form-group\"&gt;\n        &lt;label htmlFor=\"delivery\"&gt;Tipo de Entrega:&lt;/label&gt;\n        &lt;select\n          id=\"delivery\"\n          value={tipoEntrega}\n          onChange={(e) =&gt;\n            setTipoEntrega(e.target.value as 'TIENDA' | 'DOMICILIO')\n          }\n          disabled={loading}\n        &gt;\n          &lt;option value=\"TIENDA\"&gt;Recoger en Tienda&lt;/option&gt;\n          &lt;option value=\"DOMICILIO\"&gt;Entrega a Domicilio&lt;/option&gt;\n        &lt;/select&gt;\n      &lt;/div&gt;\n\n      &lt;div className=\"cart-summary\"&gt;\n        &lt;p&gt;Total: ${total.toFixed(2)}&lt;/p&gt;\n        &lt;p&gt;Número de items: {cartItems.length}&lt;/p&gt;\n      &lt;/div&gt;\n\n      &lt;button type=\"submit\" disabled={loading}&gt;\n        {loading ? 'Creando orden...' : 'Crear Orden'}\n      &lt;/button&gt;\n    &lt;/form&gt;\n  );\n};",
+    "crumbs": [
+      "Especificaciones de Negocio",
+      "Sistema de Órdenes/Pedidos - TiendaUniversitaria"
+    ]
+  },
+  {
+    "objectID": "ordenes-pedidos.html#listar-órdenes-del-usuario",
+    "href": "ordenes-pedidos.html#listar-órdenes-del-usuario",
+    "title": "Sistema de Órdenes/Pedidos - TiendaUniversitaria",
+    "section": "3.3 2. Listar Órdenes del Usuario",
+    "text": "3.3 2. Listar Órdenes del Usuario\n// src/hooks/useOrdersList.ts\nimport { useEffect, useState } from 'react';\nimport ordersApi from '../api/ordersApi';\n\nexport interface Order {\n  id: number;\n  numero_pedido: string;\n  estado: string;\n  tipo_entrega: string;\n  total: string;\n  fecha_creacion: string;\n  cliente_nombre: string;\n}\n\nexport const useOrdersList = (filters?: { estado?: string; search?: string }) =&gt; {\n  const [orders, setOrders] = useState&lt;Order[]&gt;([]);\n  const [loading, setLoading] = useState(true);\n  const [error, setError] = useState&lt;string | null&gt;(null);\n\n  useEffect(() =&gt; {\n    const fetchOrders = async () =&gt; {\n      setLoading(true);\n      setError(null);\n\n      try {\n        const params = new URLSearchParams();\n        if (filters?.estado) params.append('estado', filters.estado);\n        if (filters?.search) params.append('search', filters.search);\n        params.append('ordering', '-fecha_creacion');\n\n        const response = await ordersApi.get('/', { params });\n        setOrders(response.data.results);\n      } catch (err: any) {\n        setError(\n          err.response?.data?.detail ||\n          'Error al cargar las órdenes'\n        );\n      } finally {\n        setLoading(false);\n      }\n    };\n\n    fetchOrders();\n  }, [filters?.estado, filters?.search]);\n\n  return { orders, loading, error };\n};\n\n3.3.1 Component: Listar Órdenes\n// src/components/OrdersList.tsx\nimport React, { useState } from 'react';\nimport { useOrdersList } from '../hooks/useOrdersList';\n\nconst ESTADO_COLORS = {\n  RECIBIDO: '#3498db',\n  PREPARACION: '#f39c12',\n  LISTO: '#2ecc71',\n  ENTREGADO: '#27ae60',\n  CANCELADO: '#e74c3c',\n};\n\nexport const OrdersList: React.FC = () =&gt; {\n  const [estadoFilter, setEstadoFilter] = useState&lt;string | undefined&gt;(undefined);\n  const [searchTerm, setSearchTerm] = useState('');\n  const { orders, loading, error } = useOrdersList({\n    estado: estadoFilter,\n    search: searchTerm,\n  });\n\n  if (loading) return &lt;div className=\"loading\"&gt;Cargando órdenes...&lt;/div&gt;;\n  if (error) return &lt;div className=\"error\"&gt;{error}&lt;/div&gt;;\n\n  return (\n    &lt;div className=\"orders-container\"&gt;\n      &lt;h2&gt;Mis Órdenes&lt;/h2&gt;\n\n      &lt;div className=\"filters\"&gt;\n        &lt;input\n          type=\"text\"\n          placeholder=\"Buscar por número de pedido\"\n          value={searchTerm}\n          onChange={(e) =&gt; setSearchTerm(e.target.value)}\n          className=\"search-input\"\n        /&gt;\n\n        &lt;select\n          value={estadoFilter || ''}\n          onChange={(e) =&gt; setEstadoFilter(e.target.value || undefined)}\n          className=\"filter-select\"\n        &gt;\n          &lt;option value=\"\"&gt;Todos los estados&lt;/option&gt;\n          &lt;option value=\"RECIBIDO\"&gt;Recibido&lt;/option&gt;\n          &lt;option value=\"PREPARACION\"&gt;En preparación&lt;/option&gt;\n          &lt;option value=\"LISTO\"&gt;Listo&lt;/option&gt;\n          &lt;option value=\"ENTREGADO\"&gt;Entregado&lt;/option&gt;\n          &lt;option value=\"CANCELADO\"&gt;Cancelado&lt;/option&gt;\n        &lt;/select&gt;\n      &lt;/div&gt;\n\n      {orders.length === 0 ? (\n        &lt;div className=\"no-orders\"&gt;No hay órdenes para mostrar&lt;/div&gt;\n      ) : (\n        &lt;table className=\"orders-table\"&gt;\n          &lt;thead&gt;\n            &lt;tr&gt;\n              &lt;th&gt;Número&lt;/th&gt;\n              &lt;th&gt;Estado&lt;/th&gt;\n              &lt;th&gt;Total&lt;/th&gt;\n              &lt;th&gt;Tipo Entrega&lt;/th&gt;\n              &lt;th&gt;Fecha&lt;/th&gt;\n              &lt;th&gt;Acción&lt;/th&gt;\n            &lt;/tr&gt;\n          &lt;/thead&gt;\n          &lt;tbody&gt;\n            {orders.map((order) =&gt; (\n              &lt;tr key={order.id}&gt;\n                &lt;td className=\"order-number\"&gt;{order.numero_pedido}&lt;/td&gt;\n                &lt;td&gt;\n                  &lt;span\n                    className=\"status-badge\"\n                    style={{\n                      backgroundColor:\n                        ESTADO_COLORS[\n                          order.estado as keyof typeof ESTADO_COLORS\n                        ],\n                    }}\n                  &gt;\n                    {order.estado}\n                  &lt;/span&gt;\n                &lt;/td&gt;\n                &lt;td&gt;${parseFloat(order.total).toFixed(2)}&lt;/td&gt;\n                &lt;td&gt;{order.tipo_entrega === 'TIENDA' ? '🏪' : '🚚'}&lt;/td&gt;\n                &lt;td&gt;\n                  {new Date(order.fecha_creacion).toLocaleDateString()}\n                &lt;/td&gt;\n                &lt;td&gt;\n                  &lt;a href={`/orders/${order.id}`} className=\"link-button\"&gt;\n                    Ver detalle\n                  &lt;/a&gt;\n                &lt;/td&gt;\n              &lt;/tr&gt;\n            ))}\n          &lt;/tbody&gt;\n        &lt;/table&gt;\n      )}\n\n      &lt;style&gt;{`\n        .orders-container {\n          padding: 20px;\n          max-width: 1200px;\n          margin: 0 auto;\n        }\n\n        .filters {\n          margin: 20px 0;\n          display: flex;\n          gap: 10px;\n        }\n\n        .search-input,\n        .filter-select {\n          padding: 8px;\n          border: 1px solid #ddd;\n          border-radius: 4px;\n          font-size: 14px;\n        }\n\n        .orders-table {\n          width: 100%;\n          border-collapse: collapse;\n          margin-top: 20px;\n        }\n\n        .orders-table th {\n          background-color: #ecf0f1;\n          padding: 12px;\n          text-align: left;\n          border-bottom: 2px solid #bdc3c7;\n        }\n\n        .orders-table td {\n          padding: 12px;\n          border-bottom: 1px solid #ecf0f1;\n        }\n\n        .status-badge {\n          color: white;\n          padding: 4px 8px;\n          border-radius: 4px;\n          font-size: 12px;\n          font-weight: bold;\n        }\n\n        .order-number {\n          font-weight: bold;\n          color: #3498db;\n        }\n\n        .link-button {\n          color: #3498db;\n          text-decoration: none;\n          padding: 4px 8px;\n          border: 1px solid #3498db;\n          border-radius: 4px;\n          display: inline-block;\n        }\n\n        .link-button:hover {\n          background-color: #3498db;\n          color: white;\n        }\n\n        .no-orders {\n          text-align: center;\n          padding: 40px;\n          color: #7f8c8d;\n        }\n      `}&lt;/style&gt;\n    &lt;/div&gt;\n  );\n};",
+    "crumbs": [
+      "Especificaciones de Negocio",
+      "Sistema de Órdenes/Pedidos - TiendaUniversitaria"
+    ]
+  },
+  {
+    "objectID": "ordenes-pedidos.html#ver-detalle-y-actualizar-estado",
+    "href": "ordenes-pedidos.html#ver-detalle-y-actualizar-estado",
+    "title": "Sistema de Órdenes/Pedidos - TiendaUniversitaria",
+    "section": "3.4 3. Ver Detalle y Actualizar Estado",
+    "text": "3.4 3. Ver Detalle y Actualizar Estado\n// src/hooks/useOrderDetail.ts\nimport { useEffect, useState } from 'react';\nimport ordersApi from '../api/ordersApi';\n\nexport interface OrderDetail {\n  id: number;\n  numero_pedido: string;\n  cliente_nombre: string;\n  cliente_email: string;\n  estado: string;\n  tipo_entrega: string;\n  subtotal: string;\n  impuesto: string;\n  total: string;\n  fecha_creacion: string;\n  detalles: Array&lt;{\n    id: number;\n    producto: number;\n    nombre_producto: string;\n    cantidad: number;\n    precio_unitario: string;\n    subtotal: string;\n  }&gt;;\n}\n\nexport const useOrderDetail = (orderId: number) =&gt; {\n  const [order, setOrder] = useState&lt;OrderDetail | null&gt;(null);\n  const [loading, setLoading] = useState(true);\n  const [error, setError] = useState&lt;string | null&gt;(null);\n\n  useEffect(() =&gt; {\n    const fetchOrder = async () =&gt; {\n      try {\n        const response = await ordersApi.get(`${orderId}/`);\n        setOrder(response.data);\n      } catch (err: any) {\n        setError(\n          err.response?.data?.detail ||\n          'Error al cargar la orden'\n        );\n      } finally {\n        setLoading(false);\n      }\n    };\n\n    fetchOrder();\n  }, [orderId]);\n\n  const updateStatus = async (newEstado: string) =&gt; {\n    try {\n      const response = await ordersApi.put(`${orderId}/`, {\n        estado: newEstado,\n      });\n      setOrder(response.data);\n      return response.data;\n    } catch (err: any) {\n      const errorMsg =\n        err.response?.data?.estado?.[0] ||\n        err.response?.data?.detail ||\n        'Error al actualizar estado';\n      throw new Error(errorMsg);\n    }\n  };\n\n  return { order, loading, error, updateStatus };\n};\n\n3.4.1 Component: Detalle de Orden\n// src/components/OrderDetail.tsx\nimport React, { useState } from 'react';\nimport { useOrderDetail } from '../hooks/useOrderDetail';\n\ninterface OrderDetailProps {\n  orderId: number;\n  isAdmin?: boolean;\n}\n\nexport const OrderDetail: React.FC&lt;OrderDetailProps&gt; = ({\n  orderId,\n  isAdmin = false,\n}) =&gt; {\n  const { order, loading, error, updateStatus } = useOrderDetail(orderId);\n  const [updating, setUpdating] = useState(false);\n  const [updateError, setUpdateError] = useState&lt;string | null&gt;(null);\n\n  if (loading) return &lt;div className=\"loading\"&gt;Cargando detalle...&lt;/div&gt;;\n  if (error) return &lt;div className=\"error\"&gt;{error}&lt;/div&gt;;\n  if (!order) return &lt;div className=\"not-found\"&gt;Orden no encontrada&lt;/div&gt;;\n\n  const handleStateChange = async (newEstado: string) =&gt; {\n    setUpdating(true);\n    setUpdateError(null);\n\n    try {\n      await updateStatus(newEstado);\n    } catch (err: any) {\n      setUpdateError(err.message);\n    } finally {\n      setUpdating(false);\n    }\n  };\n\n  const allowedTransitions: Record&lt;string, string[]&gt; = {\n    RECIBIDO: ['PREPARACION', 'CANCELADO'],\n    PREPARACION: ['LISTO', 'CANCELADO'],\n    LISTO: ['ENTREGADO', 'CANCELADO'],\n    ENTREGADO: ['CANCELADO'],\n    CANCELADO: [],\n  };\n\n  const nextStates = allowedTransitions[order.estado] || [];\n\n  return (\n    &lt;div className=\"order-detail\"&gt;\n      &lt;div className=\"order-header\"&gt;\n        &lt;h2&gt;Orden {order.numero_pedido}&lt;/h2&gt;\n        &lt;p className=\"cliente-info\"&gt;Cliente: {order.cliente_nombre}&lt;/p&gt;\n      &lt;/div&gt;\n\n      &lt;div className=\"order-info-grid\"&gt;\n        &lt;div className=\"info-item\"&gt;\n          &lt;strong&gt;Estado:&lt;/strong&gt;\n          &lt;span className=\"estado-badge\"&gt;{order.estado}&lt;/span&gt;\n        &lt;/div&gt;\n        &lt;div className=\"info-item\"&gt;\n          &lt;strong&gt;Tipo Entrega:&lt;/strong&gt;\n          &lt;span&gt;{order.tipo_entrega}&lt;/span&gt;\n        &lt;/div&gt;\n        &lt;div className=\"info-item\"&gt;\n          &lt;strong&gt;Fecha Creación:&lt;/strong&gt;\n          &lt;span&gt;{new Date(order.fecha_creacion).toLocaleString()}&lt;/span&gt;\n        &lt;/div&gt;\n      &lt;/div&gt;\n\n      {isAdmin && nextStates.length &gt; 0 && (\n        &lt;div className=\"state-transition\"&gt;\n          &lt;h3&gt;Cambiar Estado&lt;/h3&gt;\n          {updateError && &lt;div className=\"error\"&gt;{updateError}&lt;/div&gt;}\n          &lt;div className=\"button-group\"&gt;\n            {nextStates.map((nextState) =&gt; (\n              &lt;button\n                key={nextState}\n                onClick={() =&gt; handleStateChange(nextState)}\n                disabled={updating}\n                className={`state-button state-${nextState.toLowerCase()}`}\n              &gt;\n                {updating ? 'Actualizando...' : nextState}\n              &lt;/button&gt;\n            ))}\n          &lt;/div&gt;\n        &lt;/div&gt;\n      )}\n\n      &lt;div className=\"items-section\"&gt;\n        &lt;h3&gt;Items&lt;/h3&gt;\n        &lt;table className=\"items-table\"&gt;\n          &lt;thead&gt;\n            &lt;tr&gt;\n              &lt;th&gt;Producto&lt;/th&gt;\n              &lt;th&gt;Cantidad&lt;/th&gt;\n              &lt;th&gt;Precio Unitario&lt;/th&gt;\n              &lt;th&gt;Subtotal&lt;/th&gt;\n            &lt;/tr&gt;\n          &lt;/thead&gt;\n          &lt;tbody&gt;\n            {order.detalles.map((item) =&gt; (\n              &lt;tr key={item.id}&gt;\n                &lt;td&gt;{item.nombre_producto}&lt;/td&gt;\n                &lt;td&gt;{item.cantidad}&lt;/td&gt;\n                &lt;td&gt;${parseFloat(item.precio_unitario).toFixed(2)}&lt;/td&gt;\n                &lt;td&gt;${parseFloat(item.subtotal).toFixed(2)}&lt;/td&gt;\n              &lt;/tr&gt;\n            ))}\n          &lt;/tbody&gt;\n        &lt;/table&gt;\n      &lt;/div&gt;\n\n      &lt;div className=\"totals-section\"&gt;\n        &lt;div className=\"total-line\"&gt;\n          &lt;span&gt;Subtotal:&lt;/span&gt;\n          &lt;span&gt;${parseFloat(order.subtotal).toFixed(2)}&lt;/span&gt;\n        &lt;/div&gt;\n        &lt;div className=\"total-line\"&gt;\n          &lt;span&gt;IVA (12%):&lt;/span&gt;\n          &lt;span&gt;${parseFloat(order.impuesto).toFixed(2)}&lt;/span&gt;\n        &lt;/div&gt;\n        &lt;div className=\"total-line total\"&gt;\n          &lt;span&gt;Total:&lt;/span&gt;\n          &lt;span&gt;${parseFloat(order.total).toFixed(2)}&lt;/span&gt;\n        &lt;/div&gt;\n      &lt;/div&gt;\n\n      &lt;style&gt;{`\n        .order-detail {\n          padding: 20px;\n          max-width: 900px;\n          margin: 0 auto;\n        }\n\n        .order-header {\n          border-bottom: 2px solid #ecf0f1;\n          margin-bottom: 20px;\n          padding-bottom: 10px;\n        }\n\n        .order-header h2 {\n          margin: 0;\n          color: #2c3e50;\n        }\n\n        .cliente-info {\n          color: #7f8c8d;\n          margin: 5px 0 0 0;\n        }\n\n        .order-info-grid {\n          display: grid;\n          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));\n          gap: 20px;\n          margin: 20px 0;\n        }\n\n        .info-item {\n          padding: 10px;\n          background: #ecf0f1;\n          border-radius: 4px;\n        }\n\n        .info-item strong {\n          display: block;\n          margin-bottom: 5px;\n          color: #2c3e50;\n        }\n\n        .estado-badge {\n          padding: 4px 8px;\n          border-radius: 4px;\n          background: #3498db;\n          color: white;\n          font-weight: bold;\n        }\n\n        .state-transition {\n          background: #f9f9f9;\n          padding: 15px;\n          border-radius: 4px;\n          margin: 20px 0;\n          border-left: 4px solid #f39c12;\n        }\n\n        .button-group {\n          display: flex;\n          gap: 10px;\n          margin-top: 10px;\n          flex-wrap: wrap;\n        }\n\n        .state-button {\n          padding: 8px 16px;\n          border: none;\n          border-radius: 4px;\n          cursor: pointer;\n          font-weight: bold;\n          transition: opacity 0.3s;\n        }\n\n        .state-button:hover:not(:disabled) {\n          opacity: 0.8;\n        }\n\n        .state-button:disabled {\n          opacity: 0.6;\n          cursor: not-allowed;\n        }\n\n        .state-preparacion {\n          background: #f39c12;\n          color: white;\n        }\n\n        .state-listo {\n          background: #2ecc71;\n          color: white;\n        }\n\n        .state-entregado {\n          background: #27ae60;\n          color: white;\n        }\n\n        .state-cancelado {\n          background: #e74c3c;\n          color: white;\n        }\n\n        .items-section {\n          margin: 30px 0;\n        }\n\n        .items-table {\n          width: 100%;\n          border-collapse: collapse;\n        }\n\n        .items-table th {\n          background: #ecf0f1;\n          padding: 10px;\n          text-align: left;\n          border-bottom: 2px solid #bdc3c7;\n        }\n\n        .items-table td {\n          padding: 10px;\n          border-bottom: 1px solid #ecf0f1;\n        }\n\n        .totals-section {\n          background: #f9f9f9;\n          padding: 15px;\n          border-radius: 4px;\n          margin-top: 20px;\n        }\n\n        .total-line {\n          display: flex;\n          justify-content: space-between;\n          padding: 8px 0;\n          border-bottom: 1px solid #ecf0f1;\n        }\n\n        .total-line.total {\n          font-size: 18px;\n          font-weight: bold;\n          border-bottom: 2px solid #3498db;\n          margin-top: 10px;\n          padding-top: 10px;\n        }\n      `}&lt;/style&gt;\n    &lt;/div&gt;\n  );\n};",
+    "crumbs": [
+      "Especificaciones de Negocio",
+      "Sistema de Órdenes/Pedidos - TiendaUniversitaria"
+    ]
+  },
+  {
+    "objectID": "ordenes-pedidos.html#test-suite-completa",
+    "href": "ordenes-pedidos.html#test-suite-completa",
+    "title": "Sistema de Órdenes/Pedidos - TiendaUniversitaria",
+    "section": "4.1 Test Suite Completa",
+    "text": "4.1 Test Suite Completa\nSe han implementado 15 casos de prueba para cubrir todos los escenarios:\n\n4.1.1 Tests de Creación (3)\n\n✅ Crear orden exitosamente con stock válido\n✅ Crear orden con múltiples productos\n✅ Fallar cuando stock es insuficiente\n✅ Fallar cuando producto no existe\n✅ Fallar sin autenticación\n\n\n\n4.1.2 Tests de Listado (2)\n\n✅ Cliente ve solo sus propias órdenes\n✅ Admin ve todas las órdenes\n\n\n\n4.1.3 Tests de Actualización (4)\n\n✅ Transición válida RECIBIDO→PREPARACION\n✅ Fallar con transición inválida\n✅ Cancelar orden libera stock\n✅ Secuencia completa de transiciones\n\n\n\n4.1.4 Tests de Permisos (3)\n\n✅ Solo administradores pueden cambiar estado\n✅ Cliente no puede cambiar estado\n✅ Verificar permisos por rol\n\n\n\n4.1.5 Tests de Integridad (3)\n\n✅ Número de pedido es único\n✅ No se puede borrar órdenes\n✅ Detalle de orden es correcto",
+    "crumbs": [
+      "Especificaciones de Negocio",
+      "Sistema de Órdenes/Pedidos - TiendaUniversitaria"
+    ]
+  },
+  {
+    "objectID": "ordenes-pedidos.html#resultado-final",
+    "href": "ordenes-pedidos.html#resultado-final",
+    "title": "Sistema de Órdenes/Pedidos - TiendaUniversitaria",
+    "section": "4.2 Resultado Final",
+    "text": "4.2 Resultado Final\nRan 56 tests in 54.812s\n\nOK ✅\n\n41 tests originales + 15 tests nuevos = 100% pass rate",
+    "crumbs": [
+      "Especificaciones de Negocio",
+      "Sistema de Órdenes/Pedidos - TiendaUniversitaria"
+    ]
+  },
+  {
+    "objectID": "ordenes-pedidos.html#error-stock-insuficiente",
+    "href": "ordenes-pedidos.html#error-stock-insuficiente",
+    "title": "Sistema de Órdenes/Pedidos - TiendaUniversitaria",
+    "section": "5.1 Error: Stock insuficiente",
+    "text": "5.1 Error: Stock insuficiente\nCausas: - No hay suficiente cantidad disponible del producto\nSolución: - Reducir la cantidad solicitada - Verificar disponibilidad actual del producto - Hacer split en múltiples órdenes",
+    "crumbs": [
+      "Especificaciones de Negocio",
+      "Sistema de Órdenes/Pedidos - TiendaUniversitaria"
+    ]
+  },
+  {
+    "objectID": "ordenes-pedidos.html#error-403-forbidden-en-estado-update",
+    "href": "ordenes-pedidos.html#error-403-forbidden-en-estado-update",
+    "title": "Sistema de Órdenes/Pedidos - TiendaUniversitaria",
+    "section": "5.2 Error: 403 Forbidden en estado update",
+    "text": "5.2 Error: 403 Forbidden en estado update\nCausas: - Usuario no tiene rol de ADMINISTRADOR, BODEGUERO o CAJERO\nSolución: - Contactar al administrador para cambios de estado - Usar usuarios con rol apropiado",
+    "crumbs": [
+      "Especificaciones de Negocio",
+      "Sistema de Órdenes/Pedidos - TiendaUniversitaria"
+    ]
+  },
+  {
+    "objectID": "ordenes-pedidos.html#error-404-not-found-en-detalle",
+    "href": "ordenes-pedidos.html#error-404-not-found-en-detalle",
+    "title": "Sistema de Órdenes/Pedidos - TiendaUniversitaria",
+    "section": "5.3 Error: 404 Not Found en detalle",
+    "text": "5.3 Error: 404 Not Found en detalle\nCausas: - Orden no existe - Usuario cliente intenta ver orden de otro cliente\nSolución: - Verificar el ID de la orden - Contactar al administrador si hay duda",
+    "crumbs": [
+      "Especificaciones de Negocio",
+      "Sistema de Órdenes/Pedidos - TiendaUniversitaria"
+    ]
+  },
+  {
+    "objectID": "ordenes-pedidos.html#índices-de-base-de-datos",
+    "href": "ordenes-pedidos.html#índices-de-base-de-datos",
+    "title": "Sistema de Órdenes/Pedidos - TiendaUniversitaria",
+    "section": "6.1 Índices de Base de Datos",
+    "text": "6.1 Índices de Base de Datos\n-- Cliente + Estado (filtrado rápido)\nCREATE INDEX idx_pedido_cliente_estado \nON tienda_pedido (cliente_id, estado);\n\n-- Número de pedido (búsqueda)\nCREATE INDEX idx_pedido_numero \nON tienda_pedido (numero_pedido);\n\n-- Estado + Fecha (listado ordenado)\nCREATE INDEX idx_pedido_estado_fecha \nON tienda_pedido (estado, fecha_creacion DESC);",
+    "crumbs": [
+      "Especificaciones de Negocio",
+      "Sistema de Órdenes/Pedidos - TiendaUniversitaria"
+    ]
+  },
+  {
+    "objectID": "ordenes-pedidos.html#queries-optimizadas",
+    "href": "ordenes-pedidos.html#queries-optimizadas",
+    "title": "Sistema de Órdenes/Pedidos - TiendaUniversitaria",
+    "section": "6.2 Queries Optimizadas",
+    "text": "6.2 Queries Optimizadas\n# Evitar N+1 queries\norders = Pedido.objects.select_related(\n    'cliente'\n).prefetch_related(\n    'detalles_venta__producto'\n).filter(\n    cliente=request.user\n).order_by('-fecha_creacion')",
+    "crumbs": [
+      "Especificaciones de Negocio",
+      "Sistema de Órdenes/Pedidos - TiendaUniversitaria"
+    ]
+  },
+  {
+    "objectID": "ordenes-pedidos.html#caché-recomendado",
+    "href": "ordenes-pedidos.html#caché-recomendado",
+    "title": "Sistema de Órdenes/Pedidos - TiendaUniversitaria",
+    "section": "6.3 Caché Recomendado",
+    "text": "6.3 Caché Recomendado\n# Cache de número de pedido del día\ncache.set(f'order_count_today_{date}', count, 3600)\n\n# Cache de stock reducido\ncache.set(f'product_stock_{product_id}', stock, 300)",
+    "crumbs": [
+      "Especificaciones de Negocio",
+      "Sistema de Órdenes/Pedidos - TiendaUniversitaria"
+    ]
+  },
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "Documentación - Tienda Universitaria",
+    "section": "",
+    "text": "Bienvenido a la documentación oficial de la Tienda Universitaria, que abarca tanto el Backend API (Django + DRF) como el Frontend Web (React + Vite).\nEste proyecto ha sido desarrollado bajo una arquitectura desacoplada (“Headless”), permitiendo una integración fluida e independiente entre la lógica del negocio del servidor y la interfaz interactiva del usuario.",
+    "crumbs": [
+      "Inicio",
+      "Documentación - Tienda Universitaria"
+    ]
+  },
+  {
+    "objectID": "index.html#secciones-de-la-documentación",
+    "href": "index.html#secciones-de-la-documentación",
+    "title": "Documentación - Tienda Universitaria",
+    "section": "🚀 Secciones de la Documentación",
+    "text": "🚀 Secciones de la Documentación\n\n1. Inicio e Instalación\n\nGuía de Instalación y Configuración: Pasos para configurar el entorno de desarrollo local (Python, Django, React, dependencias).\nIntegración Frontend-Backend y Flujo JWT: Detalle de conectividad por proxy, flujo de login/logout y el ciclo de vida del token de acceso.\n\n\n\n🔐 2. Seguridad y Autenticación\n\nFlujo Detallado JWT: Especificaciones de djangorestframework-simplejwt, tokens de acceso/refresco y rotación.\nSeguridad de Tokens y Buenas Prácticas: Almacenamiento seguro, prevención de XSS/CSRF y auditoría.\n\n\n\n📦 3. Especificaciones y Requisitos de Negocio\n\nEspecificaciones SDD: Resumen de las reglas de negocio e historias de usuario (Spec-Kit).\nCatálogo de Productos: Gestión de vitrina virtual, categorías, impuestos e imágenes externas.\nSistema de Órdenes y Pedidos: Flujo de compras, control atómico de stock y máquina de estados.\n\n\n\n🧪 4. Desarrollo, API y Pruebas\n\nReferencia de la API REST: Catálogo de endpoints con ejemplos de payloads de solicitud y respuesta.\nAnálisis de Calidad y Cobertura (QA): Cobertura de tests unitarios y de integración de la suite del proyecto.",
+    "crumbs": [
+      "Inicio",
+      "Documentación - Tienda Universitaria"
+    ]
+  },
+  {
+    "objectID": "catalogo-productos.html",
+    "href": "catalogo-productos.html",
+    "title": "Catálogo de Productos - TiendaUniversitaria",
+    "section": "",
+    "text": "El catálogo de productos es el módulo central de TiendaUniversitaria que permite:\n\nConsulta Pública: Estudiantes y visitantes pueden ver productos disponibles\nFiltrado y Búsqueda: Encontrar productos por categoría, precio, nombre\nGestión (Admin): Crear, actualizar y eliminar productos\nPaginación Automática: 10 productos por página\n\n\n\n\n✅ Lectura Pública (GET sin autenticación)\n✅ Escritura Autenticada (POST/PUT/DELETE requieren login)\n✅ Filtrado por categoría, precio, estado activo\n✅ Búsqueda en nombre y descripción\n✅ Ordenamiento por precio, nombre, fecha\n✅ Paginación automática (10 items/página)\n✅ Imágenes con URLs externas\n✅ Validación de stock y precio\n\n\n\n\n\n\n\n\nEndpoint: GET /api/v1/productos/\nAutenticación: No requerida\nQuery Parameters:\n\n\n\nParámetro\nDescripción\nEjemplo\n\n\n\n\npage\nNúmero de página\n?page=2\n\n\ncategoria\nFiltrar por categoría\n?categoria=TEXTIL\n\n\nsearch\nBúsqueda en nombre/descripción\n?search=Camiseta\n\n\nordering\nCampo para ordenar\n?ordering=-precio\n\n\n\nRespuesta (200 OK):\n{\n  \"count\": 45,\n  \"next\": \"http://localhost:8000/api/v1/productos/?page=2\",\n  \"previous\": null,\n  \"results\": [\n    {\n      \"id\": 1,\n      \"codigo\": \"CAM-001\",\n      \"nombre\": \"Camiseta UNL\",\n      \"descripcion\": \"Camiseta de algodón 100%\",\n      \"precio\": \"15.50\",\n      \"stock\": 100,\n      \"categoria\": \"TEXTIL\",\n      \"medida\": \"UNIDAD\",\n      \"aplica_impuesto\": true,\n      \"is_activo\": true,\n      \"vencimiento\": null,\n      \"imagen_url\": \"https://example.com/camiseta.jpg\",\n      \"fecha_creacion\": \"2024-01-15T10:30:00Z\"\n    }\n  ]\n}\n\n\n\n\nEndpoint: GET /api/v1/productos/{id}/\nAutenticación: No requerida\nPath Parameters:\n\n\n\nParámetro\nDescripción\n\n\n\n\nid\nID del producto\n\n\n\nRespuesta (200 OK):\n{\n  \"id\": 1,\n  \"codigo\": \"CAM-001\",\n  \"nombre\": \"Camiseta UNL\",\n  \"descripcion\": \"Camiseta de algodón 100%\",\n  \"precio\": \"15.50\",\n  \"stock\": 100,\n  \"categoria\": \"TEXTIL\",\n  \"medida\": \"UNIDAD\",\n  \"aplica_impuesto\": true,\n  \"is_activo\": true,\n  \"vencimiento\": null,\n  \"imagen_url\": \"https://example.com/camiseta.jpg\",\n  \"fecha_creacion\": \"2024-01-15T10:30:00Z\"\n}\nErrores:\n// 404 - Producto no encontrado o inactivo\n{\n  \"detail\": \"Not found.\"\n}\n\n\n\n\nEndpoint: POST /api/v1/productos/\nAutenticación: Requerida (Bearer Token)\nRequest Body:\n{\n  \"codigo\": \"CAM-002\",\n  \"nombre\": \"Gorra UNL\",\n  \"descripcion\": \"Gorra ajustable negra con logo\",\n  \"precio\": 12.50,\n  \"stock\": 75,\n  \"categoria\": \"TEXTIL\",\n  \"medida\": \"UNIDAD\",\n  \"aplica_impuesto\": true,\n  \"is_activo\": true,\n  \"vencimiento\": null,\n  \"imagen_url\": \"https://example.com/gorra.jpg\"\n}\nRespuesta (201 Created):\n{\n  \"id\": 2,\n  \"codigo\": \"CAM-002\",\n  \"nombre\": \"Gorra UNL\",\n  \"descripcion\": \"Gorra ajustable negra con logo\",\n  \"precio\": \"12.50\",\n  \"stock\": 75,\n  \"categoria\": \"TEXTIL\",\n  \"medida\": \"UNIDAD\",\n  \"aplica_impuesto\": true,\n  \"is_activo\": true,\n  \"vencimiento\": null,\n  \"imagen_url\": \"https://example.com/gorra.jpg\",\n  \"fecha_creacion\": \"2024-05-27T14:22:00Z\"\n}\nErrores (400 Bad Request):\n{\n  \"precio\": [\"El precio debe ser mayor que 0.00\"],\n  \"stock\": [\"El stock no puede ser negativo\"],\n  \"nombre\": [\"Este campo no puede estar vacío.\"]\n}\nError (401 Unauthorized):\n{\n  \"detail\": \"Authentication credentials were not provided.\"\n}\n\n\n\n\nEndpoint: PUT /api/v1/productos/{id}/\nAutenticación: Requerida (Bearer Token)\nRequest Body (actualización parcial):\n{\n  \"codigo\": \"CAM-001\",\n  \"nombre\": \"Camiseta UNL - Premium\",\n  \"descripcion\": \"Camiseta de algodón 100%, calidad premium\",\n  \"precio\": 18.50,\n  \"stock\": 90,\n  \"categoria\": \"TEXTIL\",\n  \"medida\": \"UNIDAD\",\n  \"aplica_impuesto\": true,\n  \"is_activo\": true,\n  \"imagen_url\": \"https://example.com/camiseta-premium.jpg\"\n}\nRespuesta (200 OK):\n{\n  \"id\": 1,\n  \"codigo\": \"CAM-001\",\n  \"nombre\": \"Camiseta UNL - Premium\",\n  \"descripcion\": \"Camiseta de algodón 100%, calidad premium\",\n  \"precio\": \"18.50\",\n  \"stock\": 90,\n  \"categoria\": \"TEXTIL\",\n  \"medida\": \"UNIDAD\",\n  \"aplica_impuesto\": true,\n  \"is_activo\": true,\n  \"vencimiento\": null,\n  \"imagen_url\": \"https://example.com/camiseta-premium.jpg\",\n  \"fecha_creacion\": \"2024-01-15T10:30:00Z\"\n}\nErrores:\n\n400 Bad Request: Datos inválidos (precio/stock negativos)\n401 Unauthorized: No autenticado\n404 Not Found: Producto no existe\n\n\n\n\n\nEndpoint: DELETE /api/v1/productos/{id}/\nAutenticación: Requerida (Bearer Token)\nRespuesta (204 No Content):\nSin contenido en el cuerpo de respuesta.\nErrores:\n\n401 Unauthorized: No autenticado\n404 Not Found: Producto no existe\n\n\n\n\n\n\n\n\nGET /api/v1/productos/?categoria=TEXTIL\nCategorías disponibles:\n\nAGRICOLA - Productos agrícolas\nINSTITUCIONAL - Productos institucionales\nTECNOLOGICO - Productos tecnológicos\nACADEMICO - Productos académicos\nTEXTIL - Ropa y textiles\nSOUVENIR - Souvenirs\nTEMPORAL - Productos temporales\n\n\n\n\n\nGET /api/v1/productos/?precio_min=10&precio_max=50\n\n\n\n\nGET /api/v1/productos/?search=Camiseta\nBusca en campos: nombre y descripcion (case-insensitive)\n\n\n\n\nGET /api/v1/productos/?ordering=precio          # Ascendente\nGET /api/v1/productos/?ordering=-precio         # Descendente\nGET /api/v1/productos/?ordering=nombre          # Por nombre\nGET /api/v1/productos/?ordering=fecha_creacion  # Por fecha\n\n\n\n\n# Productos textiles ordenados por precio descend uente\nGET /api/v1/productos/?categoria=TEXTIL&ordering=-precio\n\n# Buscar \"Camiseta\" en categoría \"TEXTIL\"\nGET /api/v1/productos/?categoria=TEXTIL&search=Camiseta\n\n# Página 2 con 10 items por página\nGET /api/v1/productos/?page=2\n\n# Todos los filtros combinados\nGET /api/v1/productos/?categoria=TEXTIL&precio_max=50&search=oficial&ordering=-precio&page=1\n\n\n\n\n\n\n\n// src/services/productService.ts\nimport apiClient from './api';\n\nexport const getProducts = async (filters = {}) =&gt; {\n  const params = new URLSearchParams(filters);\n  const response = await apiClient.get(`/productos/?${params}`);\n  return response.data;\n};\n\n// src/pages/CatalogPage.tsx\nimport { useState, useEffect } from 'react';\nimport { getProducts } from '../services/productService';\n\nexport const CatalogPage = () =&gt; {\n  const [products, setProducts] = useState([]);\n  const [loading, setLoading] = useState(true);\n  const [filters, setFilters] = useState({\n    categoria: '',\n    search: '',\n    ordering: 'nombre',\n    page: 1\n  });\n\n  useEffect(() =&gt; {\n    const fetchProducts = async () =&gt; {\n      try {\n        setLoading(true);\n        const data = await getProducts(filters);\n        setProducts(data.results);\n      } catch (error) {\n        console.error('Error fetching products:', error);\n      } finally {\n        setLoading(false);\n      }\n    };\n\n    fetchProducts();\n  }, [filters]);\n\n  if (loading) return &lt;div&gt;Cargando...&lt;/div&gt;;\n\n  return (\n    &lt;div&gt;\n      &lt;h1&gt;Catálogo de Productos&lt;/h1&gt;\n      \n      &lt;div className=\"filters\"&gt;\n        &lt;select \n          value={filters.categoria} \n          onChange={(e) =&gt; setFilters({...filters, categoria: e.target.value})}\n        &gt;\n          &lt;option value=\"\"&gt;Todas las categorías&lt;/option&gt;\n          &lt;option value=\"TEXTIL\"&gt;Textil&lt;/option&gt;\n          &lt;option value=\"INSTITUCIONAL\"&gt;Institucional&lt;/option&gt;\n        &lt;/select&gt;\n\n        &lt;input \n          type=\"text\" \n          placeholder=\"Buscar...\"\n          value={filters.search}\n          onChange={(e) =&gt; setFilters({...filters, search: e.target.value})}\n        /&gt;\n      &lt;/div&gt;\n\n      &lt;div className=\"products-grid\"&gt;\n        {products.map(product =&gt; (\n          &lt;div key={product.id} className=\"product-card\"&gt;\n            &lt;img src={product.imagen_url} alt={product.nombre} /&gt;\n            &lt;h3&gt;{product.nombre}&lt;/h3&gt;\n            &lt;p&gt;{product.descripcion}&lt;/p&gt;\n            &lt;p className=\"price\"&gt;${product.precio}&lt;/p&gt;\n            &lt;p className=\"stock\"&gt;Stock: {product.stock}&lt;/p&gt;\n            &lt;button&gt;Agregar al carrito&lt;/button&gt;\n          &lt;/div&gt;\n        ))}\n      &lt;/div&gt;\n    &lt;/div&gt;\n  );\n};\n\n\n\nexport const getProductDetail = async (id) =&gt; {\n  const response = await apiClient.get(`/productos/${id}/`);\n  return response.data;\n};\n\n// Uso en componente\nconst ProductDetailPage = ({ productId }) =&gt; {\n  const [product, setProduct] = useState(null);\n\n  useEffect(() =&gt; {\n    getProductDetail(productId).then(setProduct);\n  }, [productId]);\n\n  if (!product) return &lt;div&gt;Producto no encontrado&lt;/div&gt;;\n\n  return (\n    &lt;div className=\"product-detail\"&gt;\n      &lt;img src={product.imagen_url} alt={product.nombre} /&gt;\n      &lt;h1&gt;{product.nombre}&lt;/h1&gt;\n      &lt;p&gt;{product.descripcion}&lt;/p&gt;\n      &lt;p&gt;Precio: ${product.precio}&lt;/p&gt;\n      &lt;p&gt;Stock disponible: {product.stock}&lt;/p&gt;\n      {product.vencimiento && &lt;p&gt;Vence: {product.vencimiento}&lt;/p&gt;}\n    &lt;/div&gt;\n  );\n};\n\n\n\nexport const createProduct = async (productData) =&gt; {\n  const response = await apiClient.post('/productos/', productData);\n  return response.data;\n};\n\n// Uso en formulario\nconst CreateProductForm = () =&gt; {\n  const [formData, setFormData] = useState({\n    codigo: '',\n    nombre: '',\n    descripcion: '',\n    precio: '',\n    stock: '',\n    categoria: 'SOUVENIR'\n  });\n\n  const handleSubmit = async (e) =&gt; {\n    e.preventDefault();\n    try {\n      const newProduct = await createProduct(formData);\n      alert('Producto creado: ' + newProduct.nombre);\n    } catch (error) {\n      alert('Error: ' + error.response.data.nombre[0]);\n    }\n  };\n\n  return (\n    &lt;form onSubmit={handleSubmit}&gt;\n      &lt;input \n        name=\"nombre\" \n        placeholder=\"Nombre\"\n        required\n      /&gt;\n      &lt;textarea \n        name=\"descripcion\" \n        placeholder=\"Descripción\"\n      /&gt;\n      &lt;input \n        name=\"precio\" \n        type=\"number\" \n        step=\"0.01\"\n        placeholder=\"Precio\"\n        required\n      /&gt;\n      &lt;input \n        name=\"stock\" \n        type=\"number\" \n        placeholder=\"Stock\"\n        required\n      /&gt;\n      &lt;button type=\"submit\"&gt;Crear Producto&lt;/button&gt;\n    &lt;/form&gt;\n  );\n};\n\n\n\nexport const updateProduct = async (id, productData) =&gt; {\n  const response = await apiClient.put(`/productos/${id}/`, productData);\n  return response.data;\n};\n\n\n\nexport const deleteProduct = async (id) =&gt; {\n  await apiClient.delete(`/productos/${id}/`);\n};\n\n// Uso\nconst deleteHandler = async (productId) =&gt; {\n  if (window.confirm('¿Está seguro?')) {\n    await deleteProduct(productId);\n    alert('Producto eliminado');\n  }\n};\n\n\n\n\n\n\n\n// Componente reutilizable para manejo de errores\nconst withErrorHandling = (apiCall) =&gt; {\n  try {\n    return await apiCall();\n  } catch (error) {\n    switch (error.response?.status) {\n      case 400:\n        throw new Error('Datos inválidos: ' + Object.values(error.response.data).flat().join(', '));\n      case 401:\n        throw new Error('No autenticado. Inicie sesión.');\n      case 403:\n        throw new Error('No tiene permisos para esta acción.');\n      case 404:\n        throw new Error('Producto no encontrado.');\n      default:\n        throw new Error('Error del servidor. Intente más tarde.');\n    }\n  }\n};\n\n\n\n\n\n\n\n\nCódigo\nNombre\nDescripción\n\n\n\n\nAGRICOLA\nAgrícola\nProductos agrícolas y orgánicos\n\n\nINSTITUCIONAL\nInstitucional\nProductos con logo/marca UNL\n\n\nTECNOLOGICO\nTecnológico\nArtículos tecnológicos\n\n\nACADEMICO\nAcadémico\nMateriales académicos\n\n\nTEXTIL\nTextil\nRopa y prendas de vestir\n\n\nSOUVENIR\nSouvenir\nRecuerdos y souvenirs\n\n\nTEMPORAL\nTemporal\nProductos de temporada\n\n\n\n\n\n\n\n\n\n\nCódigo\nNombre\n\n\n\n\nGRAMO\nGramo\n\n\nKILOGRAMO\nKilogramo\n\n\nLIBRA\nLibra\n\n\nUNIDAD\nUnidad\n\n\n\n\n\n\n\n\n\n\nnombre: Obligatorio, máx 150 caracteres\ndescripcion: Obligatoria\nprecio: Obligatorio, &gt; 0.00\nstock: Obligatorio, &gt;= 0\ncategoria: Obligatoria (default: SOUVENIR)\n\n\n\n\n# Precio debe ser positivo\nif precio &lt; 0.01:\n    error(\"El precio debe ser mayor que 0.00\")\n\n# Stock no puede ser negativo\nif stock &lt; 0:\n    error(\"El stock no puede ser negativo\")\n\n# Código único (opcional)\nif codigo and Producto.objects.filter(codigo=codigo).exists():\n    error(\"Este código ya existe\")\n\n\n\n\n\n\n\n\n\n\nOperación\nTiempo Objetivo\nEstado\n\n\n\n\nListar productos (GET)\n&lt; 200ms\n✅\n\n\nBuscar (Search)\n&lt; 300ms\n✅\n\n\nCrear producto (POST)\n&lt; 500ms\n✅\n\n\nActualizar producto (PUT)\n&lt; 500ms\n✅\n\n\nEliminar producto (DELETE)\n&lt; 500ms\n✅\n\n\n\n\n\n\nOptimizaciones implementadas:\n\nÍndice en: nombre\nÍndice en: categoria\nÍndice en: precio\n\n\n\n\n\n\nTodos los endpoints están cubiertos por 21 tests automatizados:\n# Ejecutar tests\npython manage.py test tienda.tests.ProductoApiTests -v 2\n\n# Resultados esperados\n# Ran 21 tests in 14.260s - OK (100% passing)\n\n\n✅ Listar productos con paginación\n✅ Filtrar por categoría\n✅ Buscar por nombre\n✅ Buscar por descripción\n✅ Ordenar por precio (asc/desc)\n✅ Obtener detalles del producto\n✅ Crear producto (autenticado)\n✅ Crear producto (sin autenticación)\n✅ Crear con precio inválido\n✅ Crear con stock inválido\n✅ Crear sin campos requeridos\n✅ Actualizar producto\n✅ Actualizar sin autenticación\n✅ Actualizar con precio inválido\n✅ Actualizar producto no existente\n✅ Eliminar producto\n✅ Eliminar sin autenticación\n✅ Eliminar producto no existente\n✅ Productos inactivos no aparecen\n✅ Productos inactivos retornan 404\n\n\n\n\n\n\nDjango REST Framework Filtering\nPaginación en DRF\nValidación en DRF\n\n\nVersión: 1.0.0\nStatus: Completado y Testeado ✅\nÚltima actualización: 2024-05-27\nTests: 21/21 Pasando ✅",
+    "crumbs": [
+      "Especificaciones de Negocio",
+      "Catálogo de Productos - TiendaUniversitaria"
+    ]
+  },
+  {
+    "objectID": "catalogo-productos.html#descripción-general",
+    "href": "catalogo-productos.html#descripción-general",
+    "title": "Catálogo de Productos - TiendaUniversitaria",
+    "section": "",
+    "text": "El catálogo de productos es el módulo central de TiendaUniversitaria que permite:\n\nConsulta Pública: Estudiantes y visitantes pueden ver productos disponibles\nFiltrado y Búsqueda: Encontrar productos por categoría, precio, nombre\nGestión (Admin): Crear, actualizar y eliminar productos\nPaginación Automática: 10 productos por página\n\n\n\n\n✅ Lectura Pública (GET sin autenticación)\n✅ Escritura Autenticada (POST/PUT/DELETE requieren login)\n✅ Filtrado por categoría, precio, estado activo\n✅ Búsqueda en nombre y descripción\n✅ Ordenamiento por precio, nombre, fecha\n✅ Paginación automática (10 items/página)\n✅ Imágenes con URLs externas\n✅ Validación de stock y precio",
+    "crumbs": [
+      "Especificaciones de Negocio",
+      "Catálogo de Productos - TiendaUniversitaria"
+    ]
+  },
+  {
+    "objectID": "catalogo-productos.html#operaciones-crud",
+    "href": "catalogo-productos.html#operaciones-crud",
+    "title": "Catálogo de Productos - TiendaUniversitaria",
+    "section": "",
+    "text": "Endpoint: GET /api/v1/productos/\nAutenticación: No requerida\nQuery Parameters:\n\n\n\nParámetro\nDescripción\nEjemplo\n\n\n\n\npage\nNúmero de página\n?page=2\n\n\ncategoria\nFiltrar por categoría\n?categoria=TEXTIL\n\n\nsearch\nBúsqueda en nombre/descripción\n?search=Camiseta\n\n\nordering\nCampo para ordenar\n?ordering=-precio\n\n\n\nRespuesta (200 OK):\n{\n  \"count\": 45,\n  \"next\": \"http://localhost:8000/api/v1/productos/?page=2\",\n  \"previous\": null,\n  \"results\": [\n    {\n      \"id\": 1,\n      \"codigo\": \"CAM-001\",\n      \"nombre\": \"Camiseta UNL\",\n      \"descripcion\": \"Camiseta de algodón 100%\",\n      \"precio\": \"15.50\",\n      \"stock\": 100,\n      \"categoria\": \"TEXTIL\",\n      \"medida\": \"UNIDAD\",\n      \"aplica_impuesto\": true,\n      \"is_activo\": true,\n      \"vencimiento\": null,\n      \"imagen_url\": \"https://example.com/camiseta.jpg\",\n      \"fecha_creacion\": \"2024-01-15T10:30:00Z\"\n    }\n  ]\n}\n\n\n\n\nEndpoint: GET /api/v1/productos/{id}/\nAutenticación: No requerida\nPath Parameters:\n\n\n\nParámetro\nDescripción\n\n\n\n\nid\nID del producto\n\n\n\nRespuesta (200 OK):\n{\n  \"id\": 1,\n  \"codigo\": \"CAM-001\",\n  \"nombre\": \"Camiseta UNL\",\n  \"descripcion\": \"Camiseta de algodón 100%\",\n  \"precio\": \"15.50\",\n  \"stock\": 100,\n  \"categoria\": \"TEXTIL\",\n  \"medida\": \"UNIDAD\",\n  \"aplica_impuesto\": true,\n  \"is_activo\": true,\n  \"vencimiento\": null,\n  \"imagen_url\": \"https://example.com/camiseta.jpg\",\n  \"fecha_creacion\": \"2024-01-15T10:30:00Z\"\n}\nErrores:\n// 404 - Producto no encontrado o inactivo\n{\n  \"detail\": \"Not found.\"\n}\n\n\n\n\nEndpoint: POST /api/v1/productos/\nAutenticación: Requerida (Bearer Token)\nRequest Body:\n{\n  \"codigo\": \"CAM-002\",\n  \"nombre\": \"Gorra UNL\",\n  \"descripcion\": \"Gorra ajustable negra con logo\",\n  \"precio\": 12.50,\n  \"stock\": 75,\n  \"categoria\": \"TEXTIL\",\n  \"medida\": \"UNIDAD\",\n  \"aplica_impuesto\": true,\n  \"is_activo\": true,\n  \"vencimiento\": null,\n  \"imagen_url\": \"https://example.com/gorra.jpg\"\n}\nRespuesta (201 Created):\n{\n  \"id\": 2,\n  \"codigo\": \"CAM-002\",\n  \"nombre\": \"Gorra UNL\",\n  \"descripcion\": \"Gorra ajustable negra con logo\",\n  \"precio\": \"12.50\",\n  \"stock\": 75,\n  \"categoria\": \"TEXTIL\",\n  \"medida\": \"UNIDAD\",\n  \"aplica_impuesto\": true,\n  \"is_activo\": true,\n  \"vencimiento\": null,\n  \"imagen_url\": \"https://example.com/gorra.jpg\",\n  \"fecha_creacion\": \"2024-05-27T14:22:00Z\"\n}\nErrores (400 Bad Request):\n{\n  \"precio\": [\"El precio debe ser mayor que 0.00\"],\n  \"stock\": [\"El stock no puede ser negativo\"],\n  \"nombre\": [\"Este campo no puede estar vacío.\"]\n}\nError (401 Unauthorized):\n{\n  \"detail\": \"Authentication credentials were not provided.\"\n}\n\n\n\n\nEndpoint: PUT /api/v1/productos/{id}/\nAutenticación: Requerida (Bearer Token)\nRequest Body (actualización parcial):\n{\n  \"codigo\": \"CAM-001\",\n  \"nombre\": \"Camiseta UNL - Premium\",\n  \"descripcion\": \"Camiseta de algodón 100%, calidad premium\",\n  \"precio\": 18.50,\n  \"stock\": 90,\n  \"categoria\": \"TEXTIL\",\n  \"medida\": \"UNIDAD\",\n  \"aplica_impuesto\": true,\n  \"is_activo\": true,\n  \"imagen_url\": \"https://example.com/camiseta-premium.jpg\"\n}\nRespuesta (200 OK):\n{\n  \"id\": 1,\n  \"codigo\": \"CAM-001\",\n  \"nombre\": \"Camiseta UNL - Premium\",\n  \"descripcion\": \"Camiseta de algodón 100%, calidad premium\",\n  \"precio\": \"18.50\",\n  \"stock\": 90,\n  \"categoria\": \"TEXTIL\",\n  \"medida\": \"UNIDAD\",\n  \"aplica_impuesto\": true,\n  \"is_activo\": true,\n  \"vencimiento\": null,\n  \"imagen_url\": \"https://example.com/camiseta-premium.jpg\",\n  \"fecha_creacion\": \"2024-01-15T10:30:00Z\"\n}\nErrores:\n\n400 Bad Request: Datos inválidos (precio/stock negativos)\n401 Unauthorized: No autenticado\n404 Not Found: Producto no existe\n\n\n\n\n\nEndpoint: DELETE /api/v1/productos/{id}/\nAutenticación: Requerida (Bearer Token)\nRespuesta (204 No Content):\nSin contenido en el cuerpo de respuesta.\nErrores:\n\n401 Unauthorized: No autenticado\n404 Not Found: Producto no existe",
+    "crumbs": [
+      "Especificaciones de Negocio",
+      "Catálogo de Productos - TiendaUniversitaria"
+    ]
+  },
+  {
+    "objectID": "catalogo-productos.html#filtrado-y-búsqueda",
+    "href": "catalogo-productos.html#filtrado-y-búsqueda",
+    "title": "Catálogo de Productos - TiendaUniversitaria",
+    "section": "",
+    "text": "GET /api/v1/productos/?categoria=TEXTIL\nCategorías disponibles:\n\nAGRICOLA - Productos agrícolas\nINSTITUCIONAL - Productos institucionales\nTECNOLOGICO - Productos tecnológicos\nACADEMICO - Productos académicos\nTEXTIL - Ropa y textiles\nSOUVENIR - Souvenirs\nTEMPORAL - Productos temporales\n\n\n\n\n\nGET /api/v1/productos/?precio_min=10&precio_max=50\n\n\n\n\nGET /api/v1/productos/?search=Camiseta\nBusca en campos: nombre y descripcion (case-insensitive)\n\n\n\n\nGET /api/v1/productos/?ordering=precio          # Ascendente\nGET /api/v1/productos/?ordering=-precio         # Descendente\nGET /api/v1/productos/?ordering=nombre          # Por nombre\nGET /api/v1/productos/?ordering=fecha_creacion  # Por fecha\n\n\n\n\n# Productos textiles ordenados por precio descend uente\nGET /api/v1/productos/?categoria=TEXTIL&ordering=-precio\n\n# Buscar \"Camiseta\" en categoría \"TEXTIL\"\nGET /api/v1/productos/?categoria=TEXTIL&search=Camiseta\n\n# Página 2 con 10 items por página\nGET /api/v1/productos/?page=2\n\n# Todos los filtros combinados\nGET /api/v1/productos/?categoria=TEXTIL&precio_max=50&search=oficial&ordering=-precio&page=1",
+    "crumbs": [
+      "Especificaciones de Negocio",
+      "Catálogo de Productos - TiendaUniversitaria"
+    ]
+  },
+  {
+    "objectID": "catalogo-productos.html#integración-react",
+    "href": "catalogo-productos.html#integración-react",
+    "title": "Catálogo de Productos - TiendaUniversitaria",
+    "section": "",
+    "text": "// src/services/productService.ts\nimport apiClient from './api';\n\nexport const getProducts = async (filters = {}) =&gt; {\n  const params = new URLSearchParams(filters);\n  const response = await apiClient.get(`/productos/?${params}`);\n  return response.data;\n};\n\n// src/pages/CatalogPage.tsx\nimport { useState, useEffect } from 'react';\nimport { getProducts } from '../services/productService';\n\nexport const CatalogPage = () =&gt; {\n  const [products, setProducts] = useState([]);\n  const [loading, setLoading] = useState(true);\n  const [filters, setFilters] = useState({\n    categoria: '',\n    search: '',\n    ordering: 'nombre',\n    page: 1\n  });\n\n  useEffect(() =&gt; {\n    const fetchProducts = async () =&gt; {\n      try {\n        setLoading(true);\n        const data = await getProducts(filters);\n        setProducts(data.results);\n      } catch (error) {\n        console.error('Error fetching products:', error);\n      } finally {\n        setLoading(false);\n      }\n    };\n\n    fetchProducts();\n  }, [filters]);\n\n  if (loading) return &lt;div&gt;Cargando...&lt;/div&gt;;\n\n  return (\n    &lt;div&gt;\n      &lt;h1&gt;Catálogo de Productos&lt;/h1&gt;\n      \n      &lt;div className=\"filters\"&gt;\n        &lt;select \n          value={filters.categoria} \n          onChange={(e) =&gt; setFilters({...filters, categoria: e.target.value})}\n        &gt;\n          &lt;option value=\"\"&gt;Todas las categorías&lt;/option&gt;\n          &lt;option value=\"TEXTIL\"&gt;Textil&lt;/option&gt;\n          &lt;option value=\"INSTITUCIONAL\"&gt;Institucional&lt;/option&gt;\n        &lt;/select&gt;\n\n        &lt;input \n          type=\"text\" \n          placeholder=\"Buscar...\"\n          value={filters.search}\n          onChange={(e) =&gt; setFilters({...filters, search: e.target.value})}\n        /&gt;\n      &lt;/div&gt;\n\n      &lt;div className=\"products-grid\"&gt;\n        {products.map(product =&gt; (\n          &lt;div key={product.id} className=\"product-card\"&gt;\n            &lt;img src={product.imagen_url} alt={product.nombre} /&gt;\n            &lt;h3&gt;{product.nombre}&lt;/h3&gt;\n            &lt;p&gt;{product.descripcion}&lt;/p&gt;\n            &lt;p className=\"price\"&gt;${product.precio}&lt;/p&gt;\n            &lt;p className=\"stock\"&gt;Stock: {product.stock}&lt;/p&gt;\n            &lt;button&gt;Agregar al carrito&lt;/button&gt;\n          &lt;/div&gt;\n        ))}\n      &lt;/div&gt;\n    &lt;/div&gt;\n  );\n};\n\n\n\nexport const getProductDetail = async (id) =&gt; {\n  const response = await apiClient.get(`/productos/${id}/`);\n  return response.data;\n};\n\n// Uso en componente\nconst ProductDetailPage = ({ productId }) =&gt; {\n  const [product, setProduct] = useState(null);\n\n  useEffect(() =&gt; {\n    getProductDetail(productId).then(setProduct);\n  }, [productId]);\n\n  if (!product) return &lt;div&gt;Producto no encontrado&lt;/div&gt;;\n\n  return (\n    &lt;div className=\"product-detail\"&gt;\n      &lt;img src={product.imagen_url} alt={product.nombre} /&gt;\n      &lt;h1&gt;{product.nombre}&lt;/h1&gt;\n      &lt;p&gt;{product.descripcion}&lt;/p&gt;\n      &lt;p&gt;Precio: ${product.precio}&lt;/p&gt;\n      &lt;p&gt;Stock disponible: {product.stock}&lt;/p&gt;\n      {product.vencimiento && &lt;p&gt;Vence: {product.vencimiento}&lt;/p&gt;}\n    &lt;/div&gt;\n  );\n};\n\n\n\nexport const createProduct = async (productData) =&gt; {\n  const response = await apiClient.post('/productos/', productData);\n  return response.data;\n};\n\n// Uso en formulario\nconst CreateProductForm = () =&gt; {\n  const [formData, setFormData] = useState({\n    codigo: '',\n    nombre: '',\n    descripcion: '',\n    precio: '',\n    stock: '',\n    categoria: 'SOUVENIR'\n  });\n\n  const handleSubmit = async (e) =&gt; {\n    e.preventDefault();\n    try {\n      const newProduct = await createProduct(formData);\n      alert('Producto creado: ' + newProduct.nombre);\n    } catch (error) {\n      alert('Error: ' + error.response.data.nombre[0]);\n    }\n  };\n\n  return (\n    &lt;form onSubmit={handleSubmit}&gt;\n      &lt;input \n        name=\"nombre\" \n        placeholder=\"Nombre\"\n        required\n      /&gt;\n      &lt;textarea \n        name=\"descripcion\" \n        placeholder=\"Descripción\"\n      /&gt;\n      &lt;input \n        name=\"precio\" \n        type=\"number\" \n        step=\"0.01\"\n        placeholder=\"Precio\"\n        required\n      /&gt;\n      &lt;input \n        name=\"stock\" \n        type=\"number\" \n        placeholder=\"Stock\"\n        required\n      /&gt;\n      &lt;button type=\"submit\"&gt;Crear Producto&lt;/button&gt;\n    &lt;/form&gt;\n  );\n};\n\n\n\nexport const updateProduct = async (id, productData) =&gt; {\n  const response = await apiClient.put(`/productos/${id}/`, productData);\n  return response.data;\n};\n\n\n\nexport const deleteProduct = async (id) =&gt; {\n  await apiClient.delete(`/productos/${id}/`);\n};\n\n// Uso\nconst deleteHandler = async (productId) =&gt; {\n  if (window.confirm('¿Está seguro?')) {\n    await deleteProduct(productId);\n    alert('Producto eliminado');\n  }\n};",
+    "crumbs": [
+      "Especificaciones de Negocio",
+      "Catálogo de Productos - TiendaUniversitaria"
+    ]
+  },
+  {
+    "objectID": "catalogo-productos.html#manejo-de-errores",
+    "href": "catalogo-productos.html#manejo-de-errores",
+    "title": "Catálogo de Productos - TiendaUniversitaria",
+    "section": "",
+    "text": "// Componente reutilizable para manejo de errores\nconst withErrorHandling = (apiCall) =&gt; {\n  try {\n    return await apiCall();\n  } catch (error) {\n    switch (error.response?.status) {\n      case 400:\n        throw new Error('Datos inválidos: ' + Object.values(error.response.data).flat().join(', '));\n      case 401:\n        throw new Error('No autenticado. Inicie sesión.');\n      case 403:\n        throw new Error('No tiene permisos para esta acción.');\n      case 404:\n        throw new Error('Producto no encontrado.');\n      default:\n        throw new Error('Error del servidor. Intente más tarde.');\n    }\n  }\n};",
+    "crumbs": [
+      "Especificaciones de Negocio",
+      "Catálogo de Productos - TiendaUniversitaria"
+    ]
+  },
+  {
+    "objectID": "catalogo-productos.html#categorías-de-productos",
+    "href": "catalogo-productos.html#categorías-de-productos",
+    "title": "Catálogo de Productos - TiendaUniversitaria",
+    "section": "",
+    "text": "Código\nNombre\nDescripción\n\n\n\n\nAGRICOLA\nAgrícola\nProductos agrícolas y orgánicos\n\n\nINSTITUCIONAL\nInstitucional\nProductos con logo/marca UNL\n\n\nTECNOLOGICO\nTecnológico\nArtículos tecnológicos\n\n\nACADEMICO\nAcadémico\nMateriales académicos\n\n\nTEXTIL\nTextil\nRopa y prendas de vestir\n\n\nSOUVENIR\nSouvenir\nRecuerdos y souvenirs\n\n\nTEMPORAL\nTemporal\nProductos de temporada",
+    "crumbs": [
+      "Especificaciones de Negocio",
+      "Catálogo de Productos - TiendaUniversitaria"
+    ]
+  },
+  {
+    "objectID": "catalogo-productos.html#unidades-de-medida",
+    "href": "catalogo-productos.html#unidades-de-medida",
+    "title": "Catálogo de Productos - TiendaUniversitaria",
+    "section": "",
+    "text": "Código\nNombre\n\n\n\n\nGRAMO\nGramo\n\n\nKILOGRAMO\nKilogramo\n\n\nLIBRA\nLibra\n\n\nUNIDAD\nUnidad",
+    "crumbs": [
+      "Especificaciones de Negocio",
+      "Catálogo de Productos - TiendaUniversitaria"
+    ]
+  },
+  {
+    "objectID": "catalogo-productos.html#validaciones",
+    "href": "catalogo-productos.html#validaciones",
+    "title": "Catálogo de Productos - TiendaUniversitaria",
+    "section": "",
+    "text": "nombre: Obligatorio, máx 150 caracteres\ndescripcion: Obligatoria\nprecio: Obligatorio, &gt; 0.00\nstock: Obligatorio, &gt;= 0\ncategoria: Obligatoria (default: SOUVENIR)\n\n\n\n\n# Precio debe ser positivo\nif precio &lt; 0.01:\n    error(\"El precio debe ser mayor que 0.00\")\n\n# Stock no puede ser negativo\nif stock &lt; 0:\n    error(\"El stock no puede ser negativo\")\n\n# Código único (opcional)\nif codigo and Producto.objects.filter(codigo=codigo).exists():\n    error(\"Este código ya existe\")",
+    "crumbs": [
+      "Especificaciones de Negocio",
+      "Catálogo de Productos - TiendaUniversitaria"
+    ]
+  },
+  {
+    "objectID": "catalogo-productos.html#performance",
+    "href": "catalogo-productos.html#performance",
+    "title": "Catálogo de Productos - TiendaUniversitaria",
+    "section": "",
+    "text": "Operación\nTiempo Objetivo\nEstado\n\n\n\n\nListar productos (GET)\n&lt; 200ms\n✅\n\n\nBuscar (Search)\n&lt; 300ms\n✅\n\n\nCrear producto (POST)\n&lt; 500ms\n✅\n\n\nActualizar producto (PUT)\n&lt; 500ms\n✅\n\n\nEliminar producto (DELETE)\n&lt; 500ms\n✅\n\n\n\n\n\n\nOptimizaciones implementadas:\n\nÍndice en: nombre\nÍndice en: categoria\nÍndice en: precio",
+    "crumbs": [
+      "Especificaciones de Negocio",
+      "Catálogo de Productos - TiendaUniversitaria"
+    ]
+  },
+  {
+    "objectID": "catalogo-productos.html#testing",
+    "href": "catalogo-productos.html#testing",
+    "title": "Catálogo de Productos - TiendaUniversitaria",
+    "section": "",
+    "text": "Todos los endpoints están cubiertos por 21 tests automatizados:\n# Ejecutar tests\npython manage.py test tienda.tests.ProductoApiTests -v 2\n\n# Resultados esperados\n# Ran 21 tests in 14.260s - OK (100% passing)\n\n\n✅ Listar productos con paginación\n✅ Filtrar por categoría\n✅ Buscar por nombre\n✅ Buscar por descripción\n✅ Ordenar por precio (asc/desc)\n✅ Obtener detalles del producto\n✅ Crear producto (autenticado)\n✅ Crear producto (sin autenticación)\n✅ Crear con precio inválido\n✅ Crear con stock inválido\n✅ Crear sin campos requeridos\n✅ Actualizar producto\n✅ Actualizar sin autenticación\n✅ Actualizar con precio inválido\n✅ Actualizar producto no existente\n✅ Eliminar producto\n✅ Eliminar sin autenticación\n✅ Eliminar producto no existente\n✅ Productos inactivos no aparecen\n✅ Productos inactivos retornan 404",
+    "crumbs": [
+      "Especificaciones de Negocio",
+      "Catálogo de Productos - TiendaUniversitaria"
+    ]
+  },
+  {
+    "objectID": "catalogo-productos.html#referencias",
+    "href": "catalogo-productos.html#referencias",
+    "title": "Catálogo de Productos - TiendaUniversitaria",
+    "section": "",
+    "text": "Django REST Framework Filtering\nPaginación en DRF\nValidación en DRF\n\n\nVersión: 1.0.0\nStatus: Completado y Testeado ✅\nÚltima actualización: 2024-05-27\nTests: 21/21 Pasando ✅",
+    "crumbs": [
+      "Especificaciones de Negocio",
+      "Catálogo de Productos - TiendaUniversitaria"
+    ]
+  },
+  {
+    "objectID": "app-movil.html",
+    "href": "app-movil.html",
+    "title": "Aplicación Móvil (React Native + Expo)",
+    "section": "",
+    "text": "La aplicación móvil de la Tienda Universitaria UNL está construida utilizando el framework React Native bajo el ecosistema de Expo. Esta plataforma comparte el mismo modelo de base de datos que la plataforma web, consumiendo la API REST expuesta por el backend de Django.\n\n\n\nFramework: React Native + Expo Go.\nLenguaje: TypeScript (.tsx).\nEnrutamiento: @react-navigation/native-stack.\nCliente HTTP: axios.\nPasarela de Pagos: @stripe/stripe-react-native.\nManejo de Archivos: expo-file-system, expo-sharing.\n\n\n\n\nLa configuración crítica del entorno debe residir en el archivo .env ubicado en la raíz del directorio de la aplicación (app-movil/). Expo expone estas variables si inician con el prefijo EXPO_PUBLIC_.\n# Ejemplo de configuración .env\nEXPO_PUBLIC_API_URL=http://192.168.1.100:8000/api\nEXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...\n\n\n\n\n\n\nWarning\n\n\n\nImportante: Nunca incluir llaves secretas de Stripe en el frontend móvil. Tampoco se debe usar localhost como IP cuando se realicen pruebas en dispositivos reales, ya que apuntará al propio teléfono y no al servidor de desarrollo.\n\n\n\n\n\nEl catálogo principal (HomeScreen.tsx) dejó de utilizar información ficticia (mockProducts) para conectarse directamente al servidor Django.\n\n\n\nAl montar la pantalla, useEffect invoca la función asíncrona de obtención de datos mediante axios.\nSe establecen tres estados: isLoading (para mostrar indicadores de carga nativos), error (para permitir reintentos visuales), y products.\nLos datos del backend (is_food, is_ropa, tiene_iva) se mapean al tipado estricto Product esperado por los componentes UI nativos (ProductCard.tsx).\n\n\n\n\n\nLa aplicación utiliza la funcionalidad nativa PaymentSheet de Stripe, proporcionando un flujo de caja (checkout) optimizado y seguro para tarjetas de crédito/débito.\n\n\nLa integración se basa en la comunicación cliente-servidor: 1. Solicitud de Intención: La aplicación solicita al backend Django un client_secret a través de /pagos/crear-payment-intent/, asociándolo a un pedido específico. 2. Inicialización: initPaymentSheet de @stripe/stripe-react-native recibe el secreto devuelto por el servidor. 3. Presentación: presentPaymentSheet invoca la UI nativa. En caso de error o cancelación, se alerta al usuario. En caso de éxito, se redirige al flujo de descarga del comprobante.\n\n\n\n\nPara no saturar al dispositivo con cálculos de librerías PDF, la app móvil invoca el mismo generador implementado en ReportLab dentro de Django, descargando el binario resultante.\n\n\nEl servicio combina dos librerías del SDK de Expo: * expo-file-system: Para transmitir el flujo del PDF remoto hacia la memoria o almacenamiento temporal del dispositivo local. * expo-sharing: Para invocar la ventana modal de intercambio nativa del OS (iOS/Android), permitiendo al cliente imprimir, guardar en archivos, o enviar su recibo por correo/WhatsApp.\nEste patrón reduce las dependencias (bundle size) de la app móvil y centraliza el formato del comprobante para ambas plataformas web y app."
+  },
+  {
+    "objectID": "app-movil.html#arquitectura-y-stack-tecnológico",
+    "href": "app-movil.html#arquitectura-y-stack-tecnológico",
+    "title": "Aplicación Móvil (React Native + Expo)",
+    "section": "",
+    "text": "Framework: React Native + Expo Go.\nLenguaje: TypeScript (.tsx).\nEnrutamiento: @react-navigation/native-stack.\nCliente HTTP: axios.\nPasarela de Pagos: @stripe/stripe-react-native.\nManejo de Archivos: expo-file-system, expo-sharing."
+  },
+  {
+    "objectID": "app-movil.html#configuración-y-variables-de-entorno",
+    "href": "app-movil.html#configuración-y-variables-de-entorno",
+    "title": "Aplicación Móvil (React Native + Expo)",
+    "section": "",
+    "text": "La configuración crítica del entorno debe residir en el archivo .env ubicado en la raíz del directorio de la aplicación (app-movil/). Expo expone estas variables si inician con el prefijo EXPO_PUBLIC_.\n# Ejemplo de configuración .env\nEXPO_PUBLIC_API_URL=http://192.168.1.100:8000/api\nEXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...\n\n\n\n\n\n\nWarning\n\n\n\nImportante: Nunca incluir llaves secretas de Stripe en el frontend móvil. Tampoco se debe usar localhost como IP cuando se realicen pruebas en dispositivos reales, ya que apuntará al propio teléfono y no al servidor de desarrollo."
+  },
+  {
+    "objectID": "app-movil.html#catálogo-de-productos-dinámico",
+    "href": "app-movil.html#catálogo-de-productos-dinámico",
+    "title": "Aplicación Móvil (React Native + Expo)",
+    "section": "",
+    "text": "El catálogo principal (HomeScreen.tsx) dejó de utilizar información ficticia (mockProducts) para conectarse directamente al servidor Django.\n\n\n\nAl montar la pantalla, useEffect invoca la función asíncrona de obtención de datos mediante axios.\nSe establecen tres estados: isLoading (para mostrar indicadores de carga nativos), error (para permitir reintentos visuales), y products.\nLos datos del backend (is_food, is_ropa, tiene_iva) se mapean al tipado estricto Product esperado por los componentes UI nativos (ProductCard.tsx)."
+  },
+  {
+    "objectID": "app-movil.html#integración-de-pasarela-de-pagos-stripe",
+    "href": "app-movil.html#integración-de-pasarela-de-pagos-stripe",
+    "title": "Aplicación Móvil (React Native + Expo)",
+    "section": "",
+    "text": "La aplicación utiliza la funcionalidad nativa PaymentSheet de Stripe, proporcionando un flujo de caja (checkout) optimizado y seguro para tarjetas de crédito/débito.\n\n\nLa integración se basa en la comunicación cliente-servidor: 1. Solicitud de Intención: La aplicación solicita al backend Django un client_secret a través de /pagos/crear-payment-intent/, asociándolo a un pedido específico. 2. Inicialización: initPaymentSheet de @stripe/stripe-react-native recibe el secreto devuelto por el servidor. 3. Presentación: presentPaymentSheet invoca la UI nativa. En caso de error o cancelación, se alerta al usuario. En caso de éxito, se redirige al flujo de descarga del comprobante."
+  },
+  {
+    "objectID": "app-movil.html#comprobante-electrónico-pdf",
+    "href": "app-movil.html#comprobante-electrónico-pdf",
+    "title": "Aplicación Móvil (React Native + Expo)",
+    "section": "",
+    "text": "Para no saturar al dispositivo con cálculos de librerías PDF, la app móvil invoca el mismo generador implementado en ReportLab dentro de Django, descargando el binario resultante.\n\n\nEl servicio combina dos librerías del SDK de Expo: * expo-file-system: Para transmitir el flujo del PDF remoto hacia la memoria o almacenamiento temporal del dispositivo local. * expo-sharing: Para invocar la ventana modal de intercambio nativa del OS (iOS/Android), permitiendo al cliente imprimir, guardar en archivos, o enviar su recibo por correo/WhatsApp.\nEste patrón reduce las dependencias (bundle size) de la app móvil y centraliza el formato del comprobante para ambas plataformas web y app."
+  },
+  {
+    "objectID": "api.html",
+    "href": "api.html",
+    "title": "Referencia de la API",
+    "section": "",
+    "text": "Esta es la documentación de los endpoints expuestos por Tienda Universitaria (REST API Headless).\nTodas las rutas inician con el sub-path /api/v1/tienda/.",
+    "crumbs": [
+      "Referencia API REST",
+      "Referencia de la API"
+    ]
+  },
+  {
+    "objectID": "api.html#módulo-de-autenticación-y-registro",
+    "href": "api.html#módulo-de-autenticación-y-registro",
+    "title": "Referencia de la API",
+    "section": "1. Módulo de Autenticación y Registro",
+    "text": "1. Módulo de Autenticación y Registro\n\nRegistrar Usuario\nRegistra de manera pública a un cliente asegurando su consentimiento LOPDP.\n\nPOST /api/v1/tienda/register/\n\nCuerpo (JSON) requerido:\n{\n  \"username\": \"usuario_unl\",\n  \"email\": \"estudiante@unl.edu.ec\",\n  \"first_name\": \"Juan\",\n  \"last_name\": \"Pérez\",\n  \"password\": \"Password123\",\n  \"password_confirm\": \"Password123\",\n  \"consentimiento_lopdp\": true,\n  \"privacy_policy_version\": \"v1.0\"\n}\n\n\nPolítica de Privacidad\n\nGET /api/v1/tienda/privacy-policy/latest/",
+    "crumbs": [
+      "Referencia API REST",
+      "Referencia de la API"
+    ]
+  },
+  {
+    "objectID": "api.html#catálogo-de-productos",
+    "href": "api.html#catálogo-de-productos",
+    "title": "Referencia de la API",
+    "section": "2. Catálogo de Productos",
+    "text": "2. Catálogo de Productos\nPermite listar y detallar productos disponibles.\n\nListar Productos\n\nGET /api/v1/tienda/productos/\n\n\n\nVer Detalle de Producto\n\nGET /api/v1/tienda/productos/{id}/",
+    "crumbs": [
+      "Referencia API REST",
+      "Referencia de la API"
+    ]
+  },
+  {
+    "objectID": "api.html#ventas-y-pedidos",
+    "href": "api.html#ventas-y-pedidos",
+    "title": "Referencia de la API",
+    "section": "3. Ventas y Pedidos",
+    "text": "3. Ventas y Pedidos\n\nCrear Pedido\n\nPOST /api/v1/tienda/pedidos/crear/\n\nCuerpo (JSON) esperado:\n{\n  \"items\": [{\"producto_id\": 1, \"cantidad\": 2}],\n  \"entrega\": \"TIENDA\",\n  \"total\": 29.90\n}",
+    "crumbs": [
+      "Referencia API REST",
+      "Referencia de la API"
+    ]
+  },
+  {
+    "objectID": "api.html#pagos-integrados",
+    "href": "api.html#pagos-integrados",
+    "title": "Referencia de la API",
+    "section": "4. Pagos Integrados",
+    "text": "4. Pagos Integrados\n\nCheckout Server-to-Server\n\nPOST /api/v1/tienda/pagos/preparar-checkout/",
+    "crumbs": [
+      "Referencia API REST",
+      "Referencia de la API"
+    ]
+  },
+  {
+    "objectID": "autenticacion-jwt.html",
+    "href": "autenticacion-jwt.html",
+    "title": "Autenticación JWT - TiendaUniversitaria",
+    "section": "",
+    "text": "El sistema de autenticación de TiendaUniversitaria utiliza JSON Web Tokens (JWT) con djangorestframework-simplejwt para proporcionar un mecanismo seguro y escalable de autenticación de usuarios.\n\n\n\nTokens de Acceso: Válidos por 24 horas\nTokens de Refresco: Válidos por 7 días\nAlgoritmo: HS256 (HMAC SHA-256)\nCORS Habilitado: Para React frontend (localhost:3000, localhost:5173)\nSin Sesiones: Completamente stateless\n\n\n\n\n\nsequenceDiagram\n    participant Frontend as Frontend (React)\n    participant API as API Django REST\n    participant DB as Base de Datos\n    \n    Frontend-&gt;&gt;API: POST /auth/login/ (email, password)\n    API-&gt;&gt;DB: Validar credenciales\n    DB--&gt;&gt;API: Usuario encontrado\n    API-&gt;&gt;API: Generar JWT tokens\n    API--&gt;&gt;Frontend: access_token, refresh_token, usuario\n    \n    Frontend-&gt;&gt;API: GET /usuarios/me/ (con access_token)\n    API-&gt;&gt;API: Validar token\n    API-&gt;&gt;DB: Obtener datos de usuario\n    DB--&gt;&gt;API: Datos del usuario\n    API--&gt;&gt;Frontend: Perfil del usuario\n    \n    Note over Frontend: Token expira después de 24h\n    Frontend-&gt;&gt;API: POST /auth/refresh/ (refresh_token)\n    API-&gt;&gt;API: Validar refresh token\n    API-&gt;&gt;API: Generar nuevo access_token\n    API--&gt;&gt;Frontend: Nuevo access_token\n\n\n\n\n\nPOST /auth/login/\nAutentica un usuario y retorna tokens JWT.\n// Request\n{\n  \"email\": \"usuario@unl.edu.ec\",\n  \"password\": \"password123\"\n}\n\n// Response (200 OK)\n{\n  \"access_token\": \"eyJ0eXAiOiJKV1QiLCJhbGc...\",\n  \"refresh_token\": \"eyJ0eXAiOiJKV1QiLCJhbGc...\",\n  \"usuario\": {\n    \"id\": 1,\n    \"email\": \"usuario@unl.edu.ec\",\n    \"nombre_completo\": \"Juan Pérez\",\n    \"rol\": \"estudiante\",\n    \"is_universidad\": true\n  }\n}\n\n// Errores posibles\n{\n  // 400 - Datos inválidos\n  \"email\": [\"Este campo es obligatorio.\"]\n  \n  // 401 - Credenciales inválidas\n  \"non_field_errors\": [\"Email o contraseña inválidos\"]\n  \n  // 401 - Usuario inactivo\n  \"non_field_errors\": [\"Usuario inactivo\"]\n}\n\n\n\nPOST /auth/refresh/\nGenera un nuevo token de acceso usando el token de refresco.\n// Request\n{\n  \"refresh\": \"eyJ0eXAiOiJKV1QiLCJhbGc...\"\n}\n\n// Response (200 OK)\n{\n  \"access\": \"eyJ0eXAiOiJKV1QiLCJhbGc...\"\n}\n\n// Error (401)\n{\n  \"detail\": \"Token is invalid or expired\"\n}\n\n\n\nPOST /auth/logout/\nCierra sesión del usuario (actualmente solo valida la presencia del refresh token).\n// Request\n{\n  \"refresh\": \"eyJ0eXAiOiJKV1QiLCJhbGc...\"\n}\n\n// Response (200 OK)\n{\n  \"status\": \"success\",\n  \"message\": \"Sesión cerrada correctamente\"\n}\n\n// Error (400)\n{\n  \"status\": \"error\",\n  \"message\": \"Refresh token requerido\"\n}\nNota: Este endpoint requiere implementar un blacklist de tokens para invalidar tokens de refresco.\n\n\n\nGET /usuarios/me/\nObtiene el perfil del usuario autenticado.\nAutenticación requerida: Sí (Bearer token)\n// Response (200 OK)\n{\n  \"id\": 1,\n  \"email\": \"usuario@unl.edu.ec\",\n  \"nombre_completo\": \"Juan Pérez\",\n  \"identificacion\": \"1234567890\",\n  \"rol\": \"estudiante\",\n  \"is_universidad\": true,\n  \"direccion\": \"Calle Principal 123\",\n  \"telefono\": \"+593999123456\",\n  \"consentimiento_lopdp\": true,\n  \"fecha_creacion\": \"2024-01-15T10:30:00Z\",\n  \"ultima_modificacion\": \"2024-01-15T10:30:00Z\"\n}\n\n// Error (401)\n{\n  \"detail\": \"Authentication credentials were not provided.\"\n}\nPUT /usuarios/me/\nActualiza el perfil del usuario autenticado.\nAutenticación requerida: Sí (Bearer token)\n// Request (campos actualizables)\n{\n  \"nombre_completo\": \"Juan Carlos Pérez\",\n  \"identificacion\": \"1234567890\",\n  \"direccion\": \"Calle Nueva 456\",\n  \"telefono\": \"+593999654321\"\n}\n\n// Response (200 OK)\n{\n  \"id\": 1,\n  \"email\": \"usuario@unl.edu.ec\",\n  \"nombre_completo\": \"Juan Carlos Pérez\",\n  \"identificacion\": \"1234567890\",\n  \"rol\": \"estudiante\",\n  \"is_universidad\": true,\n  \"direccion\": \"Calle Nueva 456\",\n  \"telefono\": \"+593999654321\",\n  \"consentimiento_lopdp\": true,\n  \"fecha_creacion\": \"2024-01-15T10:30:00Z\",\n  \"ultima_modificacion\": \"2024-01-15T12:00:00Z\"\n}\n\n// Error (400) - Email intenta cambiar\n{\n  \"email\": [\"No puedes cambiar tu email\"]\n}\n\n// Error (400) - Nombre muy corto\n{\n  \"nombre_completo\": [\"Asegúrate de que este campo tenga al menos 3 caracteres.\"]\n}\n\n\n\n\n\n\nHeader:\n{\n  \"alg\": \"HS256\",\n  \"typ\": \"JWT\"\n}\n\nPayload:\n{\n  \"token_type\": \"access\",\n  \"exp\": 1705341600,        // Expiration (24 horas)\n  \"iat\": 1705255200,        // Issued at\n  \"user_id\": 1              // Custom claim\n}\n\nSignature:\nHMACSHA256(base64UrlEncode(header) + \".\" + base64UrlEncode(payload), SECRET_KEY)\n\n\n\nPayload:\n{\n  \"token_type\": \"refresh\",\n  \"exp\": 1705945200,        // Expiration (7 días)\n  \"iat\": 1705255200,        // Issued at\n  \"user_id\": 1              // Custom claim\n}\n\n\n\n\n\n\n// src/services/api.ts\nimport axios from 'axios';\n\nconst API_URL = 'http://localhost:8000/api/v1';\n\nconst apiClient = axios.create({\n  baseURL: API_URL,\n  headers: {\n    'Content-Type': 'application/json'\n  }\n});\n\n// Interceptor para agregar token a cada request\napiClient.interceptors.request.use((config) =&gt; {\n  const token = localStorage.getItem('access_token');\n  if (token) {\n    config.headers.Authorization = `Bearer ${token}`;\n  }\n  return config;\n});\n\nexport default apiClient;\n\n\n\n// src/services/auth.ts\nimport apiClient from './api';\n\nexport const loginService = async (email, password) =&gt; {\n  const response = await apiClient.post('/auth/login/', {\n    email,\n    password\n  });\n  \n  // Guardar tokens\n  localStorage.setItem('access_token', response.data.access_token);\n  localStorage.setItem('refresh_token', response.data.refresh_token);\n  localStorage.setItem('usuario', JSON.stringify(response.data.usuario));\n  \n  return response.data;\n};\n\n\n\n// src/services/api.ts - Interceptor de respuesta\napiClient.interceptors.response.use(\n  (response) =&gt; response,\n  async (error) =&gt; {\n    const originalRequest = error.config;\n    \n    // Si error 401 y no es refresh request\n    if (error.response?.status === 401 && !originalRequest._retry) {\n      originalRequest._retry = true;\n      \n      try {\n        const refreshToken = localStorage.getItem('refresh_token');\n        const response = await axios.post(`${API_URL}/auth/refresh/`, {\n          refresh: refreshToken\n        });\n        \n        // Guardar nuevo token\n        localStorage.setItem('access_token', response.data.access);\n        \n        // Reintentar request original\n        originalRequest.headers.Authorization = `Bearer ${response.data.access}`;\n        return apiClient(originalRequest);\n      } catch (refreshError) {\n        // Refresh falló, redirigir a login\n        window.location.href = '/login';\n        return Promise.reject(refreshError);\n      }\n    }\n    \n    return Promise.reject(error);\n  }\n);\n\n\n\n// src/services/auth.ts\nexport const logoutService = async () =&gt; {\n  const refreshToken = localStorage.getItem('refresh_token');\n  \n  try {\n    await apiClient.post('/auth/logout/', {\n      refresh: refreshToken\n    });\n  } finally {\n    // Limpiar tokens independientemente del resultado\n    localStorage.removeItem('access_token');\n    localStorage.removeItem('refresh_token');\n    localStorage.removeItem('usuario');\n  }\n};\n\n\n\n\n\n\n\nAlmacenar Tokens Seguramente\n\nEn React: Usar localStorage para desarrollo, mejorar a httpOnly cookies en producción\nNunca almacenar en URLs o en código fuente\n\nHTTPS en Producción\n\nTodo tráfico debe ser encriptado\nConfigurar cookies como Secure y SameSite\n\nValidación en Backend\n\nValidar token en cada request protegido\nVerificar firma del token\n\nExpiración de Tokens\n\nAccess tokens: 24 horas (corta)\nRefresh tokens: 7 días (más larga)\nImplementar blacklist para logout\n\n\n\n\n\n# core/settings.py\nfrom datetime import timedelta\n\nSIMPLE_JWT = {\n    'ACCESS_TOKEN_LIFETIME': timedelta(hours=24),\n    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),\n    'ALGORITHM': 'HS256',\n    'SIGNING_KEY': SECRET_KEY,\n    'USER_ID_CLAIM': 'user_id',\n    'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),\n    'TOKEN_TYPE_CLAIM': 'token_type',\n}\n\n# CORS Configuration\nCORS_ALLOWED_ORIGINS = [\n    'http://localhost:3000',\n    'http://127.0.0.1:3000',\n    'http://localhost:5173',\n]\n\n\n\n\n\n\n\nCódigo\nSignificado\nAcción Recomendada\n\n\n\n\n200\nOK\nSolicitud exitosa\n\n\n400\nBad Request\nValidar datos enviados\n\n\n401\nUnauthorized\nRenovar token o hacer login\n\n\n403\nForbidden\nUsuario no tiene permisos\n\n\n404\nNot Found\nRecurso no existe\n\n\n500\nServer Error\nContactar al equipo de desarrollo\n\n\n\n\n\n\nTodos los endpoints de autenticación están cubiertos por 16 test cases:\n# Ejecutar tests de autenticación\npython manage.py test tienda.tests.AuthenticationTests -v 2\n\n# Ejecutar todos los tests\npython manage.py test -v 2\n\n\n\n✅ Login exitoso\n✅ Login con contraseña inválida\n✅ Login con email no existente\n✅ Login con usuario inactivo\n✅ Refresh token válido\n✅ Refresh token inválido\n✅ Logout exitoso\n✅ Logout sin refresh token\n✅ Obtener perfil autenticado\n✅ Obtener perfil sin autenticación\n✅ Actualizar perfil exitosamente\n✅ Prevenir cambio de email\n✅ Validar nombre mínimo 3 caracteres\n\n\n\n\n\n\n\nPara mejorar la seguridad, se recomienda implementar un blacklist de tokens:\n# tienda/models.py\nfrom rest_framework_simplejwt.token_blacklist.models import OutstandingToken, BlacklistedToken\n\n# En LogoutView\ndef post(self, request):\n    refresh_token = request.data.get('refresh')\n    token = RefreshToken(refresh_token)\n    token.blacklist()  # Agregar a blacklist\n    return Response({\"status\": \"success\"})\n\n\n\n\nImplementar TOTP (Time-based One-Time Password)\nIntegración con apps como Google Authenticator\n\n\n\n\n\nGoogle Sign-In\nGitHub Sign-In\nMicrosoft Sign-In\n\n\n\n\n\n\ndjangorestframework-simplejwt\nJWT.io\nDjango REST Framework Authentication\nRFC 7519 - JSON Web Token (JWT)\n\n\nVersión: 1.0.0\nÚltima actualización: 2024\nEstado: Implementado y Testeado ✅",
+    "crumbs": [
+      "Seguridad y Autenticación",
+      "Autenticación JWT - TiendaUniversitaria"
+    ]
+  },
+  {
+    "objectID": "autenticacion-jwt.html#descripción-general",
+    "href": "autenticacion-jwt.html#descripción-general",
+    "title": "Autenticación JWT - TiendaUniversitaria",
+    "section": "",
+    "text": "El sistema de autenticación de TiendaUniversitaria utiliza JSON Web Tokens (JWT) con djangorestframework-simplejwt para proporcionar un mecanismo seguro y escalable de autenticación de usuarios.\n\n\n\nTokens de Acceso: Válidos por 24 horas\nTokens de Refresco: Válidos por 7 días\nAlgoritmo: HS256 (HMAC SHA-256)\nCORS Habilitado: Para React frontend (localhost:3000, localhost:5173)\nSin Sesiones: Completamente stateless",
+    "crumbs": [
+      "Seguridad y Autenticación",
+      "Autenticación JWT - TiendaUniversitaria"
+    ]
+  },
+  {
+    "objectID": "autenticacion-jwt.html#flujo-de-autenticación",
+    "href": "autenticacion-jwt.html#flujo-de-autenticación",
+    "title": "Autenticación JWT - TiendaUniversitaria",
+    "section": "",
+    "text": "sequenceDiagram\n    participant Frontend as Frontend (React)\n    participant API as API Django REST\n    participant DB as Base de Datos\n    \n    Frontend-&gt;&gt;API: POST /auth/login/ (email, password)\n    API-&gt;&gt;DB: Validar credenciales\n    DB--&gt;&gt;API: Usuario encontrado\n    API-&gt;&gt;API: Generar JWT tokens\n    API--&gt;&gt;Frontend: access_token, refresh_token, usuario\n    \n    Frontend-&gt;&gt;API: GET /usuarios/me/ (con access_token)\n    API-&gt;&gt;API: Validar token\n    API-&gt;&gt;DB: Obtener datos de usuario\n    DB--&gt;&gt;API: Datos del usuario\n    API--&gt;&gt;Frontend: Perfil del usuario\n    \n    Note over Frontend: Token expira después de 24h\n    Frontend-&gt;&gt;API: POST /auth/refresh/ (refresh_token)\n    API-&gt;&gt;API: Validar refresh token\n    API-&gt;&gt;API: Generar nuevo access_token\n    API--&gt;&gt;Frontend: Nuevo access_token",
+    "crumbs": [
+      "Seguridad y Autenticación",
+      "Autenticación JWT - TiendaUniversitaria"
+    ]
+  },
+  {
+    "objectID": "autenticacion-jwt.html#endpoints-de-autenticación",
+    "href": "autenticacion-jwt.html#endpoints-de-autenticación",
+    "title": "Autenticación JWT - TiendaUniversitaria",
+    "section": "",
+    "text": "POST /auth/login/\nAutentica un usuario y retorna tokens JWT.\n// Request\n{\n  \"email\": \"usuario@unl.edu.ec\",\n  \"password\": \"password123\"\n}\n\n// Response (200 OK)\n{\n  \"access_token\": \"eyJ0eXAiOiJKV1QiLCJhbGc...\",\n  \"refresh_token\": \"eyJ0eXAiOiJKV1QiLCJhbGc...\",\n  \"usuario\": {\n    \"id\": 1,\n    \"email\": \"usuario@unl.edu.ec\",\n    \"nombre_completo\": \"Juan Pérez\",\n    \"rol\": \"estudiante\",\n    \"is_universidad\": true\n  }\n}\n\n// Errores posibles\n{\n  // 400 - Datos inválidos\n  \"email\": [\"Este campo es obligatorio.\"]\n  \n  // 401 - Credenciales inválidas\n  \"non_field_errors\": [\"Email o contraseña inválidos\"]\n  \n  // 401 - Usuario inactivo\n  \"non_field_errors\": [\"Usuario inactivo\"]\n}\n\n\n\nPOST /auth/refresh/\nGenera un nuevo token de acceso usando el token de refresco.\n// Request\n{\n  \"refresh\": \"eyJ0eXAiOiJKV1QiLCJhbGc...\"\n}\n\n// Response (200 OK)\n{\n  \"access\": \"eyJ0eXAiOiJKV1QiLCJhbGc...\"\n}\n\n// Error (401)\n{\n  \"detail\": \"Token is invalid or expired\"\n}\n\n\n\nPOST /auth/logout/\nCierra sesión del usuario (actualmente solo valida la presencia del refresh token).\n// Request\n{\n  \"refresh\": \"eyJ0eXAiOiJKV1QiLCJhbGc...\"\n}\n\n// Response (200 OK)\n{\n  \"status\": \"success\",\n  \"message\": \"Sesión cerrada correctamente\"\n}\n\n// Error (400)\n{\n  \"status\": \"error\",\n  \"message\": \"Refresh token requerido\"\n}\nNota: Este endpoint requiere implementar un blacklist de tokens para invalidar tokens de refresco.\n\n\n\nGET /usuarios/me/\nObtiene el perfil del usuario autenticado.\nAutenticación requerida: Sí (Bearer token)\n// Response (200 OK)\n{\n  \"id\": 1,\n  \"email\": \"usuario@unl.edu.ec\",\n  \"nombre_completo\": \"Juan Pérez\",\n  \"identificacion\": \"1234567890\",\n  \"rol\": \"estudiante\",\n  \"is_universidad\": true,\n  \"direccion\": \"Calle Principal 123\",\n  \"telefono\": \"+593999123456\",\n  \"consentimiento_lopdp\": true,\n  \"fecha_creacion\": \"2024-01-15T10:30:00Z\",\n  \"ultima_modificacion\": \"2024-01-15T10:30:00Z\"\n}\n\n// Error (401)\n{\n  \"detail\": \"Authentication credentials were not provided.\"\n}\nPUT /usuarios/me/\nActualiza el perfil del usuario autenticado.\nAutenticación requerida: Sí (Bearer token)\n// Request (campos actualizables)\n{\n  \"nombre_completo\": \"Juan Carlos Pérez\",\n  \"identificacion\": \"1234567890\",\n  \"direccion\": \"Calle Nueva 456\",\n  \"telefono\": \"+593999654321\"\n}\n\n// Response (200 OK)\n{\n  \"id\": 1,\n  \"email\": \"usuario@unl.edu.ec\",\n  \"nombre_completo\": \"Juan Carlos Pérez\",\n  \"identificacion\": \"1234567890\",\n  \"rol\": \"estudiante\",\n  \"is_universidad\": true,\n  \"direccion\": \"Calle Nueva 456\",\n  \"telefono\": \"+593999654321\",\n  \"consentimiento_lopdp\": true,\n  \"fecha_creacion\": \"2024-01-15T10:30:00Z\",\n  \"ultima_modificacion\": \"2024-01-15T12:00:00Z\"\n}\n\n// Error (400) - Email intenta cambiar\n{\n  \"email\": [\"No puedes cambiar tu email\"]\n}\n\n// Error (400) - Nombre muy corto\n{\n  \"nombre_completo\": [\"Asegúrate de que este campo tenga al menos 3 caracteres.\"]\n}",
+    "crumbs": [
+      "Seguridad y Autenticación",
+      "Autenticación JWT - TiendaUniversitaria"
+    ]
+  },
+  {
+    "objectID": "autenticacion-jwt.html#estructura-de-jwt",
+    "href": "autenticacion-jwt.html#estructura-de-jwt",
+    "title": "Autenticación JWT - TiendaUniversitaria",
+    "section": "",
+    "text": "Header:\n{\n  \"alg\": \"HS256\",\n  \"typ\": \"JWT\"\n}\n\nPayload:\n{\n  \"token_type\": \"access\",\n  \"exp\": 1705341600,        // Expiration (24 horas)\n  \"iat\": 1705255200,        // Issued at\n  \"user_id\": 1              // Custom claim\n}\n\nSignature:\nHMACSHA256(base64UrlEncode(header) + \".\" + base64UrlEncode(payload), SECRET_KEY)\n\n\n\nPayload:\n{\n  \"token_type\": \"refresh\",\n  \"exp\": 1705945200,        // Expiration (7 días)\n  \"iat\": 1705255200,        // Issued at\n  \"user_id\": 1              // Custom claim\n}",
+    "crumbs": [
+      "Seguridad y Autenticación",
+      "Autenticación JWT - TiendaUniversitaria"
+    ]
+  },
+  {
+    "objectID": "autenticacion-jwt.html#uso-en-el-frontend-react",
+    "href": "autenticacion-jwt.html#uso-en-el-frontend-react",
+    "title": "Autenticación JWT - TiendaUniversitaria",
+    "section": "",
+    "text": "// src/services/api.ts\nimport axios from 'axios';\n\nconst API_URL = 'http://localhost:8000/api/v1';\n\nconst apiClient = axios.create({\n  baseURL: API_URL,\n  headers: {\n    'Content-Type': 'application/json'\n  }\n});\n\n// Interceptor para agregar token a cada request\napiClient.interceptors.request.use((config) =&gt; {\n  const token = localStorage.getItem('access_token');\n  if (token) {\n    config.headers.Authorization = `Bearer ${token}`;\n  }\n  return config;\n});\n\nexport default apiClient;\n\n\n\n// src/services/auth.ts\nimport apiClient from './api';\n\nexport const loginService = async (email, password) =&gt; {\n  const response = await apiClient.post('/auth/login/', {\n    email,\n    password\n  });\n  \n  // Guardar tokens\n  localStorage.setItem('access_token', response.data.access_token);\n  localStorage.setItem('refresh_token', response.data.refresh_token);\n  localStorage.setItem('usuario', JSON.stringify(response.data.usuario));\n  \n  return response.data;\n};\n\n\n\n// src/services/api.ts - Interceptor de respuesta\napiClient.interceptors.response.use(\n  (response) =&gt; response,\n  async (error) =&gt; {\n    const originalRequest = error.config;\n    \n    // Si error 401 y no es refresh request\n    if (error.response?.status === 401 && !originalRequest._retry) {\n      originalRequest._retry = true;\n      \n      try {\n        const refreshToken = localStorage.getItem('refresh_token');\n        const response = await axios.post(`${API_URL}/auth/refresh/`, {\n          refresh: refreshToken\n        });\n        \n        // Guardar nuevo token\n        localStorage.setItem('access_token', response.data.access);\n        \n        // Reintentar request original\n        originalRequest.headers.Authorization = `Bearer ${response.data.access}`;\n        return apiClient(originalRequest);\n      } catch (refreshError) {\n        // Refresh falló, redirigir a login\n        window.location.href = '/login';\n        return Promise.reject(refreshError);\n      }\n    }\n    \n    return Promise.reject(error);\n  }\n);\n\n\n\n// src/services/auth.ts\nexport const logoutService = async () =&gt; {\n  const refreshToken = localStorage.getItem('refresh_token');\n  \n  try {\n    await apiClient.post('/auth/logout/', {\n      refresh: refreshToken\n    });\n  } finally {\n    // Limpiar tokens independientemente del resultado\n    localStorage.removeItem('access_token');\n    localStorage.removeItem('refresh_token');\n    localStorage.removeItem('usuario');\n  }\n};",
+    "crumbs": [
+      "Seguridad y Autenticación",
+      "Autenticación JWT - TiendaUniversitaria"
+    ]
+  },
+  {
+    "objectID": "autenticacion-jwt.html#seguridad",
+    "href": "autenticacion-jwt.html#seguridad",
+    "title": "Autenticación JWT - TiendaUniversitaria",
+    "section": "",
+    "text": "Almacenar Tokens Seguramente\n\nEn React: Usar localStorage para desarrollo, mejorar a httpOnly cookies en producción\nNunca almacenar en URLs o en código fuente\n\nHTTPS en Producción\n\nTodo tráfico debe ser encriptado\nConfigurar cookies como Secure y SameSite\n\nValidación en Backend\n\nValidar token en cada request protegido\nVerificar firma del token\n\nExpiración de Tokens\n\nAccess tokens: 24 horas (corta)\nRefresh tokens: 7 días (más larga)\nImplementar blacklist para logout\n\n\n\n\n\n# core/settings.py\nfrom datetime import timedelta\n\nSIMPLE_JWT = {\n    'ACCESS_TOKEN_LIFETIME': timedelta(hours=24),\n    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),\n    'ALGORITHM': 'HS256',\n    'SIGNING_KEY': SECRET_KEY,\n    'USER_ID_CLAIM': 'user_id',\n    'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),\n    'TOKEN_TYPE_CLAIM': 'token_type',\n}\n\n# CORS Configuration\nCORS_ALLOWED_ORIGINS = [\n    'http://localhost:3000',\n    'http://127.0.0.1:3000',\n    'http://localhost:5173',\n]",
+    "crumbs": [
+      "Seguridad y Autenticación",
+      "Autenticación JWT - TiendaUniversitaria"
+    ]
+  },
+  {
+    "objectID": "autenticacion-jwt.html#códigos-de-error-http",
+    "href": "autenticacion-jwt.html#códigos-de-error-http",
+    "title": "Autenticación JWT - TiendaUniversitaria",
+    "section": "",
+    "text": "Código\nSignificado\nAcción Recomendada\n\n\n\n\n200\nOK\nSolicitud exitosa\n\n\n400\nBad Request\nValidar datos enviados\n\n\n401\nUnauthorized\nRenovar token o hacer login\n\n\n403\nForbidden\nUsuario no tiene permisos\n\n\n404\nNot Found\nRecurso no existe\n\n\n500\nServer Error\nContactar al equipo de desarrollo",
+    "crumbs": [
+      "Seguridad y Autenticación",
+      "Autenticación JWT - TiendaUniversitaria"
+    ]
+  },
+  {
+    "objectID": "autenticacion-jwt.html#testing",
+    "href": "autenticacion-jwt.html#testing",
+    "title": "Autenticación JWT - TiendaUniversitaria",
+    "section": "",
+    "text": "Todos los endpoints de autenticación están cubiertos por 16 test cases:\n# Ejecutar tests de autenticación\npython manage.py test tienda.tests.AuthenticationTests -v 2\n\n# Ejecutar todos los tests\npython manage.py test -v 2\n\n\n\n✅ Login exitoso\n✅ Login con contraseña inválida\n✅ Login con email no existente\n✅ Login con usuario inactivo\n✅ Refresh token válido\n✅ Refresh token inválido\n✅ Logout exitoso\n✅ Logout sin refresh token\n✅ Obtener perfil autenticado\n✅ Obtener perfil sin autenticación\n✅ Actualizar perfil exitosamente\n✅ Prevenir cambio de email\n✅ Validar nombre mínimo 3 caracteres",
+    "crumbs": [
+      "Seguridad y Autenticación",
+      "Autenticación JWT - TiendaUniversitaria"
+    ]
+  },
+  {
+    "objectID": "autenticacion-jwt.html#migración-futura",
+    "href": "autenticacion-jwt.html#migración-futura",
+    "title": "Autenticación JWT - TiendaUniversitaria",
+    "section": "",
+    "text": "Para mejorar la seguridad, se recomienda implementar un blacklist de tokens:\n# tienda/models.py\nfrom rest_framework_simplejwt.token_blacklist.models import OutstandingToken, BlacklistedToken\n\n# En LogoutView\ndef post(self, request):\n    refresh_token = request.data.get('refresh')\n    token = RefreshToken(refresh_token)\n    token.blacklist()  # Agregar a blacklist\n    return Response({\"status\": \"success\"})\n\n\n\n\nImplementar TOTP (Time-based One-Time Password)\nIntegración con apps como Google Authenticator\n\n\n\n\n\nGoogle Sign-In\nGitHub Sign-In\nMicrosoft Sign-In",
+    "crumbs": [
+      "Seguridad y Autenticación",
+      "Autenticación JWT - TiendaUniversitaria"
+    ]
+  },
+  {
+    "objectID": "autenticacion-jwt.html#referencias",
+    "href": "autenticacion-jwt.html#referencias",
+    "title": "Autenticación JWT - TiendaUniversitaria",
+    "section": "",
+    "text": "djangorestframework-simplejwt\nJWT.io\nDjango REST Framework Authentication\nRFC 7519 - JSON Web Token (JWT)\n\n\nVersión: 1.0.0\nÚltima actualización: 2024\nEstado: Implementado y Testeado ✅",
+    "crumbs": [
+      "Seguridad y Autenticación",
+      "Autenticación JWT - TiendaUniversitaria"
+    ]
+  },
+  {
+    "objectID": "dockerizacion.html",
+    "href": "dockerizacion.html",
+    "title": "Dockerización",
+    "section": "",
+    "text": "Este proyecto ha sido configurado para ejecutarse dentro de contenedores de Docker. Esto facilita el desarrollo y evita el clásico problema de “en mi máquina sí funciona”, proporcionando un entorno estandarizado, predecible y aislado para cualquier miembro del equipo.\n\n\nLa arquitectura Dockerizada está compuesta por dos servicios principales definidos en el archivo docker-compose.yml:\n\nbackend (Django):\n\nConstruido a partir de la imagen python:3.12-slim.\nSe expone en el puerto local 8000.\nUtiliza un volumen (.:/app) para que cualquier cambio en el código fuente de Python se refleje de forma inmediata gracias al servidor de desarrollo de Django (runserver).\nMantiene la base de datos db.sqlite3 sincronizada con tu máquina host.\n\nfrontend (React + Vite):\n\nConstruido a partir de la imagen node:20-alpine.\nSe expone en el puerto local 3000.\nUtiliza un volumen (./frontend:/app) para habilitar el Hot-Module Replacement (HMR) de Vite. Si modificas un archivo .jsx, verás el cambio en el navegador al instante.\n\n\n\n\n\nAntes de levantar el proyecto, asegúrate de tener instalado: - Docker Desktop (para Windows o Mac) o Docker Engine junto con Docker Compose (para Linux). - Que Docker esté actualmente en ejecución en tu sistema.\n\n\n\nPara poner en marcha todo el sistema, sigue estos sencillos pasos:\n\n\nAbre tu terminal (PowerShell, CMD, o la terminal de VS Code) y navega hasta la raíz del proyecto (donde se encuentra el archivo docker-compose.yml). Ejecuta:\ndocker-compose up --build\n\n[!NOTE] El flag --build fuerza la construcción de las imágenes. Solo es estrictamente necesario la primera vez que lo corres o cuando modificas los archivos requirements.txt o package.json. Para las siguientes veces, simplemente puedes usar docker-compose up.\n\n\n\n\nUna vez que ambos contenedores estén en ejecución y las consolas no muestren errores, puedes acceder a: - Frontend (Tienda): Abre tu navegador en http://localhost:3000 - Backend API (Django REST): Abre tu navegador en http://localhost:8000/api/ - Panel de Administración Django: Abre tu navegador en http://localhost:8000/admin/\n\n\n\nPara detener de forma segura los contenedores y liberar los puertos, puedes usar la combinación de teclas Ctrl + C en la terminal donde está corriendo, o abrir otra terminal en la raíz del proyecto y ejecutar:\ndocker-compose down\n\n[!TIP] Si deseas ejecutar los contenedores en segundo plano (modo “detached”), usa el comando docker-compose up -d. Luego puedes ver los logs en cualquier momento ejecutando docker-compose logs -f.\n\n\n\n\n\n\nError de puertos en uso: Si Docker arroja un error indicando que los puertos 8000 o 5173 ya están asignados, asegúrate de haber detenido tus servidores locales previos (ej. si tenías npm run dev o python manage.py runserver corriendo fuera de Docker).\nErrores con dependencias nuevas: Si se añadió una nueva librería en requirements.txt o package.json, debes reconstruir las imágenes con docker-compose up --build.",
+    "crumbs": [
+      "Inicio",
+      "Dockerización"
+    ]
+  },
+  {
+    "objectID": "dockerizacion.html#arquitectura-de-contenedores",
+    "href": "dockerizacion.html#arquitectura-de-contenedores",
+    "title": "Dockerización",
+    "section": "",
+    "text": "La arquitectura Dockerizada está compuesta por dos servicios principales definidos en el archivo docker-compose.yml:\n\nbackend (Django):\n\nConstruido a partir de la imagen python:3.12-slim.\nSe expone en el puerto local 8000.\nUtiliza un volumen (.:/app) para que cualquier cambio en el código fuente de Python se refleje de forma inmediata gracias al servidor de desarrollo de Django (runserver).\nMantiene la base de datos db.sqlite3 sincronizada con tu máquina host.\n\nfrontend (React + Vite):\n\nConstruido a partir de la imagen node:20-alpine.\nSe expone en el puerto local 3000.\nUtiliza un volumen (./frontend:/app) para habilitar el Hot-Module Replacement (HMR) de Vite. Si modificas un archivo .jsx, verás el cambio en el navegador al instante.",
+    "crumbs": [
+      "Inicio",
+      "Dockerización"
+    ]
+  },
+  {
+    "objectID": "dockerizacion.html#requisitos-previos",
+    "href": "dockerizacion.html#requisitos-previos",
+    "title": "Dockerización",
+    "section": "",
+    "text": "Antes de levantar el proyecto, asegúrate de tener instalado: - Docker Desktop (para Windows o Mac) o Docker Engine junto con Docker Compose (para Linux). - Que Docker esté actualmente en ejecución en tu sistema.",
+    "crumbs": [
+      "Inicio",
+      "Dockerización"
+    ]
+  },
+  {
+    "objectID": "dockerizacion.html#instrucciones-de-uso",
+    "href": "dockerizacion.html#instrucciones-de-uso",
+    "title": "Dockerización",
+    "section": "",
+    "text": "Para poner en marcha todo el sistema, sigue estos sencillos pasos:\n\n\nAbre tu terminal (PowerShell, CMD, o la terminal de VS Code) y navega hasta la raíz del proyecto (donde se encuentra el archivo docker-compose.yml). Ejecuta:\ndocker-compose up --build\n\n[!NOTE] El flag --build fuerza la construcción de las imágenes. Solo es estrictamente necesario la primera vez que lo corres o cuando modificas los archivos requirements.txt o package.json. Para las siguientes veces, simplemente puedes usar docker-compose up.\n\n\n\n\nUna vez que ambos contenedores estén en ejecución y las consolas no muestren errores, puedes acceder a: - Frontend (Tienda): Abre tu navegador en http://localhost:3000 - Backend API (Django REST): Abre tu navegador en http://localhost:8000/api/ - Panel de Administración Django: Abre tu navegador en http://localhost:8000/admin/\n\n\n\nPara detener de forma segura los contenedores y liberar los puertos, puedes usar la combinación de teclas Ctrl + C en la terminal donde está corriendo, o abrir otra terminal en la raíz del proyecto y ejecutar:\ndocker-compose down\n\n[!TIP] Si deseas ejecutar los contenedores en segundo plano (modo “detached”), usa el comando docker-compose up -d. Luego puedes ver los logs en cualquier momento ejecutando docker-compose logs -f.",
+    "crumbs": [
+      "Inicio",
+      "Dockerización"
+    ]
+  },
+  {
+    "objectID": "dockerizacion.html#solución-de-problemas-troubleshooting",
+    "href": "dockerizacion.html#solución-de-problemas-troubleshooting",
+    "title": "Dockerización",
+    "section": "",
+    "text": "Error de puertos en uso: Si Docker arroja un error indicando que los puertos 8000 o 5173 ya están asignados, asegúrate de haber detenido tus servidores locales previos (ej. si tenías npm run dev o python manage.py runserver corriendo fuera de Docker).\nErrores con dependencias nuevas: Si se añadió una nueva librería en requirements.txt o package.json, debes reconstruir las imágenes con docker-compose up --build.",
+    "crumbs": [
+      "Inicio",
+      "Dockerización"
+    ]
+  },
+  {
+    "objectID": "integracion-frontend-backend.html",
+    "href": "integracion-frontend-backend.html",
+    "title": "Integración Frontend-Backend y Flujo JWT",
+    "section": "",
+    "text": "Esta sección detalla cómo se conectan las aplicaciones Backend (Django REST Framework) y Frontend (React + Vite), las peticiones HTTP (endpoints) que se realizan entre ellas, el flujo detallado de autenticación con JSON Web Tokens (JWT) y cómo se implementan los requisitos de negocio y regulatorios (como la LOPDP) en ambos lados.\n\n\n\nEl proyecto adopta una arquitectura desacoplada (“Headless”), donde el Frontend y el Backend se ejecutan como servicios independientes que se comunican mediante una API REST en formato JSON.\n\n\n\nBackend (Django): http://localhost:8000\nFrontend (React/Vite): http://localhost:3000 (o puerto 5173)\n\n\n\n\nPara evitar problemas de CORS (Cross-Origin Resource Sharing) en desarrollo local y facilitar el enrutamiento de peticiones sin exponer la URL absoluta del backend en el código del cliente, se configura un servidor proxy reverso en el archivo de configuración de Vite (vite.config.js):\n// frontend/vite.config.js\nexport default defineConfig({\n  plugins: [react()],\n  server: {\n    port: 3000,\n    proxy: {\n      '/api': {\n        target: 'http://localhost:8000',\n        changeOrigin: true,\n        rewrite: (path) =&gt; path.replace(/^\\/api/, '/api/v1'),\n      },\n    },\n  },\n});\n\n[!NOTE] Toda petición realizada a /api/* en el Frontend es interceptada por el servidor de desarrollo de Vite y redirigida a http://localhost:8000/api/v1/*. Por ejemplo: POST /api/auth/login/ \\(\\rightarrow\\) POST http://localhost:8000/api/v1/auth/login/\n\n\n\n\n\n\nLa seguridad y autenticación del sistema se basa en JSON Web Tokens (JWT). Se implementa usando la biblioteca djangorestframework-simplejwt en el Backend y un cliente HTTP centralizado con Axios en el Frontend.\nsequenceDiagram\n    autonumber\n    participant Cliente as React Frontend\n    participant Server as Django API\n    participant DB as SQLite / Postgres\n\n    Note over Cliente: 1. Login del Usuario\n    Cliente-&gt;&gt;Server: POST /api/auth/login/ (email, password)\n    Server-&gt;&gt;DB: Validar credenciales\n    DB--&gt;&gt;Server: Credenciales Válidas (Usuario Activo)\n    Server--&gt;&gt;Cliente: 200 OK (access_token, refresh_token, user_data)\n    Note over Cliente: Guarda tokens en localStorage\n\n    Note over Cliente: 2. Petición Protegida\n    Cliente-&gt;&gt;Server: GET /api/pedidos/ (Authorization: Bearer &lt;access_token&gt;)\n    Server-&gt;&gt;Server: Validar Firma & Expiración JWT\n    Server-&gt;&gt;DB: Obtener datos de la consulta\n    DB--&gt;&gt;Server: Pedidos del usuario\n    Server--&gt;&gt;Cliente: 200 OK (datos de pedidos)\n\n    Note over Cliente: 3. Token Expira (401 Unauthorized)\n    Cliente-&gt;&gt;Server: GET /api/pedidos/ (Token Expirado)\n    Server--&gt;&gt;Cliente: 401 Unauthorized (token_not_valid)\n    \n    Note over Cliente: 4. Interceptor detecta 401 y Refresca\n    Cliente-&gt;&gt;Server: POST /api/auth/refresh/ (refresh_token)\n    Server-&gt;&gt;Server: Validar Refresh Token\n    Server--&gt;&gt;Cliente: 200 OK (nuevo access_token)\n    Note over Cliente: Reintenta petición original con nuevo token\n    Cliente-&gt;&gt;Server: GET /api/pedidos/ (Authorization: Bearer &lt;nuevo_access_token&gt;)\n    Server--&gt;&gt;Cliente: 200 OK (datos del pedido)\n\n\nEn el archivo de configuración del Backend (core/settings.py), se define el tiempo de expiración y las firmas:\n# core/settings.py\nSIMPLE_JWT = {\n    'ACCESS_TOKEN_LIFETIME': timedelta(hours=24), # Duración del token de acceso (24 horas)\n    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),   # Duración del token de refresco (7 días)\n    'ROTATE_REFRESH_TOKENS': False,\n    'ALGORITHM': 'HS256',\n    'SIGNING_KEY': SECRET_KEY,\n    'AUTH_HEADER_TYPES': ('Bearer',),\n}\n\n\n\nEl cliente HTTP de Axios (frontend/src/core/api/apiClient.js) gestiona automáticamente la inyección de cabeceras y la renovación silenciosa de tokens expirados:\n\n\nAgrega automáticamente el token JWT almacenado en localStorage a las cabeceras de autorización en cada petición saliente:\napiClient.interceptors.request.use(\n  (config) =&gt; {\n    const token = localStorage.getItem('jwt_token');\n    if (token) {\n      config.headers.Authorization = `Bearer ${token}`;\n    }\n    return config;\n  },\n  (error) =&gt; Promise.reject(error)\n);\n\n\n\nCaptura errores de tipo 401 Unauthorized. Si se detecta un fallo debido a token expirado, detiene las peticiones subsecuentes, realiza una llamada en segundo plano al endpoint de renovación, actualiza el token en memoria/almacenamiento y reintenta la petición original con el nuevo token sin que el usuario lo note:\napiClient.interceptors.response.use(\n  (response) =&gt; response,\n  async (error) =&gt; {\n    const originalRequest = error.config;\n\n    // Si devuelve 401 y no se ha reintentado\n    if (error.response?.status === 401 && !originalRequest._retry) {\n      originalRequest._retry = true;\n\n      try {\n        const refreshToken = localStorage.getItem('jwt_refresh');\n        if (refreshToken) {\n          // Solicitar renovación del Token de Acceso\n          const response = await axios.post(`${API_BASE_URL}/auth/refresh/`, {\n            refresh: refreshToken,\n          });\n\n          // Guardar nuevo Token y reintentar petición original\n          localStorage.setItem('jwt_token', response.data.access);\n          originalRequest.headers.Authorization = `Bearer ${response.data.access}`;\n\n          return apiClient(originalRequest);\n        }\n      } catch (refreshError) {\n        // Si el refresh también falla, el token expiró completamente. Forzar Logout.\n        localStorage.removeItem('jwt_token');\n        localStorage.removeItem('jwt_refresh');\n        window.location.href = '/login';\n      }\n    }\n    return Promise.reject(error);\n  }\n);\n\n\n\n\n\n\nA continuación, se presenta la lista completa de endpoints REST disponibles, el tipo de petición que se realiza y los datos requeridos.\n\n\n\n\n\n\n\n\n\n\n\nMódulo\nMétodo\nEndpoint (Frontend Path)\nEndpoint Real (Backend API)\nRequiere Auth\nDescripción\n\n\n\n\nAuth\nPOST\n/api/auth/login/\n/api/v1/auth/login/\nNo\nAutenticación con email/contraseña. Retorna tokens JWT.\n\n\nAuth\nPOST\n/api/auth/refresh/\n/api/v1/auth/refresh/\nNo\nRenueva el access_token usando el refresh_token.\n\n\nAuth\nPOST\n/api/auth/logout/\n/api/v1/auth/logout/\nNo\nCierra la sesión activa.\n\n\nUsuarios\nPOST\n/api/usuarios/registro/\n/api/v1/usuarios/registro/\nNo\nRegistra un nuevo cliente con aceptación LOPDP.\n\n\nUsuarios\nGET\n/api/usuarios/me/\n/api/v1/usuarios/me/\nSí\nObtiene los datos del perfil del usuario autenticado.\n\n\nUsuarios\nPUT\n/api/usuarios/me/\n/api/v1/usuarios/me/\nSí\nActualiza parcialmente los datos personales.\n\n\nPrivacidad\nGET\n/api/politica-privacidad/\n/api/v1/politica-privacidad/\nNo\nObtiene la versión más reciente de la Política de Privacidad.\n\n\nCatálogo\nGET\n/api/productos/\n/api/v1/productos/\nNo\nLista los productos activos (con paginación, filtros y búsquedas).\n\n\nCatálogo\nGET\n/api/productos/{id}/\n/api/v1/productos/{id}/\nNo\nRetorna los detalles de un producto en específico.\n\n\nCatálogo\nPOST\n/api/productos/\n/api/v1/productos/\nSí (Admin)\nCrea un nuevo producto (solo administradores).\n\n\nPedidos\nGET\n/api/pedidos/\n/api/v1/pedidos/\nSí\nLista los pedidos (filtrados por cliente, o todos para Admins).\n\n\nPedidos\nPOST\n/api/pedidos/\n/api/v1/pedidos/\nSí\nCrea un nuevo pedido con validación atómica de stock.\n\n\nPedidos\nGET\n/api/pedidos/{id}/\n/api/v1/pedidos/{id}/\nSí\nObtiene detalles de un pedido específico y sus items.\n\n\nPedidos\nPUT\n/api/pedidos/{id}/\n/api/v1/pedidos/{id}/\nSí (Admin)\nActualiza el estado del pedido (máquina de estados).\n\n\nCaja\nPOST\n/api/cajas/procesar-venta/\n/api/v1/cajas/procesar-venta/\nSí (Cajero)\nRegistra una venta directa en caja.\n\n\nCaja\nGET\n/api/cajas/clientes/\n/api/v1/cajas/clientes/\nSí (Cajero)\nBusca o registra clientes para facturación directa.\n\n\nPagos\nPOST\n/api/pagos/preparar-checkout/\n/api/v1/pagos/preparar-checkout/\nSí\nGenera una sesión de checkout en Stripe.\n\n\nPagos\nPOST\n/api/pagos/crear-payment-intent/\n/api/v1/pagos/crear-payment-intent/\nSí\nGenera un PaymentIntent de Stripe para elementos customizados.\n\n\nDashboard\nGET\n/api/dashboard/stats/\n/api/v1/dashboard/stats/\nSí (Admin)\nDevuelve estadísticas de ventas y alertas de stock para panel de control.\n\n\n\n\n\n\n\n\n\n\nRequest (POST /api/auth/login/):\n{\n  \"email\": \"estudiante@unl.edu.ec\",\n  \"password\": \"PasswordSegura123!\"\n}\nResponse (200 OK):\n{\n  \"status\": \"success\",\n  \"message\": \"Bienvenido Juan Pérez\",\n  \"access_token\": \"eyJ0eXAiOiJKV1QiLCJhbGci...\",\n  \"refresh_token\": \"eyJ0eXAiOiJKV1QiLCJhbGci...\",\n  \"user\": {\n    \"id\": 5,\n    \"email\": \"estudiante@unl.edu.ec\",\n    \"nombre_completo\": \"Juan Pérez\",\n    \"rol\": \"CLIENTE\",\n    \"is_universidad\": true\n  }\n}\n\n\n\n\n\nRequest (POST /api/usuarios/registro/):\n{\n  \"nombre_completo\": \"María Luz\",\n  \"email\": \"maria.luz@unl.edu.ec\",\n  \"password\": \"MiPasswordSeguro123!\",\n  \"identificacion\": \"1103987654\",\n  \"telefono\": \"0987654321\",\n  \"consentimiento_lopdp\": true,\n  \"privacy_policy_version\": \"v1.0\"\n}\nResponse (201 Created):\n{\n  \"id\": 6,\n  \"email\": \"maria.luz@unl.edu.ec\",\n  \"nombre_completo\": \"María Luz\",\n  \"rol\": \"CLIENTE\",\n  \"consentimiento_lopdp\": true,\n  \"consentimiento_timestamp\": \"2026-06-21T18:45:00Z\"\n}\n\n\n\n\n\nRequest (POST /api/pedidos/):\n{\n  \"tipo_entrega\": \"TIENDA\",\n  \"detalles\": [\n    {\n      \"producto_id\": 2,\n      \"cantidad\": 3\n    }\n  ]\n}\nResponse (201 Created):\n{\n  \"id\": 14,\n  \"numero_pedido\": \"P-20260621-014\",\n  \"cliente_nombre\": \"Juan Pérez\",\n  \"estado\": \"RECIBIDO\",\n  \"tipo_entrega\": \"TIENDA\",\n  \"subtotal\": \"46.50\",\n  \"impuesto\": \"5.58\",\n  \"total\": \"52.08\",\n  \"detalles\": [\n    {\n      \"id\": 28,\n      \"producto\": 2,\n      \"nombre_producto\": \"Camiseta Polo UNL\",\n      \"cantidad\": 3,\n      \"precio_unitario\": \"15.50\",\n      \"subtotal\": \"46.50\"\n    }\n  ]\n}\n\n\n\n\n\n\nA continuación, se explica detalladamente cómo se abordan e implementan las especificaciones técnicas tanto en la capa lógica del Servidor como en la interfaz del Cliente.\n\n\nGarantiza que ningún usuario pueda registrarse o guardar información en el sistema sin aceptar de forma informada y explícita la política de privacidad.\n\nImplementación en el Backend:\n\nModelo de Datos: El modelo Usuario (tienda/models.py) extiende AbstractUser y posee campos dedicados para auditoría: consentimiento_lopdp (Boolean), consentimiento_timestamp (DateTime) y una llave foránea privacy_policy apuntando a la versión del acuerdo aceptado. El campo consentimiento_timestamp es inmutable una vez grabado.\nValidación de Serializador: En UsuarioSerializer (tienda/serializers.py), se obliga a que el valor de consentimiento_lopdp sea True. Si se envía vacío o como False, se aborta la creación y se devuelve un código 400 Bad Request.\n\nImplementación en el Frontend:\n\nFormulario de Registro: En RegisterPage.jsx (RegisterPage.jsx), se renderiza un Checkbox obligatorio. El botón de envío está deshabilitado a nivel UI hasta que el usuario marque la aceptación.\nConsulta de Políticas: Al montar la página de registro, se consulta dinámicamente /api/politica-privacidad/ para mostrar los términos correctos al usuario y pasar la versión vigente en el cuerpo del JSON enviado.\n\n\n\n\n\nEvita capturar o procesar datos innecesarios de los estudiantes.\n\nImplementación en el Backend:\n\nSerializador Estricto: Se define una lista explícita de campos permitidos en UsuarioSerializer (Meta.fields). Cualquier atributo adicional recibido en el JSON de la petición (como inyecciones maliciosas de roles, saldos, etc.) es ignorado o rechazado explícitamente mediante validación de non_field_errors.\n\nImplementación en el Frontend:\n\nComponentes de Entrada: Los formularios solo recopilan el Nombre Completo, Email Institucional, Contraseña, Teléfono y Cédula. No se envían metadatos del dispositivo ni ubicaciones.\n\n\n\n\n\nPermite visualizar la oferta académica e institucional.\n\nImplementación en el Backend:\n\nModelo de Datos: Modelo Producto que incluye un campo imagen_url de tipo URLField para almacenar links externos absolutos en lugar de cargar binarios pesados en el servidor local.\nAcceso Público: Se utiliza la clase de permisos IsAuthenticatedOrReadOnly en ProductoViewSet (tienda/views.py), permitiendo a usuarios anónimos consultar el catálogo pero restringiendo la creación, edición o eliminación a personal autorizado.\n\nImplementación en el Frontend:\n\nComponente de Catálogo: La vista ProductList.jsx consume el endpoint público de productos y maneja filtros dinámicos locales (categoría, ordenamiento por precio y barra de búsqueda en tiempo real) y paginación.\nCálculo de Impuestos: Si aplica_impuesto es verdadero en el JSON del producto, la tarjeta del producto o el resumen del carrito calcula y detalla visualmente el IVA (12%) de forma transparente.\n\n\n\n\n\nGestión del ciclo de vida de los pedidos institucionales.\n\nImplementación en el Backend:\n\nTransacciones Atómicas: La creación de pedidos se procesa bajo un bloque de transacción atómico (with transaction.atomic():). Esto garantiza que el stock del producto se reduzca al instante. Si múltiples usuarios intentan comprar el último artículo simultáneamente, la base de datos bloquea el registro (select_for_update) y rechaza el segundo intento de forma segura, evitando sobreventa (cero stock negativo).\nMáquina de Estados: Se implementan validaciones en el método de actualización del pedido. Las transiciones solo pueden avanzar en la jerarquía: RECIBIDO \\(\\rightarrow\\) PREPARACION \\(\\rightarrow\\) LISTO \\(\\rightarrow\\) ENTREGADO. Si un pedido es cancelado (CANCELADO), se ejecuta una rutina que devuelve las cantidades compradas al stock del producto automáticamente.\n\nImplementación en el Frontend:\n\nMódulo de Órdenes: OrderDetail.jsx permite a los usuarios rastrear sus pedidos. Cada estado es mapeado a colores y badges específicos mediante el componente OrderStatusBadge (por ejemplo, amarillo para RECIBIDO, verde para LISTO, y rojo para CANCELADO), dando una experiencia intuitiva al cliente sobre el estado de su entrega.",
+    "crumbs": [
+      "Inicio",
+      "Integración Frontend-Backend y Flujo JWT"
+    ]
+  },
+  {
+    "objectID": "integracion-frontend-backend.html#modelo-de-conectividad-y-arquitectura",
+    "href": "integracion-frontend-backend.html#modelo-de-conectividad-y-arquitectura",
+    "title": "Integración Frontend-Backend y Flujo JWT",
+    "section": "",
+    "text": "El proyecto adopta una arquitectura desacoplada (“Headless”), donde el Frontend y el Backend se ejecutan como servicios independientes que se comunican mediante una API REST en formato JSON.\n\n\n\nBackend (Django): http://localhost:8000\nFrontend (React/Vite): http://localhost:3000 (o puerto 5173)\n\n\n\n\nPara evitar problemas de CORS (Cross-Origin Resource Sharing) en desarrollo local y facilitar el enrutamiento de peticiones sin exponer la URL absoluta del backend en el código del cliente, se configura un servidor proxy reverso en el archivo de configuración de Vite (vite.config.js):\n// frontend/vite.config.js\nexport default defineConfig({\n  plugins: [react()],\n  server: {\n    port: 3000,\n    proxy: {\n      '/api': {\n        target: 'http://localhost:8000',\n        changeOrigin: true,\n        rewrite: (path) =&gt; path.replace(/^\\/api/, '/api/v1'),\n      },\n    },\n  },\n});\n\n[!NOTE] Toda petición realizada a /api/* en el Frontend es interceptada por el servidor de desarrollo de Vite y redirigida a http://localhost:8000/api/v1/*. Por ejemplo: POST /api/auth/login/ \\(\\rightarrow\\) POST http://localhost:8000/api/v1/auth/login/",
+    "crumbs": [
+      "Inicio",
+      "Integración Frontend-Backend y Flujo JWT"
+    ]
+  },
+  {
+    "objectID": "integracion-frontend-backend.html#autenticación-y-ciclo-de-vida-del-token-jwt",
+    "href": "integracion-frontend-backend.html#autenticación-y-ciclo-de-vida-del-token-jwt",
+    "title": "Integración Frontend-Backend y Flujo JWT",
+    "section": "",
+    "text": "La seguridad y autenticación del sistema se basa en JSON Web Tokens (JWT). Se implementa usando la biblioteca djangorestframework-simplejwt en el Backend y un cliente HTTP centralizado con Axios en el Frontend.\nsequenceDiagram\n    autonumber\n    participant Cliente as React Frontend\n    participant Server as Django API\n    participant DB as SQLite / Postgres\n\n    Note over Cliente: 1. Login del Usuario\n    Cliente-&gt;&gt;Server: POST /api/auth/login/ (email, password)\n    Server-&gt;&gt;DB: Validar credenciales\n    DB--&gt;&gt;Server: Credenciales Válidas (Usuario Activo)\n    Server--&gt;&gt;Cliente: 200 OK (access_token, refresh_token, user_data)\n    Note over Cliente: Guarda tokens en localStorage\n\n    Note over Cliente: 2. Petición Protegida\n    Cliente-&gt;&gt;Server: GET /api/pedidos/ (Authorization: Bearer &lt;access_token&gt;)\n    Server-&gt;&gt;Server: Validar Firma & Expiración JWT\n    Server-&gt;&gt;DB: Obtener datos de la consulta\n    DB--&gt;&gt;Server: Pedidos del usuario\n    Server--&gt;&gt;Cliente: 200 OK (datos de pedidos)\n\n    Note over Cliente: 3. Token Expira (401 Unauthorized)\n    Cliente-&gt;&gt;Server: GET /api/pedidos/ (Token Expirado)\n    Server--&gt;&gt;Cliente: 401 Unauthorized (token_not_valid)\n    \n    Note over Cliente: 4. Interceptor detecta 401 y Refresca\n    Cliente-&gt;&gt;Server: POST /api/auth/refresh/ (refresh_token)\n    Server-&gt;&gt;Server: Validar Refresh Token\n    Server--&gt;&gt;Cliente: 200 OK (nuevo access_token)\n    Note over Cliente: Reintenta petición original con nuevo token\n    Cliente-&gt;&gt;Server: GET /api/pedidos/ (Authorization: Bearer &lt;nuevo_access_token&gt;)\n    Server--&gt;&gt;Cliente: 200 OK (datos del pedido)\n\n\nEn el archivo de configuración del Backend (core/settings.py), se define el tiempo de expiración y las firmas:\n# core/settings.py\nSIMPLE_JWT = {\n    'ACCESS_TOKEN_LIFETIME': timedelta(hours=24), # Duración del token de acceso (24 horas)\n    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),   # Duración del token de refresco (7 días)\n    'ROTATE_REFRESH_TOKENS': False,\n    'ALGORITHM': 'HS256',\n    'SIGNING_KEY': SECRET_KEY,\n    'AUTH_HEADER_TYPES': ('Bearer',),\n}\n\n\n\nEl cliente HTTP de Axios (frontend/src/core/api/apiClient.js) gestiona automáticamente la inyección de cabeceras y la renovación silenciosa de tokens expirados:\n\n\nAgrega automáticamente el token JWT almacenado en localStorage a las cabeceras de autorización en cada petición saliente:\napiClient.interceptors.request.use(\n  (config) =&gt; {\n    const token = localStorage.getItem('jwt_token');\n    if (token) {\n      config.headers.Authorization = `Bearer ${token}`;\n    }\n    return config;\n  },\n  (error) =&gt; Promise.reject(error)\n);\n\n\n\nCaptura errores de tipo 401 Unauthorized. Si se detecta un fallo debido a token expirado, detiene las peticiones subsecuentes, realiza una llamada en segundo plano al endpoint de renovación, actualiza el token en memoria/almacenamiento y reintenta la petición original con el nuevo token sin que el usuario lo note:\napiClient.interceptors.response.use(\n  (response) =&gt; response,\n  async (error) =&gt; {\n    const originalRequest = error.config;\n\n    // Si devuelve 401 y no se ha reintentado\n    if (error.response?.status === 401 && !originalRequest._retry) {\n      originalRequest._retry = true;\n\n      try {\n        const refreshToken = localStorage.getItem('jwt_refresh');\n        if (refreshToken) {\n          // Solicitar renovación del Token de Acceso\n          const response = await axios.post(`${API_BASE_URL}/auth/refresh/`, {\n            refresh: refreshToken,\n          });\n\n          // Guardar nuevo Token y reintentar petición original\n          localStorage.setItem('jwt_token', response.data.access);\n          originalRequest.headers.Authorization = `Bearer ${response.data.access}`;\n\n          return apiClient(originalRequest);\n        }\n      } catch (refreshError) {\n        // Si el refresh también falla, el token expiró completamente. Forzar Logout.\n        localStorage.removeItem('jwt_token');\n        localStorage.removeItem('jwt_refresh');\n        window.location.href = '/login';\n      }\n    }\n    return Promise.reject(error);\n  }\n);",
+    "crumbs": [
+      "Inicio",
+      "Integración Frontend-Backend y Flujo JWT"
+    ]
+  },
+  {
+    "objectID": "integracion-frontend-backend.html#catálogo-de-peticiones-y-endpoints-del-sistema",
+    "href": "integracion-frontend-backend.html#catálogo-de-peticiones-y-endpoints-del-sistema",
+    "title": "Integración Frontend-Backend y Flujo JWT",
+    "section": "",
+    "text": "A continuación, se presenta la lista completa de endpoints REST disponibles, el tipo de petición que se realiza y los datos requeridos.\n\n\n\n\n\n\n\n\n\n\n\nMódulo\nMétodo\nEndpoint (Frontend Path)\nEndpoint Real (Backend API)\nRequiere Auth\nDescripción\n\n\n\n\nAuth\nPOST\n/api/auth/login/\n/api/v1/auth/login/\nNo\nAutenticación con email/contraseña. Retorna tokens JWT.\n\n\nAuth\nPOST\n/api/auth/refresh/\n/api/v1/auth/refresh/\nNo\nRenueva el access_token usando el refresh_token.\n\n\nAuth\nPOST\n/api/auth/logout/\n/api/v1/auth/logout/\nNo\nCierra la sesión activa.\n\n\nUsuarios\nPOST\n/api/usuarios/registro/\n/api/v1/usuarios/registro/\nNo\nRegistra un nuevo cliente con aceptación LOPDP.\n\n\nUsuarios\nGET\n/api/usuarios/me/\n/api/v1/usuarios/me/\nSí\nObtiene los datos del perfil del usuario autenticado.\n\n\nUsuarios\nPUT\n/api/usuarios/me/\n/api/v1/usuarios/me/\nSí\nActualiza parcialmente los datos personales.\n\n\nPrivacidad\nGET\n/api/politica-privacidad/\n/api/v1/politica-privacidad/\nNo\nObtiene la versión más reciente de la Política de Privacidad.\n\n\nCatálogo\nGET\n/api/productos/\n/api/v1/productos/\nNo\nLista los productos activos (con paginación, filtros y búsquedas).\n\n\nCatálogo\nGET\n/api/productos/{id}/\n/api/v1/productos/{id}/\nNo\nRetorna los detalles de un producto en específico.\n\n\nCatálogo\nPOST\n/api/productos/\n/api/v1/productos/\nSí (Admin)\nCrea un nuevo producto (solo administradores).\n\n\nPedidos\nGET\n/api/pedidos/\n/api/v1/pedidos/\nSí\nLista los pedidos (filtrados por cliente, o todos para Admins).\n\n\nPedidos\nPOST\n/api/pedidos/\n/api/v1/pedidos/\nSí\nCrea un nuevo pedido con validación atómica de stock.\n\n\nPedidos\nGET\n/api/pedidos/{id}/\n/api/v1/pedidos/{id}/\nSí\nObtiene detalles de un pedido específico y sus items.\n\n\nPedidos\nPUT\n/api/pedidos/{id}/\n/api/v1/pedidos/{id}/\nSí (Admin)\nActualiza el estado del pedido (máquina de estados).\n\n\nCaja\nPOST\n/api/cajas/procesar-venta/\n/api/v1/cajas/procesar-venta/\nSí (Cajero)\nRegistra una venta directa en caja.\n\n\nCaja\nGET\n/api/cajas/clientes/\n/api/v1/cajas/clientes/\nSí (Cajero)\nBusca o registra clientes para facturación directa.\n\n\nPagos\nPOST\n/api/pagos/preparar-checkout/\n/api/v1/pagos/preparar-checkout/\nSí\nGenera una sesión de checkout en Stripe.\n\n\nPagos\nPOST\n/api/pagos/crear-payment-intent/\n/api/v1/pagos/crear-payment-intent/\nSí\nGenera un PaymentIntent de Stripe para elementos customizados.\n\n\nDashboard\nGET\n/api/dashboard/stats/\n/api/v1/dashboard/stats/\nSí (Admin)\nDevuelve estadísticas de ventas y alertas de stock para panel de control.",
+    "crumbs": [
+      "Inicio",
+      "Integración Frontend-Backend y Flujo JWT"
+    ]
+  },
+  {
+    "objectID": "integracion-frontend-backend.html#ejemplos-de-requests-y-responses-clave",
+    "href": "integracion-frontend-backend.html#ejemplos-de-requests-y-responses-clave",
+    "title": "Integración Frontend-Backend y Flujo JWT",
+    "section": "",
+    "text": "Request (POST /api/auth/login/):\n{\n  \"email\": \"estudiante@unl.edu.ec\",\n  \"password\": \"PasswordSegura123!\"\n}\nResponse (200 OK):\n{\n  \"status\": \"success\",\n  \"message\": \"Bienvenido Juan Pérez\",\n  \"access_token\": \"eyJ0eXAiOiJKV1QiLCJhbGci...\",\n  \"refresh_token\": \"eyJ0eXAiOiJKV1QiLCJhbGci...\",\n  \"user\": {\n    \"id\": 5,\n    \"email\": \"estudiante@unl.edu.ec\",\n    \"nombre_completo\": \"Juan Pérez\",\n    \"rol\": \"CLIENTE\",\n    \"is_universidad\": true\n  }\n}\n\n\n\n\n\nRequest (POST /api/usuarios/registro/):\n{\n  \"nombre_completo\": \"María Luz\",\n  \"email\": \"maria.luz@unl.edu.ec\",\n  \"password\": \"MiPasswordSeguro123!\",\n  \"identificacion\": \"1103987654\",\n  \"telefono\": \"0987654321\",\n  \"consentimiento_lopdp\": true,\n  \"privacy_policy_version\": \"v1.0\"\n}\nResponse (201 Created):\n{\n  \"id\": 6,\n  \"email\": \"maria.luz@unl.edu.ec\",\n  \"nombre_completo\": \"María Luz\",\n  \"rol\": \"CLIENTE\",\n  \"consentimiento_lopdp\": true,\n  \"consentimiento_timestamp\": \"2026-06-21T18:45:00Z\"\n}\n\n\n\n\n\nRequest (POST /api/pedidos/):\n{\n  \"tipo_entrega\": \"TIENDA\",\n  \"detalles\": [\n    {\n      \"producto_id\": 2,\n      \"cantidad\": 3\n    }\n  ]\n}\nResponse (201 Created):\n{\n  \"id\": 14,\n  \"numero_pedido\": \"P-20260621-014\",\n  \"cliente_nombre\": \"Juan Pérez\",\n  \"estado\": \"RECIBIDO\",\n  \"tipo_entrega\": \"TIENDA\",\n  \"subtotal\": \"46.50\",\n  \"impuesto\": \"5.58\",\n  \"total\": \"52.08\",\n  \"detalles\": [\n    {\n      \"id\": 28,\n      \"producto\": 2,\n      \"nombre_producto\": \"Camiseta Polo UNL\",\n      \"cantidad\": 3,\n      \"precio_unitario\": \"15.50\",\n      \"subtotal\": \"46.50\"\n    }\n  ]\n}",
+    "crumbs": [
+      "Inicio",
+      "Integración Frontend-Backend y Flujo JWT"
+    ]
+  },
+  {
+    "objectID": "integracion-frontend-backend.html#implementación-de-requisitos-en-backend-vs.-frontend",
+    "href": "integracion-frontend-backend.html#implementación-de-requisitos-en-backend-vs.-frontend",
+    "title": "Integración Frontend-Backend y Flujo JWT",
+    "section": "",
+    "text": "A continuación, se explica detalladamente cómo se abordan e implementan las especificaciones técnicas tanto en la capa lógica del Servidor como en la interfaz del Cliente.\n\n\nGarantiza que ningún usuario pueda registrarse o guardar información en el sistema sin aceptar de forma informada y explícita la política de privacidad.\n\nImplementación en el Backend:\n\nModelo de Datos: El modelo Usuario (tienda/models.py) extiende AbstractUser y posee campos dedicados para auditoría: consentimiento_lopdp (Boolean), consentimiento_timestamp (DateTime) y una llave foránea privacy_policy apuntando a la versión del acuerdo aceptado. El campo consentimiento_timestamp es inmutable una vez grabado.\nValidación de Serializador: En UsuarioSerializer (tienda/serializers.py), se obliga a que el valor de consentimiento_lopdp sea True. Si se envía vacío o como False, se aborta la creación y se devuelve un código 400 Bad Request.\n\nImplementación en el Frontend:\n\nFormulario de Registro: En RegisterPage.jsx (RegisterPage.jsx), se renderiza un Checkbox obligatorio. El botón de envío está deshabilitado a nivel UI hasta que el usuario marque la aceptación.\nConsulta de Políticas: Al montar la página de registro, se consulta dinámicamente /api/politica-privacidad/ para mostrar los términos correctos al usuario y pasar la versión vigente en el cuerpo del JSON enviado.\n\n\n\n\n\nEvita capturar o procesar datos innecesarios de los estudiantes.\n\nImplementación en el Backend:\n\nSerializador Estricto: Se define una lista explícita de campos permitidos en UsuarioSerializer (Meta.fields). Cualquier atributo adicional recibido en el JSON de la petición (como inyecciones maliciosas de roles, saldos, etc.) es ignorado o rechazado explícitamente mediante validación de non_field_errors.\n\nImplementación en el Frontend:\n\nComponentes de Entrada: Los formularios solo recopilan el Nombre Completo, Email Institucional, Contraseña, Teléfono y Cédula. No se envían metadatos del dispositivo ni ubicaciones.\n\n\n\n\n\nPermite visualizar la oferta académica e institucional.\n\nImplementación en el Backend:\n\nModelo de Datos: Modelo Producto que incluye un campo imagen_url de tipo URLField para almacenar links externos absolutos en lugar de cargar binarios pesados en el servidor local.\nAcceso Público: Se utiliza la clase de permisos IsAuthenticatedOrReadOnly en ProductoViewSet (tienda/views.py), permitiendo a usuarios anónimos consultar el catálogo pero restringiendo la creación, edición o eliminación a personal autorizado.\n\nImplementación en el Frontend:\n\nComponente de Catálogo: La vista ProductList.jsx consume el endpoint público de productos y maneja filtros dinámicos locales (categoría, ordenamiento por precio y barra de búsqueda en tiempo real) y paginación.\nCálculo de Impuestos: Si aplica_impuesto es verdadero en el JSON del producto, la tarjeta del producto o el resumen del carrito calcula y detalla visualmente el IVA (12%) de forma transparente.\n\n\n\n\n\nGestión del ciclo de vida de los pedidos institucionales.\n\nImplementación en el Backend:\n\nTransacciones Atómicas: La creación de pedidos se procesa bajo un bloque de transacción atómico (with transaction.atomic():). Esto garantiza que el stock del producto se reduzca al instante. Si múltiples usuarios intentan comprar el último artículo simultáneamente, la base de datos bloquea el registro (select_for_update) y rechaza el segundo intento de forma segura, evitando sobreventa (cero stock negativo).\nMáquina de Estados: Se implementan validaciones en el método de actualización del pedido. Las transiciones solo pueden avanzar en la jerarquía: RECIBIDO \\(\\rightarrow\\) PREPARACION \\(\\rightarrow\\) LISTO \\(\\rightarrow\\) ENTREGADO. Si un pedido es cancelado (CANCELADO), se ejecuta una rutina que devuelve las cantidades compradas al stock del producto automáticamente.\n\nImplementación en el Frontend:\n\nMódulo de Órdenes: OrderDetail.jsx permite a los usuarios rastrear sus pedidos. Cada estado es mapeado a colores y badges específicos mediante el componente OrderStatusBadge (por ejemplo, amarillo para RECIBIDO, verde para LISTO, y rojo para CANCELADO), dando una experiencia intuitiva al cliente sobre el estado de su entrega.",
+    "crumbs": [
+      "Inicio",
+      "Integración Frontend-Backend y Flujo JWT"
+    ]
+  },
+  {
+    "objectID": "seguridad-tokens.html",
+    "href": "seguridad-tokens.html",
+    "title": "Seguridad de Tokens - TiendaUniversitaria",
+    "section": "",
+    "text": "Los tokens deben tener permisos limitados al mínimo necesario.\n// ❌ MALO - Token con permisos excesivos\nconst token = {\n  user_id: 1,\n  email: \"usuario@example.com\",\n  rol: \"admin\",  // Nunca debería incluir rol en el token\n  todas_las_permisos: true\n};\n\n// ✅ BUENO - Token minimalista\nconst token = {\n  user_id: 1,\n  email: \"usuario@example.com\",\n  exp: 1234567890\n};\n\n// Las permisos se validan en backend consultando la BD\n\n\n\nLos tokens deben ser tratados como información confidencial.\n// ❌ MALO - Exponer tokens\nconsole.log(token);  // Nunca loguear tokens\nconst url = `${api}/profile?token=${token}`;  // Nunca en URL\ndocument.body.innerText = token;  // Nunca mostrar en página\n\n// ✅ BUENO - Proteger tokens\nconst token = localStorage.getItem('access_token');  // Solo lectura\n// Nunca mostrar al usuario\n// Usar HTTPS para transmisión\n\n\n\nEl token no debe ser modificado en tránsito.\n// El servidor valida la firmay\n// Si el token fue modificado, la firma no coincidirá\n// Resultado: 401 Unauthorized\n\n// Python/Django hace esto automáticamente\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nOpción\nSeguridad\nAccesibilidad\nCaso de Uso\n\n\n\n\nlocalStorage\nMedia\nAlta (JS)\nDesarrollo\n\n\nsessionStorage\nMedia\nMedia (pestaña)\nDemo\n\n\nMemory (variable)\nAlta\nBaja (se pierde con refresh)\nNo recomendado\n\n\nhttpOnly Cookies\nAlta\nBaja (automática)\nProducción\n\n\nSecure Cookies\nMuy Alta\nBaja (automática)\nProducción + HTTPS\n\n\n\n\n\n\n// src/utils/tokenStorage.ts\n\ninterface TokenStorage {\n  getAccessToken(): string | null;\n  setAccessToken(token: string): void;\n  getRefreshToken(): string | null;\n  setRefreshToken(token: string): void;\n  clearTokens(): void;\n}\n\n// Desarrollo: localStorage (simple pero menos seguro)\nconst localStorageImpl: TokenStorage = {\n  getAccessToken: () =&gt; localStorage.getItem('access_token'),\n  setAccessToken: (token) =&gt; localStorage.setItem('access_token', token),\n  getRefreshToken: () =&gt; localStorage.getItem('refresh_token'),\n  setRefreshToken: (token) =&gt; localStorage.setItem('refresh_token', token),\n  clearTokens: () =&gt; {\n    localStorage.removeItem('access_token');\n    localStorage.removeItem('refresh_token');\n  }\n};\n\n// Producción: httpOnly Cookies (más seguro)\n// Requiere que el backend establezca cookies\nconst cookieImpl: TokenStorage = {\n  getAccessToken: () =&gt; getCookieValue('access_token'),\n  setAccessToken: () =&gt; {}, // No hacer nada, servidor lo hace\n  getRefreshToken: () =&gt; getCookieValue('refresh_token'),\n  setRefreshToken: () =&gt; {}, // No hacer nada, servidor lo hace\n  clearTokens: () =&gt; {\n    // Logout endpoint limpia cookies automáticamente\n  }\n};\n\n// Usar en desarrollo\nexport const tokenStorage = localStorageImpl;\n\n\n\n# core/settings.py\n\n# Producción: Usar httpOnly Cookies\nSIMPLE_JWT = {\n    'ACCESS_TOKEN_LIFETIME': timedelta(hours=24),\n    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),\n    \n    # Configuración de cookies\n    'AUTH_COOKIE': 'access_token',\n    'AUTH_COOKIE_REFRESH': 'refresh_token',\n    'AUTH_COOKIE_SECURE': True,  # Solo HTTPS\n    'AUTH_COOKIE_HTTP_ONLY': True,  # No accesible desde JS\n    'AUTH_COOKIE_SAME_SITE': 'Strict',  # CSRF protection\n}\n\n# CORS debe permitir credenciales\nCORS_ALLOW_CREDENTIALS = True\n\n\n\n\n\n\n# tienda/views.py\n\nfrom rest_framework.decorators import api_view, permission_classes\nfrom rest_framework.permissions import IsAuthenticated\nfrom rest_framework_simplejwt.authentication import JWTAuthentication\n\n@api_view(['GET'])\n@permission_classes([IsAuthenticated])\ndef get_user_profile(request):\n    \"\"\"\n    Solo usuarios autenticados pueden acceder.\n    Django REST Framework verifica automáticamente el JWT.\n    \"\"\"\n    user = request.user\n    return Response({\n        'id': user.id,\n        'email': user.email,\n        'nombre': user.nombre_completo\n    })\n\n\n\n# tienda/authentication.py\n\nfrom rest_framework_simplejwt.authentication import JWTAuthentication\nfrom rest_framework.exceptions import AuthenticationFailed\n\nclass CustomJWTAuthentication(JWTAuthentication):\n    def authenticate(self, request):\n        result = super().authenticate(request)\n        if result is None:\n            return None\n        \n        user, validated_token = result\n        \n        # Validaciones adicionales\n        if not user.is_active:\n            raise AuthenticationFailed('Usuario inactivo')\n        \n        if user.has_been_banned():\n            raise AuthenticationFailed('Usuario baneado')\n        \n        # Log para auditoría\n        AuditLog.objects.create(\n            user=user,\n            action='API_ACCESS',\n            endpoint=request.path,\n            timestamp=now()\n        )\n        \n        return user, validated_token\n\n\n\n\n\n\n# ❌ MALO - Información excesiva\n{\n    \"detail\": \"Token JWT inválido para usuario con ID 42\",\n    \"token_type\": \"access\",\n    \"signature\": \"abc123...\"\n}\n\n# ✅ BUENO - Información mínima\n{\n    \"detail\": \"Token inválido o expirado\"\n}\n\n\n\n# core/settings.py\n\nREST_FRAMEWORK = {\n    'DEFAULT_THROTTLE_CLASSES': [\n        'rest_framework.throttling.AnonRateThrottle',\n        'rest_framework.throttling.UserRateThrottle'\n    ],\n    'DEFAULT_THROTTLE_RATES': {\n        'anon': '100/hour',\n        'user': '1000/hour',\n        'auth_login': '5/hour',  # 5 intentos por hora\n    }\n}\n# tienda/views.py\nfrom rest_framework.throttling import ScopedRateThrottle\n\nclass LoginView(APIView):\n    throttle_scope = 'auth_login'\n    throttle_classes = [ScopedRateThrottle]\n    \n    def post(self, request):\n        # Máximo 5 intentos de login por hora\n        ...\n\n\n\n\n\n\n# core/settings.py\n\nSIMPLE_JWT = {\n    # Corta duración: facilita revocación pero requiere refresh frecuente\n    'ACCESS_TOKEN_LIFETIME': timedelta(hours=24),\n    \n    # Más larga duración: permite período de gracia para refresh\n    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),\n    \n    # Rotación de refresh tokens (mejora seguridad)\n    'ROTATE_REFRESH_TOKENS': True,\n}\n\n\n\n// src/services/api.ts\n\nconst setupInterceptors = (apiClient) =&gt; {\n  // Interceptor de respuesta\n  apiClient.interceptors.response.use(\n    (response) =&gt; response,\n    async (error) =&gt; {\n      const { config, response } = error;\n      \n      // Si token expiró (401)\n      if (response?.status === 401 && !config._retry) {\n        config._retry = true;\n        \n        try {\n          // Intentar renovar\n          const newToken = await refreshAccessToken();\n          config.headers.Authorization = `Bearer ${newToken}`;\n          return apiClient(config);\n        } catch (refreshError) {\n          // Si refresh falla, ir a login\n          window.location.href = '/login';\n          return Promise.reject(refreshError);\n        }\n      }\n      \n      return Promise.reject(error);\n    }\n  );\n};\n\nconst refreshAccessToken = async () =&gt; {\n  const refreshToken = localStorage.getItem('refresh_token');\n  const response = await axios.post('/auth/refresh/', {\n    refresh: refreshToken\n  });\n  \n  localStorage.setItem('access_token', response.data.access);\n  return response.data.access;\n};\n\n\n\n\n\n\n# tienda/models.py\n\nfrom django.db import models\nfrom django.utils import timezone\n\nclass TokenBlacklist(models.Model):\n    \"\"\"Almacena tokens revocados (logout, cambio de contraseña)\"\"\"\n    token = models.TextField()\n    user = models.ForeignKey(Usuario, on_delete=models.CASCADE)\n    blacklisted_at = models.DateTimeField(auto_now_add=True)\n    expires_at = models.DateTimeField()\n    \n    class Meta:\n        ordering = ['-blacklisted_at']\n        indexes = [\n            models.Index(fields=['token']),\n            models.Index(fields=['expires_at']),\n        ]\n    \n    def __str__(self):\n        return f\"Token de {self.user.email} (revocado el {self.blacklisted_at})\"\n# tienda/authentication.py\n\nfrom tienda.models import TokenBlacklist\nfrom rest_framework_simplejwt.tokens import RefreshToken\n\nclass LogoutView(APIView):\n    permission_classes = [AllowAny]\n    \n    def post(self, request):\n        refresh_token = request.data.get('refresh')\n        \n        if not refresh_token:\n            return Response(\n                {\"error\": \"Refresh token requerido\"},\n                status=status.HTTP_400_BAD_REQUEST\n            )\n        \n        try:\n            # Parsear el token\n            token = RefreshToken(refresh_token)\n            \n            # Obtener información del token\n            token_exp = token.payload['exp']\n            from datetime import datetime\n            expires_at = datetime.fromtimestamp(token_exp)\n            \n            # Agregar a blacklist\n            TokenBlacklist.objects.create(\n                token=refresh_token,\n                user=request.user if request.user.is_authenticated else None,\n                expires_at=expires_at\n            )\n            \n            return Response(\n                {\"status\": \"success\", \"message\": \"Sesión cerrada\"},\n                status=status.HTTP_200_OK\n            )\n        except Exception as e:\n            return Response(\n                {\"error\": str(e)},\n                status=status.HTTP_400_BAD_REQUEST\n            )\n\n\n\n# tienda/management/commands/cleanup_token_blacklist.py\n\nfrom django.core.management.base import BaseCommand\nfrom django.utils import timezone\nfrom tienda.models import TokenBlacklist\n\nclass Command(BaseCommand):\n    help = 'Limpiar tokens expirados de la blacklist'\n    \n    def handle(self, *args, **options):\n        now = timezone.now()\n        deleted_count, _ = TokenBlacklist.objects.filter(\n            expires_at__lt=now\n        ).delete()\n        \n        self.stdout.write(\n            self.style.SUCCESS(\n                f'Eliminados {deleted_count} tokens expirados'\n            )\n        )\n\n# Ejecutar diariamente con Celery o cron\n\n\n\n\n\n\n# tienda/middleware.py\n\nimport logging\nfrom django.utils import timezone\n\nlogger = logging.getLogger(__name__)\n\nclass TokenAuditMiddleware:\n    def __init__(self, get_response):\n        self.get_response = get_response\n    \n    def __call__(self, request):\n        # Registrar antes del request\n        if hasattr(request, 'user') and request.user.is_authenticated:\n            logger.info(\n                f\"Usuario {request.user.email} accedió a {request.path}\",\n                extra={\n                    'user_id': request.user.id,\n                    'path': request.path,\n                    'method': request.method,\n                    'ip': self.get_client_ip(request),\n                    'timestamp': timezone.now().isoformat()\n                }\n            )\n        \n        response = self.get_response(request)\n        return response\n    \n    @staticmethod\n    def get_client_ip(request):\n        \"\"\"Obtener IP del cliente\"\"\"\n        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')\n        if x_forwarded_for:\n            return x_forwarded_for.split(',')[0]\n        return request.META.get('REMOTE_ADDR')\n\n\n\n\n\n\n# core/settings.py\n\nCSRF_TRUSTED_ORIGINS = [\n    'http://localhost:3000',\n    'http://localhost:5173',\n    'https://tuendauniversitaria.ec',\n]\n\n# Para formularios HTML tradicionales\nCSRF_COOKIE_SECURE = True  # Solo HTTPS\nCSRF_COOKIE_HTTPONLY = False  # JS necesita leerlo\nCSRF_COOKIE_SAMESITE = 'Strict'\n\n\n\n# tienda/authentication.py\n\nclass LoginView(APIView):\n    def post(self, request):\n        # ... lógica de login\n        \n        response = Response({...})\n        \n        # Agregar headers de seguridad\n        response['X-Content-Type-Options'] = 'nosniff'\n        response['X-Frame-Options'] = 'DENY'\n        response['X-XSS-Protection'] = '1; mode=block'\n        response['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'\n        \n        return response\n\n\n\n\n\nTokens almacenados en lugar seguro (httpOnly cookies en prod)\nHTTPS obligatorio en producción\nExpiración corta para access tokens (24h)\nExpiración razonable para refresh tokens (7d)\nRate limiting en endpoints de autenticación\nToken blacklist implementado para logout\nValidación de token en cada request protegido\nCORS configurado correctamente\nCSRF protection habilitado\nLogging y auditoría de acceso\nManejo seguro de errores (no exponer información)\nRefresh token rotation habilitado\nHeaders de seguridad agregados\nTests de seguridad implementados\nDocumentación de políticas de tokens\n\n\n\n\n\nOWASP JWT Cheat Sheet\nAuth0 JWT Best Practices\nRFC 8949 - Concise Binary Object Representation\nOWASP Authentication Cheat Sheet\n\n\nVersión: 1.0.0\nÚltima actualización: 2024\nClasificación: Interno\nResponsable: Security Team",
+    "crumbs": [
+      "Seguridad y Autenticación",
+      "Seguridad de Tokens - TiendaUniversitaria"
+    ]
+  },
+  {
+    "objectID": "seguridad-tokens.html#principios-fundamentales",
+    "href": "seguridad-tokens.html#principios-fundamentales",
+    "title": "Seguridad de Tokens - TiendaUniversitaria",
+    "section": "",
+    "text": "Los tokens deben tener permisos limitados al mínimo necesario.\n// ❌ MALO - Token con permisos excesivos\nconst token = {\n  user_id: 1,\n  email: \"usuario@example.com\",\n  rol: \"admin\",  // Nunca debería incluir rol en el token\n  todas_las_permisos: true\n};\n\n// ✅ BUENO - Token minimalista\nconst token = {\n  user_id: 1,\n  email: \"usuario@example.com\",\n  exp: 1234567890\n};\n\n// Las permisos se validan en backend consultando la BD\n\n\n\nLos tokens deben ser tratados como información confidencial.\n// ❌ MALO - Exponer tokens\nconsole.log(token);  // Nunca loguear tokens\nconst url = `${api}/profile?token=${token}`;  // Nunca en URL\ndocument.body.innerText = token;  // Nunca mostrar en página\n\n// ✅ BUENO - Proteger tokens\nconst token = localStorage.getItem('access_token');  // Solo lectura\n// Nunca mostrar al usuario\n// Usar HTTPS para transmisión\n\n\n\nEl token no debe ser modificado en tránsito.\n// El servidor valida la firmay\n// Si el token fue modificado, la firma no coincidirá\n// Resultado: 401 Unauthorized\n\n// Python/Django hace esto automáticamente",
+    "crumbs": [
+      "Seguridad y Autenticación",
+      "Seguridad de Tokens - TiendaUniversitaria"
+    ]
+  },
+  {
+    "objectID": "seguridad-tokens.html#almacenamiento-seguro",
+    "href": "seguridad-tokens.html#almacenamiento-seguro",
+    "title": "Seguridad de Tokens - TiendaUniversitaria",
+    "section": "",
+    "text": "Opción\nSeguridad\nAccesibilidad\nCaso de Uso\n\n\n\n\nlocalStorage\nMedia\nAlta (JS)\nDesarrollo\n\n\nsessionStorage\nMedia\nMedia (pestaña)\nDemo\n\n\nMemory (variable)\nAlta\nBaja (se pierde con refresh)\nNo recomendado\n\n\nhttpOnly Cookies\nAlta\nBaja (automática)\nProducción\n\n\nSecure Cookies\nMuy Alta\nBaja (automática)\nProducción + HTTPS\n\n\n\n\n\n\n// src/utils/tokenStorage.ts\n\ninterface TokenStorage {\n  getAccessToken(): string | null;\n  setAccessToken(token: string): void;\n  getRefreshToken(): string | null;\n  setRefreshToken(token: string): void;\n  clearTokens(): void;\n}\n\n// Desarrollo: localStorage (simple pero menos seguro)\nconst localStorageImpl: TokenStorage = {\n  getAccessToken: () =&gt; localStorage.getItem('access_token'),\n  setAccessToken: (token) =&gt; localStorage.setItem('access_token', token),\n  getRefreshToken: () =&gt; localStorage.getItem('refresh_token'),\n  setRefreshToken: (token) =&gt; localStorage.setItem('refresh_token', token),\n  clearTokens: () =&gt; {\n    localStorage.removeItem('access_token');\n    localStorage.removeItem('refresh_token');\n  }\n};\n\n// Producción: httpOnly Cookies (más seguro)\n// Requiere que el backend establezca cookies\nconst cookieImpl: TokenStorage = {\n  getAccessToken: () =&gt; getCookieValue('access_token'),\n  setAccessToken: () =&gt; {}, // No hacer nada, servidor lo hace\n  getRefreshToken: () =&gt; getCookieValue('refresh_token'),\n  setRefreshToken: () =&gt; {}, // No hacer nada, servidor lo hace\n  clearTokens: () =&gt; {\n    // Logout endpoint limpia cookies automáticamente\n  }\n};\n\n// Usar en desarrollo\nexport const tokenStorage = localStorageImpl;\n\n\n\n# core/settings.py\n\n# Producción: Usar httpOnly Cookies\nSIMPLE_JWT = {\n    'ACCESS_TOKEN_LIFETIME': timedelta(hours=24),\n    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),\n    \n    # Configuración de cookies\n    'AUTH_COOKIE': 'access_token',\n    'AUTH_COOKIE_REFRESH': 'refresh_token',\n    'AUTH_COOKIE_SECURE': True,  # Solo HTTPS\n    'AUTH_COOKIE_HTTP_ONLY': True,  # No accesible desde JS\n    'AUTH_COOKIE_SAME_SITE': 'Strict',  # CSRF protection\n}\n\n# CORS debe permitir credenciales\nCORS_ALLOW_CREDENTIALS = True",
+    "crumbs": [
+      "Seguridad y Autenticación",
+      "Seguridad de Tokens - TiendaUniversitaria"
+    ]
+  },
+  {
+    "objectID": "seguridad-tokens.html#validación-en-backend",
+    "href": "seguridad-tokens.html#validación-en-backend",
+    "title": "Seguridad de Tokens - TiendaUniversitaria",
+    "section": "",
+    "text": "# tienda/views.py\n\nfrom rest_framework.decorators import api_view, permission_classes\nfrom rest_framework.permissions import IsAuthenticated\nfrom rest_framework_simplejwt.authentication import JWTAuthentication\n\n@api_view(['GET'])\n@permission_classes([IsAuthenticated])\ndef get_user_profile(request):\n    \"\"\"\n    Solo usuarios autenticados pueden acceder.\n    Django REST Framework verifica automáticamente el JWT.\n    \"\"\"\n    user = request.user\n    return Response({\n        'id': user.id,\n        'email': user.email,\n        'nombre': user.nombre_completo\n    })\n\n\n\n# tienda/authentication.py\n\nfrom rest_framework_simplejwt.authentication import JWTAuthentication\nfrom rest_framework.exceptions import AuthenticationFailed\n\nclass CustomJWTAuthentication(JWTAuthentication):\n    def authenticate(self, request):\n        result = super().authenticate(request)\n        if result is None:\n            return None\n        \n        user, validated_token = result\n        \n        # Validaciones adicionales\n        if not user.is_active:\n            raise AuthenticationFailed('Usuario inactivo')\n        \n        if user.has_been_banned():\n            raise AuthenticationFailed('Usuario baneado')\n        \n        # Log para auditoría\n        AuditLog.objects.create(\n            user=user,\n            action='API_ACCESS',\n            endpoint=request.path,\n            timestamp=now()\n        )\n        \n        return user, validated_token",
+    "crumbs": [
+      "Seguridad y Autenticación",
+      "Seguridad de Tokens - TiendaUniversitaria"
+    ]
+  },
+  {
+    "objectID": "seguridad-tokens.html#manejo-de-errores",
+    "href": "seguridad-tokens.html#manejo-de-errores",
+    "title": "Seguridad de Tokens - TiendaUniversitaria",
+    "section": "",
+    "text": "# ❌ MALO - Información excesiva\n{\n    \"detail\": \"Token JWT inválido para usuario con ID 42\",\n    \"token_type\": \"access\",\n    \"signature\": \"abc123...\"\n}\n\n# ✅ BUENO - Información mínima\n{\n    \"detail\": \"Token inválido o expirado\"\n}\n\n\n\n# core/settings.py\n\nREST_FRAMEWORK = {\n    'DEFAULT_THROTTLE_CLASSES': [\n        'rest_framework.throttling.AnonRateThrottle',\n        'rest_framework.throttling.UserRateThrottle'\n    ],\n    'DEFAULT_THROTTLE_RATES': {\n        'anon': '100/hour',\n        'user': '1000/hour',\n        'auth_login': '5/hour',  # 5 intentos por hora\n    }\n}\n# tienda/views.py\nfrom rest_framework.throttling import ScopedRateThrottle\n\nclass LoginView(APIView):\n    throttle_scope = 'auth_login'\n    throttle_classes = [ScopedRateThrottle]\n    \n    def post(self, request):\n        # Máximo 5 intentos de login por hora\n        ...",
+    "crumbs": [
+      "Seguridad y Autenticación",
+      "Seguridad de Tokens - TiendaUniversitaria"
+    ]
+  },
+  {
+    "objectID": "seguridad-tokens.html#renovación-de-tokens",
+    "href": "seguridad-tokens.html#renovación-de-tokens",
+    "title": "Seguridad de Tokens - TiendaUniversitaria",
+    "section": "",
+    "text": "# core/settings.py\n\nSIMPLE_JWT = {\n    # Corta duración: facilita revocación pero requiere refresh frecuente\n    'ACCESS_TOKEN_LIFETIME': timedelta(hours=24),\n    \n    # Más larga duración: permite período de gracia para refresh\n    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),\n    \n    # Rotación de refresh tokens (mejora seguridad)\n    'ROTATE_REFRESH_TOKENS': True,\n}\n\n\n\n// src/services/api.ts\n\nconst setupInterceptors = (apiClient) =&gt; {\n  // Interceptor de respuesta\n  apiClient.interceptors.response.use(\n    (response) =&gt; response,\n    async (error) =&gt; {\n      const { config, response } = error;\n      \n      // Si token expiró (401)\n      if (response?.status === 401 && !config._retry) {\n        config._retry = true;\n        \n        try {\n          // Intentar renovar\n          const newToken = await refreshAccessToken();\n          config.headers.Authorization = `Bearer ${newToken}`;\n          return apiClient(config);\n        } catch (refreshError) {\n          // Si refresh falla, ir a login\n          window.location.href = '/login';\n          return Promise.reject(refreshError);\n        }\n      }\n      \n      return Promise.reject(error);\n    }\n  );\n};\n\nconst refreshAccessToken = async () =&gt; {\n  const refreshToken = localStorage.getItem('refresh_token');\n  const response = await axios.post('/auth/refresh/', {\n    refresh: refreshToken\n  });\n  \n  localStorage.setItem('access_token', response.data.access);\n  return response.data.access;\n};",
+    "crumbs": [
+      "Seguridad y Autenticación",
+      "Seguridad de Tokens - TiendaUniversitaria"
+    ]
+  },
+  {
+    "objectID": "seguridad-tokens.html#logout-seguro",
+    "href": "seguridad-tokens.html#logout-seguro",
+    "title": "Seguridad de Tokens - TiendaUniversitaria",
+    "section": "",
+    "text": "# tienda/models.py\n\nfrom django.db import models\nfrom django.utils import timezone\n\nclass TokenBlacklist(models.Model):\n    \"\"\"Almacena tokens revocados (logout, cambio de contraseña)\"\"\"\n    token = models.TextField()\n    user = models.ForeignKey(Usuario, on_delete=models.CASCADE)\n    blacklisted_at = models.DateTimeField(auto_now_add=True)\n    expires_at = models.DateTimeField()\n    \n    class Meta:\n        ordering = ['-blacklisted_at']\n        indexes = [\n            models.Index(fields=['token']),\n            models.Index(fields=['expires_at']),\n        ]\n    \n    def __str__(self):\n        return f\"Token de {self.user.email} (revocado el {self.blacklisted_at})\"\n# tienda/authentication.py\n\nfrom tienda.models import TokenBlacklist\nfrom rest_framework_simplejwt.tokens import RefreshToken\n\nclass LogoutView(APIView):\n    permission_classes = [AllowAny]\n    \n    def post(self, request):\n        refresh_token = request.data.get('refresh')\n        \n        if not refresh_token:\n            return Response(\n                {\"error\": \"Refresh token requerido\"},\n                status=status.HTTP_400_BAD_REQUEST\n            )\n        \n        try:\n            # Parsear el token\n            token = RefreshToken(refresh_token)\n            \n            # Obtener información del token\n            token_exp = token.payload['exp']\n            from datetime import datetime\n            expires_at = datetime.fromtimestamp(token_exp)\n            \n            # Agregar a blacklist\n            TokenBlacklist.objects.create(\n                token=refresh_token,\n                user=request.user if request.user.is_authenticated else None,\n                expires_at=expires_at\n            )\n            \n            return Response(\n                {\"status\": \"success\", \"message\": \"Sesión cerrada\"},\n                status=status.HTTP_200_OK\n            )\n        except Exception as e:\n            return Response(\n                {\"error\": str(e)},\n                status=status.HTTP_400_BAD_REQUEST\n            )\n\n\n\n# tienda/management/commands/cleanup_token_blacklist.py\n\nfrom django.core.management.base import BaseCommand\nfrom django.utils import timezone\nfrom tienda.models import TokenBlacklist\n\nclass Command(BaseCommand):\n    help = 'Limpiar tokens expirados de la blacklist'\n    \n    def handle(self, *args, **options):\n        now = timezone.now()\n        deleted_count, _ = TokenBlacklist.objects.filter(\n            expires_at__lt=now\n        ).delete()\n        \n        self.stdout.write(\n            self.style.SUCCESS(\n                f'Eliminados {deleted_count} tokens expirados'\n            )\n        )\n\n# Ejecutar diariamente con Celery o cron",
+    "crumbs": [
+      "Seguridad y Autenticación",
+      "Seguridad de Tokens - TiendaUniversitaria"
+    ]
+  },
+  {
+    "objectID": "seguridad-tokens.html#auditoría-y-logging",
+    "href": "seguridad-tokens.html#auditoría-y-logging",
+    "title": "Seguridad de Tokens - TiendaUniversitaria",
+    "section": "",
+    "text": "# tienda/middleware.py\n\nimport logging\nfrom django.utils import timezone\n\nlogger = logging.getLogger(__name__)\n\nclass TokenAuditMiddleware:\n    def __init__(self, get_response):\n        self.get_response = get_response\n    \n    def __call__(self, request):\n        # Registrar antes del request\n        if hasattr(request, 'user') and request.user.is_authenticated:\n            logger.info(\n                f\"Usuario {request.user.email} accedió a {request.path}\",\n                extra={\n                    'user_id': request.user.id,\n                    'path': request.path,\n                    'method': request.method,\n                    'ip': self.get_client_ip(request),\n                    'timestamp': timezone.now().isoformat()\n                }\n            )\n        \n        response = self.get_response(request)\n        return response\n    \n    @staticmethod\n    def get_client_ip(request):\n        \"\"\"Obtener IP del cliente\"\"\"\n        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')\n        if x_forwarded_for:\n            return x_forwarded_for.split(',')[0]\n        return request.META.get('REMOTE_ADDR')",
+    "crumbs": [
+      "Seguridad y Autenticación",
+      "Seguridad de Tokens - TiendaUniversitaria"
+    ]
+  },
+  {
+    "objectID": "seguridad-tokens.html#csrf-protection",
+    "href": "seguridad-tokens.html#csrf-protection",
+    "title": "Seguridad de Tokens - TiendaUniversitaria",
+    "section": "",
+    "text": "# core/settings.py\n\nCSRF_TRUSTED_ORIGINS = [\n    'http://localhost:3000',\n    'http://localhost:5173',\n    'https://tuendauniversitaria.ec',\n]\n\n# Para formularios HTML tradicionales\nCSRF_COOKIE_SECURE = True  # Solo HTTPS\nCSRF_COOKIE_HTTPONLY = False  # JS necesita leerlo\nCSRF_COOKIE_SAMESITE = 'Strict'\n\n\n\n# tienda/authentication.py\n\nclass LoginView(APIView):\n    def post(self, request):\n        # ... lógica de login\n        \n        response = Response({...})\n        \n        # Agregar headers de seguridad\n        response['X-Content-Type-Options'] = 'nosniff'\n        response['X-Frame-Options'] = 'DENY'\n        response['X-XSS-Protection'] = '1; mode=block'\n        response['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'\n        \n        return response",
+    "crumbs": [
+      "Seguridad y Autenticación",
+      "Seguridad de Tokens - TiendaUniversitaria"
+    ]
+  },
+  {
+    "objectID": "seguridad-tokens.html#checklist-de-seguridad",
+    "href": "seguridad-tokens.html#checklist-de-seguridad",
+    "title": "Seguridad de Tokens - TiendaUniversitaria",
+    "section": "",
+    "text": "Tokens almacenados en lugar seguro (httpOnly cookies en prod)\nHTTPS obligatorio en producción\nExpiración corta para access tokens (24h)\nExpiración razonable para refresh tokens (7d)\nRate limiting en endpoints de autenticación\nToken blacklist implementado para logout\nValidación de token en cada request protegido\nCORS configurado correctamente\nCSRF protection habilitado\nLogging y auditoría de acceso\nManejo seguro de errores (no exponer información)\nRefresh token rotation habilitado\nHeaders de seguridad agregados\nTests de seguridad implementados\nDocumentación de políticas de tokens",
+    "crumbs": [
+      "Seguridad y Autenticación",
+      "Seguridad de Tokens - TiendaUniversitaria"
+    ]
+  },
+  {
+    "objectID": "seguridad-tokens.html#referencias-de-seguridad",
+    "href": "seguridad-tokens.html#referencias-de-seguridad",
+    "title": "Seguridad de Tokens - TiendaUniversitaria",
+    "section": "",
+    "text": "OWASP JWT Cheat Sheet\nAuth0 JWT Best Practices\nRFC 8949 - Concise Binary Object Representation\nOWASP Authentication Cheat Sheet\n\n\nVersión: 1.0.0\nÚltima actualización: 2024\nClasificación: Interno\nResponsable: Security Team",
+    "crumbs": [
+      "Seguridad y Autenticación",
+      "Seguridad de Tokens - TiendaUniversitaria"
+    ]
+  },
+  {
+    "objectID": "specs.html",
+    "href": "specs.html",
+    "title": "Documentación de Specs SDD",
+    "section": "",
+    "text": "Esta sección describe cómo la herramienta Spec Kit y la metodología Spec-Driven Development (SDD) se usaron para definir e implementar las historias de usuario de la Tienda Universitaria.",
+    "crumbs": [
+      "Especificaciones de Negocio",
+      "Documentación de Specs SDD"
+    ]
+  },
+  {
+    "objectID": "specs.html#autenticación-y-lopdp-catálogo-base",
+    "href": "specs.html#autenticación-y-lopdp-catálogo-base",
+    "title": "Documentación de Specs SDD",
+    "section": "001 - Autenticación y LOPDP (Catálogo Base)",
+    "text": "001 - Autenticación y LOPDP (Catálogo Base)\nRuta en Repositorio: specs/001-user-registration-lopdp/\n\nResumen del Planteamiento API\n\nArquitectura: Headless, usando Django Rest Framework (DRF) (Frontend con React).\nCriterios De Aceptación: Toda solicitud a POST /usuarios/registro/ debe ser rechazada explícitamente si el campo flag consentimiento_lopdp es evaluado como falso u omitido (Art. 39).\nModelo de Minimización: Extensión controlada del base abstracto AbstractUser aislando sólo: nombre, email, password, y política atada.\n\n\n\nCumplimiento VS Pruebas\n\n\n\n\n\n\n\n\nRegla SDD Requerida\nEstado de Implementación\nReporte de Cobertura Python\n\n\n\n\nREQ-01: Inmutabilidad del Timestamp\nCumplido - models.DateTimeField(auto_now_add=True)\n100% Validado\n\n\nREQ-02: Minimización (No recolectar demás)\nCumplido - El serializador rechaza dinámicamente kwargs.\n100% Validado\n\n\nREQ-03: Endpoint de Políticas Activas\nCumplido - Recuperar .first() orden descendente\n100% Validado",
+    "crumbs": [
+      "Especificaciones de Negocio",
+      "Documentación de Specs SDD"
+    ]
+  },
+  {
+    "objectID": "specs.html#funcionalidades-de-negocio-globales-catálogo-ventas-e-inventario",
+    "href": "specs.html#funcionalidades-de-negocio-globales-catálogo-ventas-e-inventario",
+    "title": "Documentación de Specs SDD",
+    "section": "002 - Funcionalidades de Negocio Globales (Catálogo, Ventas e Inventario)",
+    "text": "002 - Funcionalidades de Negocio Globales (Catálogo, Ventas e Inventario)\nRuta en Repositorio: specs/002-product-catalog/\n\nResumen del Planteamiento\n\nArquitectura en Módulos separados (C4 Model Nivel 4).\nModelado de Roles y Cajas.\nModelado de Promociones y Medidas.\nManejo de Stock a través del Módulo de Inventario (Solicitudes de abastecimiento).",
+    "crumbs": [
+      "Especificaciones de Negocio",
+      "Documentación de Specs SDD"
+    ]
+  },
+  {
+    "objectID": "specs.html#integraciones-externas",
+    "href": "specs.html#integraciones-externas",
+    "title": "Documentación de Specs SDD",
+    "section": "003 - Integraciones Externas",
+    "text": "003 - Integraciones Externas\nRuta en Repositorio: specs/003-integrations/\n\nCheckout y Asistencia AI\n\nCheckout mediante PrimeiroPay (Copy&Pay).\nAsistencia usando ecosistema Gemini API Flash 2.5 vía peticiones POST seguras para no exponer key en frontend.\n\n\nGenerado automáticamente en base al YAML / specs.",
+    "crumbs": [
+      "Especificaciones de Negocio",
+      "Documentación de Specs SDD"
+    ]
+  }
+]
