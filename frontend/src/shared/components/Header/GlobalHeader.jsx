@@ -188,9 +188,11 @@ export const GlobalHeader = () => {
               className="p-2 hover:bg-white/10 rounded-DEFAULT transition-colors flex items-center gap-1 relative"
             >
               <span className="material-symbols-outlined">shopping_cart</span>
-              <span className="absolute top-0 right-0 md:static bg-error text-on-error text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-                {totalItems}
-              </span>
+              {totalItems > 0 && (
+                <span className="absolute top-0 right-0 md:static bg-error text-on-error text-[10px] font-bold px-1.5 py-0.5 rounded-full animate-bounce">
+                  {totalItems}
+                </span>
+              )}
               <span className="hidden md:block font-title-md text-[14px] font-bold mt-3">Carrito</span>
             </button>
           </div>

@@ -69,7 +69,7 @@ export const OrdersPage = () => {
 
   const handleLogout = () => {
     logout();
-    navigate('/login');
+    navigate('/catalogo');
   };
 
   return (
