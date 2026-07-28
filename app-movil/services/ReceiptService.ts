@@ -1,8 +1,7 @@
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { Alert } from 'react-native';
-
-const API_URL = process.env.EXPO_PUBLIC_API_URL;
+import { API_URL } from '../context/AuthContext';
 
 export const downloadReceiptPDF = async (paymentIntentId: string) => {
   try {

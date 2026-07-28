@@ -29,11 +29,14 @@ import {
 } from 'lucide-react-native';
 import { Colors } from '../constants/Colors';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
+import { AnimatedButton } from '../components/AnimatedButton';
 
 export const RegisterScreen: React.FC = () => {
     const navigation = useNavigation<any>();
     const { register, isLoading } = useAuth();
-    
+    const { theme } = useTheme();
+
     // Estados del Formulario
     const [userType, setUserType] = useState<'UNL' | 'GENERAL'>('UNL');
     const [nombreCompleto, setNombreCompleto] = useState('');
@@ -368,17 +371,17 @@ export const RegisterScreen: React.FC = () => {
                         </TouchableOpacity>
 
                         {/* Botón de Registro */}
-                        <TouchableOpacity 
-                            style={[styles.registerButton, isLoading && styles.registerButtonDisabled]} 
+                        <AnimatedButton
+                            style={[styles.registerButton, { backgroundColor: theme.primary }, isLoading && styles.registerButtonDisabled]}
                             onPress={handleRegister}
                             disabled={isLoading}
                         >
                             {isLoading ? (
-                                <ActivityIndicator size="small" color={Colors.onPrimary} />
+                                <ActivityIndicator size="small" color={theme.onPrimary} />
                             ) : (
-                                <Text style={styles.registerButtonText}>Crear Cuenta</Text>
+                                <Text style={[styles.registerButtonText, { color: theme.onPrimary }]}>Crear Cuenta</Text>
                             )}
-                        </TouchableOpacity>
+                        </AnimatedButton>
                     </View>
 
                     <TouchableOpacity style={styles.loginLink} onPress={() => navigation.navigate('Profile')} disabled={isLoading}>

@@ -1,7 +1,8 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Minus, Plus } from 'lucide-react-native';
-import { Colors } from '../constants/Colors';
+import { useTheme } from '../context/ThemeContext';
+import { AnimatedButton } from './AnimatedButton';
 
 interface QuantitySelectorProps {
     quantity: number;
@@ -10,21 +11,23 @@ interface QuantitySelectorProps {
 }
 
 export const QuantitySelector: React.FC<QuantitySelectorProps> = ({ quantity, onIncrease, onDecrease }) => {
+    const { theme } = useTheme();
+
     return (
-        <View style={styles.container}>
-            <TouchableOpacity
+        <View style={[styles.container, { borderColor: theme.border, backgroundColor: theme.surface }]}>
+            <AnimatedButton
                 style={styles.button}
                 onPress={onDecrease}
                 disabled={quantity <= 1}
             >
-                <Minus color={quantity <= 1 ? Colors.border : Colors.onSurface} size={20} />
-            </TouchableOpacity>
+                <Minus color={quantity <= 1 ? theme.muted : theme.onSurface} size={20} />
+            </AnimatedButton>
 
-            <Text style={styles.quantity}>{quantity}</Text>
+            <Text style={[styles.quantity, { color: theme.onSurface }]}>{quantity}</Text>
 
-            <TouchableOpacity style={styles.button} onPress={onIncrease}>
-                <Plus color={Colors.onSurface} size={20} />
-            </TouchableOpacity>
+            <AnimatedButton style={styles.button} onPress={onIncrease}>
+                <Plus color={theme.onSurface} size={20} />
+            </AnimatedButton>
         </View>
     );
 };
@@ -34,21 +37,18 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         borderWidth: 1,
-        borderColor: Colors.border,
         borderRadius: 8,
-        backgroundColor: Colors.background,
     },
     button: {
-        padding: 12,
+        padding: 8,
         justifyContent: 'center',
         alignItems: 'center',
     },
     quantity: {
         fontSize: 16,
         fontWeight: '600',
-        color: Colors.onSurface,
-        paddingHorizontal: 16,
-        minWidth: 48,
+        paddingHorizontal: 12,
+        minWidth: 40,
         textAlign: 'center',
     },
 });

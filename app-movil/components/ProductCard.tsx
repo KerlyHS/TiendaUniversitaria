@@ -1,7 +1,8 @@
 import React from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Image, Dimensions } from 'react-native';
 import { Product } from '../types/product';
-import { Colors } from '../constants/Colors';
+import { useTheme } from '../context/ThemeContext';
+import { AnimatedButton } from './AnimatedButton';
 
 interface ProductCardProps {
     product: Product;
@@ -10,18 +11,17 @@ interface ProductCardProps {
 
 const { width } = Dimensions.get('window');
 const CARD_MARGIN = 8;
-// Calculamos el ancho para 2 columnas considerando márgenes (16px lateral, 8px entre tarjetas)
 const CARD_WIDTH = (width - 32 - CARD_MARGIN * 2) / 2;
 
 export const ProductCard: React.FC<ProductCardProps> = ({ product, onPress }) => {
+    const { theme } = useTheme();
+
     return (
-        <TouchableOpacity
-            style={styles.card}
+        <AnimatedButton
+            style={[styles.card, { backgroundColor: theme.card, shadowColor: theme.black, borderColor: theme.border }]}
             onPress={() => onPress(product)}
-            activeOpacity={0.8}
-            accessibilityRole="button"
         >
-            <View style={styles.imageContainer}>
+            <View style={[styles.imageContainer, { backgroundColor: theme.background }]}>
                 <Image
                     source={{ uri: product.imageUrl }}
                     style={styles.image}
@@ -29,34 +29,32 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onPress }) =>
                 />
             </View>
             <View style={styles.infoContainer}>
-                <Text style={styles.code}>{product.code}</Text>
-                <Text style={styles.name} numberOfLines={2}>{product.name}</Text>
+                <Text style={[styles.code, { color: theme.muted }]}>{product.code}</Text>
+                <Text style={[styles.name, { color: theme.onSurface }]} numberOfLines={2}>{product.name}</Text>
                 <View style={styles.priceRow}>
-                    <Text style={styles.price}>${product.price.toFixed(2)}</Text>
-                    {product.hasIva && <Text style={styles.iva}> + IVA</Text>}
+                    <Text style={[styles.price, { color: theme.primary }]}>${product.price.toFixed(2)}</Text>
+                    {product.hasIva && <Text style={[styles.iva, { color: theme.primary }]}> + IVA</Text>}
                 </View>
             </View>
-        </TouchableOpacity>
+        </AnimatedButton>
     );
 };
 
 const styles = StyleSheet.create({
     card: {
         width: CARD_WIDTH,
-        backgroundColor: Colors.white,
-        borderRadius: 8,
+        borderRadius: 12, // More rounded like web
         margin: CARD_MARGIN,
-        shadowColor: Colors.black,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 4,
-        elevation: 2,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 3,
         overflow: 'hidden',
+        borderWidth: 1,
     },
     imageContainer: {
         width: '100%',
-        height: CARD_WIDTH, // Aspect ratio 1:1
-        backgroundColor: Colors.background,
+        height: CARD_WIDTH,
     },
     image: {
         width: '100%',
@@ -66,29 +64,27 @@ const styles = StyleSheet.create({
         padding: 12,
     },
     code: {
-        fontSize: 12,
-        color: Colors.muted,
+        fontSize: 10,
         marginBottom: 4,
+        textTransform: 'uppercase',
     },
     name: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: Colors.onSurface,
+        fontSize: 15,
+        fontWeight: 'bold',
         marginBottom: 8,
-        height: 40, // Fija la altura para 2 líneas
+        height: 40,
     },
     priceRow: {
         flexDirection: 'row',
         alignItems: 'baseline',
     },
     price: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: Colors.primary, // Verde UNL para el precio
+        fontSize: 18,
+        fontWeight: '800',
     },
     iva: {
-        fontSize: 12,
-        color: Colors.primary,
-        fontWeight: '600',
+        fontSize: 11,
+        fontWeight: '700',
+        marginLeft: 2,
     },
 });
