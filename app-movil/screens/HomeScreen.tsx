@@ -1,23 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, FlatList, StatusBar, Alert, ActivityIndicator, Text, TouchableOpacity } from 'react-native';
-import axios from 'axios';
 import { Header } from '../components/Header';
 import { PromotionalBanner } from '../components/PromotionalBanner';
-import { Colors } from '../constants/Colors';
 import { ProductCard } from '../components/ProductCard';
 import { BottomNavigation } from '../components/BottomNavigation';
-import { ClothingProductModal } from '../components/ClothingProductModal';
-import { FoodProductModal } from '../components/FoodProductModal';
-// Import removed mockProducts
-import { Product } from '../types/product';
+import { ProductDetailModal } from '../components/ProductDetailModal';
+import { ProductSkeleton } from '../components/SkeletonLoader';
+import { AnimatedButton } from '../components/AnimatedButton';
+import { Product, ProductVariation } from '../types/product';
+import { API_URL, useAuth } from '../context/AuthContext';
+import { useCart } from '../context/CartContext';
+import { useTheme } from '../context/ThemeContext';
 
 export const HomeScreen: React.FC = () => {
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-    const [clothingModalVisible, setClothingModalVisible] = useState(false);
-    const [foodModalVisible, setFoodModalVisible] = useState(false);
+    const [detailModalVisible, setDetailModalVisible] = useState(false);
     const [products, setProducts] = useState<Product[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const { addToCart } = useCart();
+    const { apiFetch } = useAuth();
+    const { theme, isDark } = useTheme();
 
     useEffect(() => {
         fetchProducts();
@@ -27,21 +30,32 @@ export const HomeScreen: React.FC = () => {
         try {
             setIsLoading(true);
             setError(null);
-            const response = await axios.get(`${process.env.EXPO_PUBLIC_API_URL}/productos/`);
-            
-            const apiProducts = (response.data.results || response.data).map((p: any) => ({
+
+            const response = await apiFetch('/productos/');
+
+            if (!response.ok) {
+                throw new Error(`Error del servidor: ${response.status}`);
+            }
+
+            const data = await response.json();
+
+            const apiProducts = (data.results || data).map((p: any) => ({
                 id: p.id.toString(),
                 code: p.codigo || `SKU-${p.id}`,
                 name: p.nombre,
-                price: parseFloat(p.precio),
+                description: p.descripcion || 'Sin descripción disponible.',
+                price: typeof p.precio === 'number' ? p.precio : parseFloat(p.precio),
+                stock: p.stock || 0,
                 category: p.is_food ? 'food' : (p.is_ropa ? 'clothing' : 'accessory'),
                 imageUrl: p.imagen || 'https://via.placeholder.com/400x400/1e293b/ffffff?text=Producto',
-                hasIva: p.tiene_iva,
+                hasIva: p.tiene_iva || p.aplica_impuesto,
+                variaciones: p.variaciones || [],
             }));
             
             setProducts(apiProducts);
         } catch (err: any) {
-            setError(err.message || 'Error al conectar con el servidor.');
+            console.error('Error fetching products:', err);
+            setError(err.message === 'Network request failed' ? 'Error de conexión con el servidor.' : err.message);
         } finally {
             setIsLoading(false);
         }
@@ -49,41 +63,44 @@ export const HomeScreen: React.FC = () => {
 
     const handleProductPress = (product: Product) => {
         setSelectedProduct(product);
-        if (product.category === 'clothing') {
-            setClothingModalVisible(true);
-        } else if (product.category === 'food') {
-            setFoodModalVisible(true);
-        } else {
-            // Para productos genéricos como libros, tazas, libretas
-            handleAddToCart(product, 1, 'unit');
-        }
+        setDetailModalVisible(true);
     };
 
-    const handleAddToCart = (product: Product, quantity: number, option?: string) => {
-        // Aquí es donde en el futuro integrarás Zustand (ej: useCartStore.getState().addItem(...))
+    const handleAddToCart = (product: Product, quantity: number, variation?: ProductVariation) => {
+        addToCart(product, quantity, variation);
+
         Alert.alert(
             'Añadido al carrito',
-            `${quantity}x ${product.name} ${option ? `(${option})` : ''} añadido exitosamente.`,
+            `${quantity}x ${product.name} ${variation ? `(${variation.nombre})` : ''} añadido exitosamente.`,
             [{ text: 'OK' }]
         );
     };
 
     return (
-        <View style={styles.container}>
-            <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
+        <View style={[styles.container, { backgroundColor: theme.background }]}>
+            <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={theme.primary} />
 
             <Header />
 
             {isLoading ? (
-                <View style={styles.center}>
-                    <ActivityIndicator size="large" color={Colors.primary} />
+                <View style={styles.listContent}>
+                    <PromotionalBanner />
+                    <View style={styles.columnWrapperStyle}>
+                        <ProductSkeleton />
+                        <ProductSkeleton />
+                        <ProductSkeleton />
+                        <ProductSkeleton />
+                    </View>
                 </View>
             ) : error ? (
                 <View style={styles.center}>
-                    <Text style={styles.errorText}>{error}</Text>
-                    <TouchableOpacity style={styles.retryButton} onPress={fetchProducts}>
+                    <Text style={[styles.errorText, { color: theme.error }]}>{error}</Text>
+                    <AnimatedButton
+                        style={[styles.retryButton, { backgroundColor: theme.primary }]}
+                        onPress={fetchProducts}
+                    >
                         <Text style={styles.retryText}>Reintentar</Text>
-                    </TouchableOpacity>
+                    </AnimatedButton>
                 </View>
             ) : (
                 <FlatList
@@ -101,27 +118,20 @@ export const HomeScreen: React.FC = () => {
 
             <BottomNavigation />
 
-            <ClothingProductModal
-                product={selectedProduct?.category === 'clothing' ? selectedProduct : null}
-                visible={clothingModalVisible}
-                onClose={() => setClothingModalVisible(false)}
-                onAddToCart={handleAddToCart}
-            />
-
-            <FoodProductModal
-                product={selectedProduct?.category === 'food' ? selectedProduct : null}
-                visible={foodModalVisible}
-                onClose={() => setFoodModalVisible(false)}
+            <ProductDetailModal
+                product={selectedProduct}
+                visible={detailModalVisible}
+                onClose={() => setDetailModalVisible(false)}
                 onAddToCart={handleAddToCart}
             />
         </View>
     );
 };
 
+
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: Colors.surface, // Fondo web
     },
     listContent: {
         paddingBottom: 24,
@@ -137,11 +147,9 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     errorText: {
-        color: Colors.error,
         marginBottom: 16,
     },
     retryButton: {
-        backgroundColor: Colors.primary,
         paddingHorizontal: 20,
         paddingVertical: 10,
         borderRadius: 8,

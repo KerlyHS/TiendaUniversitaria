@@ -1,34 +1,40 @@
 import React from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, SafeAreaView, Platform } from 'react-native';
-import { Bell } from 'lucide-react-native';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Platform } from 'react-native';
+import { Bell, User } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
-import { Colors } from '../constants/Colors';
+import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
+import { AnimatedButton } from './AnimatedButton';
 
 export const Header: React.FC = () => {
     const navigation = useNavigation<any>();
+    const { theme } = useTheme();
+    const { user } = useAuth();
+
+    const getInitials = () => {
+        if (!user || !user.nombre_completo) return 'U';
+        return user.nombre_completo.split(' ').map((n: string) => n[0]).slice(0, 2).join('').toUpperCase();
+    };
 
     return (
-        <SafeAreaView style={styles.safeArea}>
-            <View style={styles.container}>
-                <TouchableOpacity 
-                    style={styles.avatarContainer} 
-                    accessibilityRole="button" 
-                    accessibilityLabel="Perfil de usuario"
+        <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.primary }]}>
+            <View style={[styles.container, { backgroundColor: theme.primary }]}>
+                <AnimatedButton
+                    style={[styles.avatarContainer, { borderColor: theme.onPrimary }]}
                     onPress={() => navigation.navigate('Profile')}
                 >
-                    <Image
-                        source={{ uri: 'https://i.pravatar.cc/100?img=11' }}
-                        style={styles.avatar}
-                    />
-                </TouchableOpacity>
+                    <View style={styles.avatarPlaceholder}>
+                        <Text style={[styles.avatarText, { color: theme.onPrimary }]}>{getInitials()}</Text>
+                    </View>
+                </AnimatedButton>
 
                 <View style={styles.titleContainer}>
-                    <Text style={styles.title}>Tienda Universitaria</Text>
+                    <Text style={[styles.title, { color: theme.onPrimary }]}>Tienda Universitaria</Text>
                 </View>
 
-                <TouchableOpacity style={styles.iconContainer} accessibilityRole="button" accessibilityLabel="Notificaciones">
-                    <Bell color={Colors.onPrimary} size={24} />
-                </TouchableOpacity>
+                <AnimatedButton style={styles.iconContainer} onPress={() => {}}>
+                    <Bell color={theme.onPrimary} size={24} />
+                </AnimatedButton>
             </View>
         </SafeAreaView>
     );
@@ -36,7 +42,6 @@ export const Header: React.FC = () => {
 
 const styles = StyleSheet.create({
     safeArea: {
-        backgroundColor: Colors.primary,
         paddingTop: Platform.OS === 'android' ? 25 : 0,
     },
     container: {
@@ -45,7 +50,6 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         paddingHorizontal: 16,
         paddingVertical: 12,
-        backgroundColor: Colors.primary,
     },
     avatarContainer: {
         width: 40,
@@ -53,18 +57,24 @@ const styles = StyleSheet.create({
         borderRadius: 20,
         overflow: 'hidden',
         borderWidth: 2,
-        borderColor: Colors.onPrimary,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
-    avatar: {
+    avatarPlaceholder: {
         width: '100%',
         height: '100%',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    avatarText: {
+        fontSize: 16,
+        fontWeight: 'bold',
     },
     titleContainer: {
         flex: 1,
         alignItems: 'center',
     },
     title: {
-        color: Colors.onPrimary,
         fontSize: 18,
         fontWeight: 'bold',
         letterSpacing: 0.5,

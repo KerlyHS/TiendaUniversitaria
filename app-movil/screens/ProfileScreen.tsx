@@ -4,20 +4,22 @@ import {
     Text, 
     StyleSheet, 
     SafeAreaView, 
-    Image, 
-    TouchableOpacity, 
+    TouchableOpacity,
     FlatList, 
     TextInput, 
     ActivityIndicator, 
     Alert,
     KeyboardAvoidingView,
     Platform,
-    ScrollView
+    ScrollView,
+    Switch
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { ChevronLeft, ShoppingBag, LogOut, User, Mail, Lock, Phone, MapPin, BadgeHelp, CheckCircle2 } from 'lucide-react-native';
-import { Colors } from '../constants/Colors';
+import { ChevronLeft, ShoppingBag, LogOut, User, Mail, Lock, Phone, MapPin, BadgeHelp, CheckCircle2, Moon, Sun } from 'lucide-react-native';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
+import { BottomNavigation } from '../components/BottomNavigation';
+import { AnimatedButton } from '../components/AnimatedButton';
 
 interface OrderItem {
     id: number;
@@ -29,7 +31,8 @@ interface OrderItem {
 
 export const ProfileScreen: React.FC = () => {
     const navigation = useNavigation<any>();
-    const { user, isAuthenticated, isLoading, error: authError, login, logout, apiFetch } = useAuth();
+    const { user, isAuthenticated, isLoading, login, logout, apiFetch } = useAuth();
+    const { theme, isDark, toggleTheme } = useTheme();
     
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -37,7 +40,6 @@ export const ProfileScreen: React.FC = () => {
     const [orders, setOrders] = useState<OrderItem[]>([]);
     const [loadingOrders, setLoadingOrders] = useState(false);
 
-    // Cargar órdenes reales del usuario cuando esté autenticado
     useEffect(() => {
         if (isAuthenticated) {
             fetchUserOrders();
@@ -50,7 +52,6 @@ export const ProfileScreen: React.FC = () => {
             const res = await apiFetch('/pedidos/');
             if (res.ok) {
                 const data = await res.json();
-                // Si la respuesta es paginada, obtenemos data.results, si no, data directa
                 const orderList = Array.isArray(data) ? data : (data.results || []);
                 setOrders(orderList);
             }
@@ -106,7 +107,7 @@ export const ProfileScreen: React.FC = () => {
             case 'CANCELADO':
                 return '#ef4444';
             default:
-                return Colors.primaryContainer;
+                return theme.primaryContainer;
         }
     };
 
@@ -115,17 +116,17 @@ export const ProfileScreen: React.FC = () => {
         const orderDate = item.fecha_creacion ? new Date(item.fecha_creacion).toLocaleDateString() : 'N/A';
         
         return (
-            <View style={styles.purchaseCard}>
+            <View style={[styles.purchaseCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
                 <View style={styles.purchaseHeader}>
-                    <Text style={styles.orderNumber}>{item.numero_pedido || `Pedido #${item.id}`}</Text>
-                    <Text style={styles.purchaseDate}>{orderDate}</Text>
+                    <Text style={[styles.orderNumber, { color: theme.onSurface }]}>{item.numero_pedido || `Pedido #${item.id}`}</Text>
+                    <Text style={[styles.purchaseDate, { color: theme.muted }]}>{orderDate}</Text>
                 </View>
                 <View style={styles.purchaseDetails}>
                     <View style={styles.purchaseInfo}>
-                        <ShoppingBag color={Colors.secondaryText} size={16} style={{ marginRight: 6 }} />
-                        <Text style={styles.purchaseStatusLabel}>Estado: {item.estado}</Text>
+                        <ShoppingBag color={theme.secondaryText} size={16} style={{ marginRight: 6 }} />
+                        <Text style={[styles.purchaseStatusLabel, { color: theme.secondaryText }]}>Estado: {item.estado}</Text>
                     </View>
-                    <Text style={styles.purchaseTotal}>${orderTotal.toFixed(2)}</Text>
+                    <Text style={[styles.purchaseTotal, { color: theme.primary }]}>${orderTotal.toFixed(2)}</Text>
                 </View>
                 <View style={styles.purchaseFooter}>
                     <Text style={[
@@ -144,16 +145,16 @@ export const ProfileScreen: React.FC = () => {
 
     if (isLoading) {
         return (
-            <SafeAreaView style={[styles.safeArea, styles.loadingCenter]}>
-                <ActivityIndicator size="large" color={Colors.primary} />
-                <Text style={styles.loadingText}>Cargando información del perfil...</Text>
+            <SafeAreaView style={[styles.safeArea, styles.loadingCenter, { backgroundColor: theme.surface }]}>
+                <ActivityIndicator size="large" color={theme.primary} />
+                <Text style={[styles.loadingText, { color: theme.secondaryText }]}>Cargando información del perfil...</Text>
             </SafeAreaView>
         );
     }
 
     if (!isAuthenticated || !user) {
         return (
-            <SafeAreaView style={styles.safeArea}>
+            <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.surface }]}>
                 <KeyboardAvoidingView 
                     style={{ flex: 1 }}
                     behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -161,35 +162,34 @@ export const ProfileScreen: React.FC = () => {
                     <ScrollView contentContainerStyle={styles.loginScroll} showsVerticalScrollIndicator={false}>
                         <View style={styles.loginHeader}>
                             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButtonAbsolute}>
-                                <ChevronLeft color={Colors.onSurface} size={28} />
+                                <ChevronLeft color={theme.onSurface} size={28} />
                             </TouchableOpacity>
-                            <View style={styles.loginIconContainer}>
-                                <User color={Colors.primary} size={48} />
+                            <View style={[styles.loginIconContainer, { backgroundColor: theme.primary + '15' }]}>
+                                <User color={theme.primary} size={48} />
                             </View>
-                            <Text style={styles.loginTitle}>¡Bienvenido de nuevo!</Text>
-                            <Text style={styles.loginSubtitle}>Ingresa a tu cuenta de la Tienda Universitaria</Text>
+                            <Text style={[styles.loginTitle, { color: theme.onSurface }]}>¡Bienvenido de nuevo!</Text>
+                            <Text style={[styles.loginSubtitle, { color: theme.secondaryText }]}>Ingresa a tu cuenta de la Tienda Universitaria</Text>
                         </View>
 
-                        {/* Indicación de tipo de usuario */}
-                        <View style={styles.userTypeTipBox}>
-                            <BadgeHelp color={Colors.primary} size={20} style={{ marginRight: 8, marginTop: 2 }} />
+                        <View style={[styles.userTypeTipBox, { backgroundColor: isDark ? '#1e293b' : '#e6f4ea', borderColor: isDark ? theme.border : '#34a85360' }]}>
+                            <BadgeHelp color={theme.primary} size={20} style={{ marginRight: 8, marginTop: 2 }} />
                             <View style={{ flex: 1 }}>
-                                <Text style={styles.userTypeTipTitle}>Información de Acceso</Text>
-                                <Text style={styles.userTypeTipText}>
+                                <Text style={[styles.userTypeTipTitle, { color: theme.primary }]}>Información de Acceso</Text>
+                                <Text style={[styles.userTypeTipText, { color: theme.onSurfaceVariant }]}>
                                     Si eres de la <Text style={{ fontWeight: 'bold' }}>Comunidad UNL</Text>, inicia sesión con tu correo institucional (@unl.edu.ec). El público general puede usar su correo personal registrado.
                                 </Text>
                             </View>
                         </View>
 
-                        <View style={styles.cardContainer}>
+                        <View style={[styles.cardContainer, { backgroundColor: theme.card, borderColor: theme.border, shadowColor: theme.black }]}>
                             <View style={styles.inputContainer}>
-                                <Text style={styles.inputLabel}>Correo Electrónico</Text>
-                                <View style={styles.inputWrapper}>
-                                    <Mail color={Colors.muted} size={20} style={styles.inputIcon} />
+                                <Text style={[styles.inputLabel, { color: theme.onSurface }]}>Correo Electrónico</Text>
+                                <View style={[styles.inputWrapper, { borderColor: theme.border, backgroundColor: theme.surface }]}>
+                                    <Mail color={theme.muted} size={20} style={styles.inputIcon} />
                                     <TextInput
-                                        style={styles.inputField}
+                                        style={[styles.inputField, { color: theme.onSurface }]}
                                         placeholder="ejemplo@correo.com o @unl.edu.ec"
-                                        placeholderTextColor={Colors.muted}
+                                        placeholderTextColor={theme.muted}
                                         value={email}
                                         onChangeText={setEmail}
                                         autoCapitalize="none"
@@ -200,13 +200,13 @@ export const ProfileScreen: React.FC = () => {
                             </View>
 
                             <View style={styles.inputContainer}>
-                                <Text style={styles.inputLabel}>Contraseña</Text>
-                                <View style={styles.inputWrapper}>
-                                    <Lock color={Colors.muted} size={20} style={styles.inputIcon} />
+                                <Text style={[styles.inputLabel, { color: theme.onSurface }]}>Contraseña</Text>
+                                <View style={[styles.inputWrapper, { borderColor: theme.border, backgroundColor: theme.surface }]}>
+                                    <Lock color={theme.muted} size={20} style={styles.inputIcon} />
                                     <TextInput
-                                        style={styles.inputField}
+                                        style={[styles.inputField, { color: theme.onSurface }]}
                                         placeholder="••••••••"
-                                        placeholderTextColor={Colors.muted}
+                                        placeholderTextColor={theme.muted}
                                         value={password}
                                         onChangeText={setPassword}
                                         secureTextEntry
@@ -215,51 +215,52 @@ export const ProfileScreen: React.FC = () => {
                                 </View>
                             </View>
 
-                            <TouchableOpacity 
-                                style={[styles.loginButton, isSubmitting && styles.loginButtonDisabled]} 
+                            <AnimatedButton
+                                style={[styles.loginButton, { backgroundColor: theme.primary, shadowColor: theme.primary }, isSubmitting && styles.loginButtonDisabled]}
                                 onPress={handleLogin}
                                 disabled={isSubmitting}
                             >
                                 {isSubmitting ? (
-                                    <ActivityIndicator size="small" color={Colors.onPrimary} />
+                                    <ActivityIndicator size="small" color={theme.onPrimary} />
                                 ) : (
-                                    <Text style={styles.loginButtonText}>Iniciar Sesión</Text>
+                                    <Text style={[styles.loginButtonText, { color: theme.onPrimary }]}>Iniciar Sesión</Text>
                                 )}
-                            </TouchableOpacity>
+                            </AnimatedButton>
                         </View>
 
                         <TouchableOpacity style={styles.registerLink} onPress={() => navigation.navigate('Register')}>
-                            <Text style={styles.registerLinkText}>¿No tienes cuenta? <Text style={styles.registerLinkHighlight}>Regístrate aquí</Text></Text>
+                            <Text style={[styles.registerLinkText, { color: theme.secondaryText }]}>¿No tienes cuenta? <Text style={[styles.registerLinkHighlight, { color: theme.primary }]}>Regístrate aquí</Text></Text>
                         </TouchableOpacity>
                     </ScrollView>
                 </KeyboardAvoidingView>
+                <BottomNavigation />
             </SafeAreaView>
         );
     }
 
     return (
-        <SafeAreaView style={styles.safeArea}>
-            <View style={styles.header}>
+        <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.surface }]}>
+            <View style={[styles.header, { backgroundColor: theme.primary }]}>
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                    <ChevronLeft color={Colors.onPrimary} size={28} />
+                    <ChevronLeft color={theme.onPrimary} size={28} />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Mi Perfil</Text>
+                <Text style={[styles.headerTitle, { color: theme.onPrimary }]}>Mi Perfil</Text>
                 <TouchableOpacity onPress={handleLogout} style={styles.backButton}>
-                    <LogOut color={Colors.onPrimary} size={24} />
+                    <LogOut color={theme.onPrimary} size={24} />
                 </TouchableOpacity>
             </View>
 
-            <View style={styles.profileHeader}>
-                <View style={styles.avatarWrapper}>
-                    <Text style={styles.avatarInitials}>
-                        {user.nombre_completo ? user.nombre_completo.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase() : 'U'}
+            <View style={[styles.profileHeader, { backgroundColor: theme.card, borderBottomColor: theme.border }]}>
+                <View style={[styles.avatarWrapper, { backgroundColor: theme.primary, shadowColor: theme.primary }]}>
+                    <Text style={[styles.avatarInitials, { color: theme.onPrimary }]}>
+                        {user.nombre_completo ? user.nombre_completo.split(' ').map((n: any) => n[0]).slice(0, 2).join('').toUpperCase() : 'U'}
                     </Text>
                 </View>
-                <Text style={styles.profileName}>{user.nombre_completo}</Text>
+                <Text style={[styles.profileName, { color: theme.onSurface }]}>{user.nombre_completo}</Text>
                 <View style={styles.badgeContainer}>
-                    <View style={[styles.userBadge, { backgroundColor: user.is_universidad ? '#005e2615' : '#0ea5e915' }]}>
-                        <CheckCircle2 color={user.is_universidad ? Colors.primary : Colors.price} size={14} style={{ marginRight: 4 }} />
-                        <Text style={[styles.userBadgeText, { color: user.is_universidad ? Colors.primary : Colors.price }]}>
+                    <View style={[styles.userBadge, { backgroundColor: user.is_universidad ? theme.primary + '15' : theme.price + '15' }]}>
+                        <CheckCircle2 color={user.is_universidad ? theme.primary : theme.price} size={14} style={{ marginRight: 4 }} />
+                        <Text style={[styles.userBadgeText, { color: user.is_universidad ? theme.primary : theme.price }]}>
                             {user.is_universidad ? `Comunidad UNL - ${user.comunidad_rol || 'Miembro'}` : 'Público General'}
                         </Text>
                     </View>
@@ -268,51 +269,70 @@ export const ProfileScreen: React.FC = () => {
 
             <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
                 <View style={styles.sectionContainer}>
-                    <Text style={styles.sectionTitle}>Datos Personales</Text>
-                    <View style={styles.infoCard}>
-                        <View style={styles.infoRow}>
-                            <Mail color={Colors.secondaryText} size={18} style={styles.infoIcon} />
+                    <Text style={[styles.sectionTitle, { color: theme.onSurface }]}>Configuración</Text>
+                    <View style={[styles.infoCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+                        <View style={[styles.infoRow, { borderBottomWidth: 0 }]}>
+                            {isDark ? <Moon color={theme.secondaryText} size={18} style={styles.infoIcon} /> : <Sun color={theme.secondaryText} size={18} style={styles.infoIcon} />}
                             <View style={styles.infoContent}>
-                                <Text style={styles.infoLabel}>Correo Electrónico</Text>
-                                <Text style={styles.infoValue}>{user.email}</Text>
+                                <Text style={[styles.infoLabel, { color: theme.muted }]}>Modo Oscuro</Text>
+                                <Text style={[styles.infoValue, { color: theme.onSurface }]}>{isDark ? 'Activado' : 'Desactivado'}</Text>
+                            </View>
+                            <Switch
+                                value={isDark}
+                                onValueChange={toggleTheme}
+                                trackColor={{ false: theme.border, true: theme.primary + '80' }}
+                                thumbColor={isDark ? theme.primary : '#f4f3f4'}
+                            />
+                        </View>
+                    </View>
+                </View>
+
+                <View style={styles.sectionContainer}>
+                    <Text style={[styles.sectionTitle, { color: theme.onSurface }]}>Datos Personales</Text>
+                    <View style={[styles.infoCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+                        <View style={[styles.infoRow, { borderBottomColor: theme.surface }]}>
+                            <Mail color={theme.secondaryText} size={18} style={styles.infoIcon} />
+                            <View style={styles.infoContent}>
+                                <Text style={[styles.infoLabel, { color: theme.muted }]}>Correo Electrónico</Text>
+                                <Text style={[styles.infoValue, { color: theme.onSurface }]}>{user.email}</Text>
                             </View>
                         </View>
 
-                        <View style={styles.infoRow}>
-                            <User color={Colors.secondaryText} size={18} style={styles.infoIcon} />
+                        <View style={[styles.infoRow, { borderBottomColor: theme.surface }]}>
+                            <User color={theme.secondaryText} size={18} style={styles.infoIcon} />
                             <View style={styles.infoContent}>
-                                <Text style={styles.infoLabel}>Identificación (Cédula/Pasaporte)</Text>
-                                <Text style={styles.infoValue}>{user.identificacion || 'No especificada'}</Text>
+                                <Text style={[styles.infoLabel, { color: theme.muted }]}>Identificación (Cédula/Pasaporte)</Text>
+                                <Text style={[styles.infoValue, { color: theme.onSurface }]}>{user.identificacion || 'No especificada'}</Text>
                             </View>
                         </View>
 
-                        <View style={styles.infoRow}>
-                            <Phone color={Colors.secondaryText} size={18} style={styles.infoIcon} />
+                        <View style={[styles.infoRow, { borderBottomColor: theme.surface }]}>
+                            <Phone color={theme.secondaryText} size={18} style={styles.infoIcon} />
                             <View style={styles.infoContent}>
-                                <Text style={styles.infoLabel}>Teléfono</Text>
-                                <Text style={styles.infoValue}>{user.telefono || 'No especificado'}</Text>
+                                <Text style={[styles.infoLabel, { color: theme.muted }]}>Teléfono</Text>
+                                <Text style={[styles.infoValue, { color: theme.onSurface }]}>{user.telefono || 'No especificado'}</Text>
                             </View>
                         </View>
 
                         <View style={[styles.infoRow, { borderBottomWidth: 0 }]}>
-                            <MapPin color={Colors.secondaryText} size={18} style={styles.infoIcon} />
+                            <MapPin color={theme.secondaryText} size={18} style={styles.infoIcon} />
                             <View style={styles.infoContent}>
-                                <Text style={styles.infoLabel}>Dirección de envío</Text>
-                                <Text style={styles.infoValue}>{user.direccion || 'No especificada'}</Text>
+                                <Text style={[styles.infoLabel, { color: theme.muted }]}>Dirección de envío</Text>
+                                <Text style={[styles.infoValue, { color: theme.onSurface }]}>{user.direccion || 'No especificada'}</Text>
                             </View>
                         </View>
                     </View>
                 </View>
 
                 <View style={[styles.sectionContainer, { marginBottom: 32 }]}>
-                    <Text style={styles.sectionTitle}>Historial de Pedidos</Text>
+                    <Text style={[styles.sectionTitle, { color: theme.onSurface }]}>Historial de Pedidos</Text>
                     
                     {loadingOrders ? (
-                        <ActivityIndicator size="small" color={Colors.primary} style={{ marginVertical: 20 }} />
+                        <ActivityIndicator size="small" color={theme.primary} style={{ marginVertical: 20 }} />
                     ) : orders.length === 0 ? (
-                        <View style={styles.emptyOrdersCard}>
-                            <ShoppingBag color={Colors.muted} size={40} style={{ marginBottom: 12 }} />
-                            <Text style={styles.emptyOrdersText}>Aún no tienes pedidos registrados.</Text>
+                        <View style={[styles.emptyOrdersCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+                            <ShoppingBag color={theme.muted} size={40} style={{ marginBottom: 12 }} />
+                            <Text style={[styles.emptyOrdersText, { color: theme.muted }]}>Aún no tienes pedidos registrados.</Text>
                         </View>
                     ) : (
                         <FlatList
@@ -325,6 +345,7 @@ export const ProfileScreen: React.FC = () => {
                     )}
                 </View>
             </ScrollView>
+            <BottomNavigation />
         </SafeAreaView>
     );
 };
@@ -332,7 +353,6 @@ export const ProfileScreen: React.FC = () => {
 const styles = StyleSheet.create({
     safeArea: {
         flex: 1,
-        backgroundColor: Colors.surface,
     },
     loadingCenter: {
         justifyContent: 'center',
@@ -340,14 +360,12 @@ const styles = StyleSheet.create({
     },
     loadingText: {
         marginTop: 12,
-        color: Colors.secondaryText,
         fontSize: 15,
     },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        backgroundColor: Colors.primary,
         paddingHorizontal: 16,
         paddingVertical: 16,
     },
@@ -355,11 +373,10 @@ const styles = StyleSheet.create({
         padding: 4,
     },
     headerTitle: {
-        color: Colors.onPrimary,
         fontSize: 18,
         fontWeight: 'bold',
     },
-    
+
     // Login Screen Redesign
     loginScroll: {
         paddingHorizontal: 24,
@@ -380,7 +397,6 @@ const styles = StyleSheet.create({
         width: 80,
         height: 80,
         borderRadius: 40,
-        backgroundColor: Colors.primary + '15',
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: 16,
@@ -388,21 +404,17 @@ const styles = StyleSheet.create({
     loginTitle: {
         fontSize: 24,
         fontWeight: 'bold',
-        color: Colors.onSurface,
         marginBottom: 6,
         textAlign: 'center',
     },
     loginSubtitle: {
         fontSize: 14,
-        color: Colors.secondaryText,
         textAlign: 'center',
         paddingHorizontal: 12,
     },
     userTypeTipBox: {
         flexDirection: 'row',
-        backgroundColor: '#e6f4ea',
         borderWidth: 1,
-        borderColor: '#34a85360',
         borderRadius: 12,
         padding: 14,
         marginBottom: 24,
@@ -410,25 +422,20 @@ const styles = StyleSheet.create({
     userTypeTipTitle: {
         fontSize: 13,
         fontWeight: 'bold',
-        color: Colors.primary,
         marginBottom: 2,
     },
     userTypeTipText: {
         fontSize: 12,
-        color: Colors.onSurfaceVariant,
         lineHeight: 16,
     },
     cardContainer: {
-        backgroundColor: Colors.white,
-        borderRadius: 16,
-        padding: 20,
-        shadowColor: '#0f172a',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.05,
-        shadowRadius: 12,
-        elevation: 3,
+        borderRadius: 20,
+        padding: 24,
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.1,
+        shadowRadius: 15,
+        elevation: 4,
         borderWidth: 1,
-        borderColor: Colors.border,
     },
     inputContainer: {
         marginBottom: 18,
@@ -436,16 +443,13 @@ const styles = StyleSheet.create({
     inputLabel: {
         fontSize: 14,
         fontWeight: '600',
-        color: Colors.onSurface,
         marginBottom: 8,
     },
     inputWrapper: {
         flexDirection: 'row',
         alignItems: 'center',
         borderWidth: 1,
-        borderColor: Colors.border,
         borderRadius: 10,
-        backgroundColor: Colors.surface,
         paddingHorizontal: 12,
         height: 48,
     },
@@ -455,17 +459,14 @@ const styles = StyleSheet.create({
     inputField: {
         flex: 1,
         fontSize: 15,
-        color: Colors.onSurface,
         height: '100%',
     },
     loginButton: {
         height: 48,
-        backgroundColor: Colors.primary,
         borderRadius: 10,
         justifyContent: 'center',
         alignItems: 'center',
         marginTop: 10,
-        shadowColor: Colors.primary,
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.2,
         shadowRadius: 8,
@@ -475,7 +476,6 @@ const styles = StyleSheet.create({
         opacity: 0.7,
     },
     loginButtonText: {
-        color: Colors.onPrimary,
         fontSize: 16,
         fontWeight: 'bold',
     },
@@ -485,11 +485,9 @@ const styles = StyleSheet.create({
         padding: 8,
     },
     registerLinkText: {
-        color: Colors.secondaryText,
         fontSize: 15,
     },
     registerLinkHighlight: {
-        color: Colors.primary,
         fontWeight: 'bold',
     },
 
@@ -497,19 +495,15 @@ const styles = StyleSheet.create({
     profileHeader: {
         alignItems: 'center',
         paddingVertical: 28,
-        backgroundColor: Colors.white,
         borderBottomWidth: 1,
-        borderBottomColor: Colors.border,
     },
     avatarWrapper: {
         width: 88,
         height: 88,
         borderRadius: 44,
-        backgroundColor: Colors.primary,
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: 12,
-        shadowColor: Colors.primary,
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.15,
         shadowRadius: 10,
@@ -517,14 +511,12 @@ const styles = StyleSheet.create({
     },
     avatarInitials: {
         fontSize: 32,
-        color: Colors.onPrimary,
         fontWeight: 'bold',
         letterSpacing: 1,
     },
     profileName: {
         fontSize: 22,
         fontWeight: 'bold',
-        color: Colors.onSurface,
         marginBottom: 8,
     },
     badgeContainer: {
@@ -548,23 +540,19 @@ const styles = StyleSheet.create({
     sectionTitle: {
         fontSize: 16,
         fontWeight: '700',
-        color: Colors.onSurface,
         marginBottom: 12,
         paddingLeft: 4,
     },
     infoCard: {
-        backgroundColor: Colors.white,
         borderRadius: 16,
         padding: 16,
         borderWidth: 1,
-        borderColor: Colors.border,
     },
     infoRow: {
         flexDirection: 'row',
         alignItems: 'center',
         paddingVertical: 12,
         borderBottomWidth: 1,
-        borderBottomColor: Colors.surface,
     },
     infoContent: {
         flex: 1,
@@ -572,13 +560,11 @@ const styles = StyleSheet.create({
     },
     infoLabel: {
         fontSize: 12,
-        color: Colors.muted,
         fontWeight: '500',
         marginBottom: 2,
     },
     infoValue: {
         fontSize: 14,
-        color: Colors.onSurface,
         fontWeight: '600',
     },
     infoIcon: {
@@ -590,12 +576,10 @@ const styles = StyleSheet.create({
         paddingBottom: 16,
     },
     purchaseCard: {
-        backgroundColor: Colors.white,
         borderRadius: 14,
         padding: 16,
         marginBottom: 12,
         borderWidth: 1,
-        borderColor: Colors.border,
     },
     purchaseHeader: {
         flexDirection: 'row',
@@ -605,11 +589,9 @@ const styles = StyleSheet.create({
     orderNumber: {
         fontSize: 14,
         fontWeight: '700',
-        color: Colors.onSurface,
     },
     purchaseDate: {
         fontSize: 12,
-        color: Colors.muted,
     },
     purchaseDetails: {
         flexDirection: 'row',
@@ -623,12 +605,10 @@ const styles = StyleSheet.create({
     },
     purchaseStatusLabel: {
         fontSize: 13,
-        color: Colors.secondaryText,
     },
     purchaseTotal: {
         fontSize: 16,
         fontWeight: '700',
-        color: Colors.primary,
     },
     purchaseFooter: {
         alignItems: 'flex-start',
@@ -642,17 +622,15 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
     },
     emptyOrdersCard: {
-        backgroundColor: Colors.white,
         borderRadius: 16,
         borderWidth: 1,
-        borderColor: Colors.border,
         padding: 32,
         alignItems: 'center',
         justifyContent: 'center',
     },
     emptyOrdersText: {
         fontSize: 14,
-        color: Colors.muted,
         textAlign: 'center',
     }
 });
+
