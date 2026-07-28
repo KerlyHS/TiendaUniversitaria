@@ -2,18 +2,49 @@
 __pycache__/
 *.py[cod]
 *$py.class
-# Node
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Django
+db.sqlite3
+db.sqlite3-journal
+media/
+static/
+staticfiles/
+
+# VS Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.history/
+
+# PyCharm / IntelliJ
+.idea/
+
+# Node (Frontend / Mobile)
 node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.expo/
 dist/
 build/
+.claude/
 
 # Environments
 .env
 .venv
-env/
-venv/
-ENV/
 
 # OS generated files
 .DS_Store
+.DS_Store?
+._*
 Thumbs.db
+desktop.ini
