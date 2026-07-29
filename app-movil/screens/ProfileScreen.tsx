@@ -3,21 +3,25 @@ import {
     View, 
     Text, 
     StyleSheet, 
-    SafeAreaView, 
-    Image, 
-    TouchableOpacity, 
+    TouchableOpacity,
     FlatList, 
     TextInput, 
     ActivityIndicator, 
     Alert,
     KeyboardAvoidingView,
     Platform,
-    ScrollView
+    ScrollView,
+    Switch,
+    Image,
+    StatusBar
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import { ChevronLeft, ShoppingBag, LogOut, User, Mail, Lock, Phone, MapPin, BadgeHelp, CheckCircle2 } from 'lucide-react-native';
-import { Colors } from '../constants/Colors';
+import { ChevronLeft, ChevronRight, ShoppingBag, LogOut, User, Mail, Lock, Phone, MapPin, BadgeHelp, CheckCircle2, Moon, Sun, Bell, ShieldAlert } from 'lucide-react-native';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
+import { BottomNavigation } from '../components/BottomNavigation';
+import { AnimatedButton } from '../components/AnimatedButton';
 
 interface OrderItem {
     id: number;
@@ -29,7 +33,8 @@ interface OrderItem {
 
 export const ProfileScreen: React.FC = () => {
     const navigation = useNavigation<any>();
-    const { user, isAuthenticated, isLoading, error: authError, login, logout, apiFetch } = useAuth();
+    const { user, isAuthenticated, isLoading, login, logout, apiFetch } = useAuth();
+    const { theme, isDark, toggleTheme } = useTheme();
     
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -37,7 +42,6 @@ export const ProfileScreen: React.FC = () => {
     const [orders, setOrders] = useState<OrderItem[]>([]);
     const [loadingOrders, setLoadingOrders] = useState(false);
 
-    // Cargar órdenes reales del usuario cuando esté autenticado
     useEffect(() => {
         if (isAuthenticated) {
             fetchUserOrders();
@@ -50,7 +54,6 @@ export const ProfileScreen: React.FC = () => {
             const res = await apiFetch('/pedidos/');
             if (res.ok) {
                 const data = await res.json();
-                // Si la respuesta es paginada, obtenemos data.results, si no, data directa
                 const orderList = Array.isArray(data) ? data : (data.results || []);
                 setOrders(orderList);
             }
@@ -106,7 +109,7 @@ export const ProfileScreen: React.FC = () => {
             case 'CANCELADO':
                 return '#ef4444';
             default:
-                return Colors.primaryContainer;
+                return theme.primaryContainer;
         }
     };
 
@@ -115,17 +118,17 @@ export const ProfileScreen: React.FC = () => {
         const orderDate = item.fecha_creacion ? new Date(item.fecha_creacion).toLocaleDateString() : 'N/A';
         
         return (
-            <View style={styles.purchaseCard}>
+            <View style={[styles.purchaseCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
                 <View style={styles.purchaseHeader}>
-                    <Text style={styles.orderNumber}>{item.numero_pedido || `Pedido #${item.id}`}</Text>
-                    <Text style={styles.purchaseDate}>{orderDate}</Text>
+                    <Text style={[styles.orderNumber, { color: theme.onSurface }]}>{item.numero_pedido || `Pedido #${item.id}`}</Text>
+                    <Text style={[styles.purchaseDate, { color: theme.muted }]}>{orderDate}</Text>
                 </View>
                 <View style={styles.purchaseDetails}>
                     <View style={styles.purchaseInfo}>
-                        <ShoppingBag color={Colors.secondaryText} size={16} style={{ marginRight: 6 }} />
-                        <Text style={styles.purchaseStatusLabel}>Estado: {item.estado}</Text>
+                        <ShoppingBag color={theme.secondaryText} size={16} style={{ marginRight: 6 }} />
+                        <Text style={[styles.purchaseStatusLabel, { color: theme.secondaryText }]}>Estado: {item.estado}</Text>
                     </View>
-                    <Text style={styles.purchaseTotal}>${orderTotal.toFixed(2)}</Text>
+                    <Text style={[styles.purchaseTotal, { color: theme.primary }]}>${orderTotal.toFixed(2)}</Text>
                 </View>
                 <View style={styles.purchaseFooter}>
                     <Text style={[
@@ -144,187 +147,163 @@ export const ProfileScreen: React.FC = () => {
 
     if (isLoading) {
         return (
-            <SafeAreaView style={[styles.safeArea, styles.loadingCenter]}>
-                <ActivityIndicator size="large" color={Colors.primary} />
-                <Text style={styles.loadingText}>Cargando información del perfil...</Text>
+            <SafeAreaView style={[styles.safeArea, styles.loadingCenter, { backgroundColor: theme.surface }]}>
+                <ActivityIndicator size="large" color={theme.primary} />
+                <Text style={[styles.loadingText, { color: theme.secondaryText }]}>Cargando información del perfil...</Text>
             </SafeAreaView>
         );
     }
 
     if (!isAuthenticated || !user) {
         return (
-            <SafeAreaView style={styles.safeArea}>
+            <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.surface }]}>
                 <KeyboardAvoidingView 
                     style={{ flex: 1 }}
                     behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                 >
                     <ScrollView contentContainerStyle={styles.loginScroll} showsVerticalScrollIndicator={false}>
                         <View style={styles.loginHeader}>
-                            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButtonAbsolute}>
-                                <ChevronLeft color={Colors.onSurface} size={28} />
-                            </TouchableOpacity>
-                            <View style={styles.loginIconContainer}>
-                                <User color={Colors.primary} size={48} />
-                            </View>
-                            <Text style={styles.loginTitle}>¡Bienvenido de nuevo!</Text>
-                            <Text style={styles.loginSubtitle}>Ingresa a tu cuenta de la Tienda Universitaria</Text>
+                            <Image
+                                source={require('../assets/icon.png')}
+                                style={styles.loginLogo}
+                                resizeMode="contain"
+                            />
+                            <Text style={[styles.loginTitle, { color: theme.onSurface }]}>¡Bienvenido!</Text>
+                            <Text style={[styles.loginSubtitle, { color: theme.secondaryText }]}>Inicia sesión en tu cuenta</Text>
                         </View>
 
-                        {/* Indicación de tipo de usuario */}
-                        <View style={styles.userTypeTipBox}>
-                            <BadgeHelp color={Colors.primary} size={20} style={{ marginRight: 8, marginTop: 2 }} />
-                            <View style={{ flex: 1 }}>
-                                <Text style={styles.userTypeTipTitle}>Información de Acceso</Text>
-                                <Text style={styles.userTypeTipText}>
-                                    Si eres de la <Text style={{ fontWeight: 'bold' }}>Comunidad UNL</Text>, inicia sesión con tu correo institucional (@unl.edu.ec). El público general puede usar su correo personal registrado.
-                                </Text>
-                            </View>
-                        </View>
-
-                        <View style={styles.cardContainer}>
+                        <View style={styles.formContainer}>
                             <View style={styles.inputContainer}>
-                                <Text style={styles.inputLabel}>Correo Electrónico</Text>
-                                <View style={styles.inputWrapper}>
-                                    <Mail color={Colors.muted} size={20} style={styles.inputIcon} />
+                                <Text style={[styles.inputLabel, { color: theme.onSurface }]}>Correo institucional</Text>
+                                <View style={[styles.inputWrapper, { borderColor: theme.border }]}>
                                     <TextInput
-                                        style={styles.inputField}
-                                        placeholder="ejemplo@correo.com o @unl.edu.ec"
-                                        placeholderTextColor={Colors.muted}
+                                        style={[styles.inputField, { color: theme.onSurface }]}
+                                        placeholder="usuario@unl.edu.ec"
+                                        placeholderTextColor={theme.muted}
                                         value={email}
                                         onChangeText={setEmail}
                                         autoCapitalize="none"
                                         keyboardType="email-address"
-                                        editable={!isSubmitting}
                                     />
                                 </View>
                             </View>
 
                             <View style={styles.inputContainer}>
-                                <Text style={styles.inputLabel}>Contraseña</Text>
-                                <View style={styles.inputWrapper}>
-                                    <Lock color={Colors.muted} size={20} style={styles.inputIcon} />
+                                <Text style={[styles.inputLabel, { color: theme.onSurface }]}>Contraseña</Text>
+                                <View style={[styles.inputWrapper, { borderColor: theme.border }]}>
                                     <TextInput
-                                        style={styles.inputField}
+                                        style={[styles.inputField, { color: theme.onSurface }]}
                                         placeholder="••••••••"
-                                        placeholderTextColor={Colors.muted}
+                                        placeholderTextColor={theme.muted}
                                         value={password}
                                         onChangeText={setPassword}
                                         secureTextEntry
-                                        editable={!isSubmitting}
                                     />
+                                    <TouchableOpacity>
+                                        <Text style={{ color: theme.muted }}>👁️</Text>
+                                    </TouchableOpacity>
                                 </View>
                             </View>
 
-                            <TouchableOpacity 
-                                style={[styles.loginButton, isSubmitting && styles.loginButtonDisabled]} 
+                            <TouchableOpacity style={styles.forgotPassword}>
+                                <Text style={[styles.forgotPasswordText, { color: theme.primary }]}>¿Olvidaste tu contraseña?</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={[styles.loginButton, { backgroundColor: theme.primary }]}
                                 onPress={handleLogin}
                                 disabled={isSubmitting}
                             >
                                 {isSubmitting ? (
-                                    <ActivityIndicator size="small" color={Colors.onPrimary} />
+                                    <ActivityIndicator size="small" color="#fff" />
                                 ) : (
-                                    <Text style={styles.loginButtonText}>Iniciar Sesión</Text>
+                                    <Text style={styles.loginButtonText}>Iniciar sesión</Text>
                                 )}
+                            </TouchableOpacity>
+
+                            <View style={styles.dividerContainer}>
+                                <View style={[styles.line, { backgroundColor: theme.border }]} />
+                                <Text style={[styles.dividerText, { color: theme.muted }]}>o continúa con</Text>
+                                <View style={[styles.line, { backgroundColor: theme.border }]} />
+                            </View>
+
+                            <TouchableOpacity style={[styles.googleButton, { borderColor: theme.border }]}>
+                                <Text style={[styles.googleButtonText, { color: theme.onSurface }]}>G Google</Text>
                             </TouchableOpacity>
                         </View>
 
                         <TouchableOpacity style={styles.registerLink} onPress={() => navigation.navigate('Register')}>
-                            <Text style={styles.registerLinkText}>¿No tienes cuenta? <Text style={styles.registerLinkHighlight}>Regístrate aquí</Text></Text>
+                            <Text style={[styles.registerLinkText, { color: theme.secondaryText }]}>
+                                ¿No tienes cuenta? <Text style={{ color: theme.primary, fontWeight: 'bold' }}>Regístrate</Text>
+                            </Text>
                         </TouchableOpacity>
                     </ScrollView>
                 </KeyboardAvoidingView>
+                <BottomNavigation />
             </SafeAreaView>
         );
     }
 
     return (
-        <SafeAreaView style={styles.safeArea}>
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                    <ChevronLeft color={Colors.onPrimary} size={28} />
-                </TouchableOpacity>
-                <Text style={styles.headerTitle}>Mi Perfil</Text>
-                <TouchableOpacity onPress={handleLogout} style={styles.backButton}>
-                    <LogOut color={Colors.onPrimary} size={24} />
-                </TouchableOpacity>
-            </View>
+        <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.surface }]}>
+            <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={theme.surface} />
 
             <View style={styles.profileHeader}>
-                <View style={styles.avatarWrapper}>
-                    <Text style={styles.avatarInitials}>
-                        {user.nombre_completo ? user.nombre_completo.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase() : 'U'}
-                    </Text>
+                <View style={[styles.avatarContainer, { backgroundColor: theme.background }]}>
+                    <Image
+                        source={{ uri: 'https://via.placeholder.com/150x150/006837/ffffff?text=User' }}
+                        style={styles.avatar}
+                    />
                 </View>
-                <Text style={styles.profileName}>{user.nombre_completo}</Text>
-                <View style={styles.badgeContainer}>
-                    <View style={[styles.userBadge, { backgroundColor: user.is_universidad ? '#005e2615' : '#0ea5e915' }]}>
-                        <CheckCircle2 color={user.is_universidad ? Colors.primary : Colors.price} size={14} style={{ marginRight: 4 }} />
-                        <Text style={[styles.userBadgeText, { color: user.is_universidad ? Colors.primary : Colors.price }]}>
-                            {user.is_universidad ? `Comunidad UNL - ${user.comunidad_rol || 'Miembro'}` : 'Público General'}
-                        </Text>
-                    </View>
-                </View>
+                <Text style={[styles.profileName, { color: theme.onSurface }]}>{user.nombre_completo}</Text>
+                <Text style={[styles.profileEmail, { color: theme.secondaryText }]}>{user.email}</Text>
             </View>
 
-            <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
-                <View style={styles.sectionContainer}>
-                    <Text style={styles.sectionTitle}>Datos Personales</Text>
-                    <View style={styles.infoCard}>
-                        <View style={styles.infoRow}>
-                            <Mail color={Colors.secondaryText} size={18} style={styles.infoIcon} />
-                            <View style={styles.infoContent}>
-                                <Text style={styles.infoLabel}>Correo Electrónico</Text>
-                                <Text style={styles.infoValue}>{user.email}</Text>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.menuContainer}>
+                {[
+                    { label: 'Mis datos', icon: User },
+                    { label: 'Direcciones', icon: MapPin },
+                    { label: 'Métodos de pago', icon: Lock },
+                    { label: 'Mis pedidos', icon: ShoppingBag, onPress: () => navigation.navigate('History') },
+                    { label: 'Notificaciones', icon: Bell },
+                    { label: 'Configuración', icon: ShieldAlert },
+                ].map((item, index) => {
+                    const Icon = item.icon;
+                    return (
+                        <TouchableOpacity
+                            key={index}
+                            style={[styles.menuItem, { borderBottomColor: theme.border }]}
+                            onPress={item.onPress}
+                        >
+                            <View style={styles.menuItemLeft}>
+                                <Icon color={theme.onSurface} size={20} />
+                                <Text style={[styles.menuItemLabel, { color: theme.onSurface }]}>{item.label}</Text>
                             </View>
-                        </View>
+                            <ChevronRight color={theme.muted} size={20} />
+                        </TouchableOpacity>
+                    );
+                })}
 
-                        <View style={styles.infoRow}>
-                            <User color={Colors.secondaryText} size={18} style={styles.infoIcon} />
-                            <View style={styles.infoContent}>
-                                <Text style={styles.infoLabel}>Identificación (Cédula/Pasaporte)</Text>
-                                <Text style={styles.infoValue}>{user.identificacion || 'No especificada'}</Text>
-                            </View>
-                        </View>
-
-                        <View style={styles.infoRow}>
-                            <Phone color={Colors.secondaryText} size={18} style={styles.infoIcon} />
-                            <View style={styles.infoContent}>
-                                <Text style={styles.infoLabel}>Teléfono</Text>
-                                <Text style={styles.infoValue}>{user.telefono || 'No especificado'}</Text>
-                            </View>
-                        </View>
-
-                        <View style={[styles.infoRow, { borderBottomWidth: 0 }]}>
-                            <MapPin color={Colors.secondaryText} size={18} style={styles.infoIcon} />
-                            <View style={styles.infoContent}>
-                                <Text style={styles.infoLabel}>Dirección de envío</Text>
-                                <Text style={styles.infoValue}>{user.direccion || 'No especificada'}</Text>
-                            </View>
-                        </View>
+                <View style={styles.themeToggle}>
+                    <View style={styles.menuItemLeft}>
+                        {isDark ? <Moon color={theme.onSurface} size={20} /> : <Sun color={theme.onSurface} size={20} />}
+                        <Text style={[styles.menuItemLabel, { color: theme.onSurface }]}>Modo Oscuro</Text>
                     </View>
+                    <Switch
+                        value={isDark}
+                        onValueChange={toggleTheme}
+                        trackColor={{ false: theme.border, true: theme.primary + '80' }}
+                        thumbColor={isDark ? theme.primary : '#f4f3f4'}
+                    />
                 </View>
 
-                <View style={[styles.sectionContainer, { marginBottom: 32 }]}>
-                    <Text style={styles.sectionTitle}>Historial de Pedidos</Text>
-                    
-                    {loadingOrders ? (
-                        <ActivityIndicator size="small" color={Colors.primary} style={{ marginVertical: 20 }} />
-                    ) : orders.length === 0 ? (
-                        <View style={styles.emptyOrdersCard}>
-                            <ShoppingBag color={Colors.muted} size={40} style={{ marginBottom: 12 }} />
-                            <Text style={styles.emptyOrdersText}>Aún no tienes pedidos registrados.</Text>
-                        </View>
-                    ) : (
-                        <FlatList
-                            data={orders}
-                            renderItem={renderPurchaseItem}
-                            keyExtractor={(item) => item.id.toString()}
-                            scrollEnabled={false}
-                            contentContainerStyle={styles.ordersList}
-                        />
-                    )}
-                </View>
+                <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+                    <LogOut color={theme.error} size={20} />
+                    <Text style={[styles.logoutText, { color: theme.error }]}>Cerrar sesión</Text>
+                </TouchableOpacity>
             </ScrollView>
+
+            <BottomNavigation />
         </SafeAreaView>
     );
 };
@@ -332,7 +311,6 @@ export const ProfileScreen: React.FC = () => {
 const styles = StyleSheet.create({
     safeArea: {
         flex: 1,
-        backgroundColor: Colors.surface,
     },
     loadingCenter: {
         justifyContent: 'center',
@@ -340,14 +318,12 @@ const styles = StyleSheet.create({
     },
     loadingText: {
         marginTop: 12,
-        color: Colors.secondaryText,
         fontSize: 15,
     },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        backgroundColor: Colors.primary,
         paddingHorizontal: 16,
         paddingVertical: 16,
     },
@@ -355,304 +331,182 @@ const styles = StyleSheet.create({
         padding: 4,
     },
     headerTitle: {
-        color: Colors.onPrimary,
         fontSize: 18,
         fontWeight: 'bold',
     },
-    
+
     // Login Screen Redesign
     loginScroll: {
-        paddingHorizontal: 24,
+        paddingHorizontal: 30,
         paddingBottom: 40,
     },
     loginHeader: {
         alignItems: 'center',
-        marginTop: 40,
-        marginBottom: 24,
+        marginTop: 60,
+        marginBottom: 40,
     },
-    backButtonAbsolute: {
-        position: 'absolute',
-        left: 0,
-        top: 0,
-        padding: 4,
-    },
-    loginIconContainer: {
-        width: 80,
-        height: 80,
-        borderRadius: 40,
-        backgroundColor: Colors.primary + '15',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 16,
+    loginLogo: {
+        width: 100,
+        height: 100,
+        marginBottom: 20,
     },
     loginTitle: {
-        fontSize: 24,
+        fontSize: 28,
         fontWeight: 'bold',
-        color: Colors.onSurface,
-        marginBottom: 6,
+        marginBottom: 8,
         textAlign: 'center',
     },
     loginSubtitle: {
-        fontSize: 14,
-        color: Colors.secondaryText,
+        fontSize: 16,
         textAlign: 'center',
-        paddingHorizontal: 12,
+        marginBottom: 30,
     },
-    userTypeTipBox: {
-        flexDirection: 'row',
-        backgroundColor: '#e6f4ea',
-        borderWidth: 1,
-        borderColor: '#34a85360',
-        borderRadius: 12,
-        padding: 14,
-        marginBottom: 24,
-    },
-    userTypeTipTitle: {
-        fontSize: 13,
-        fontWeight: 'bold',
-        color: Colors.primary,
-        marginBottom: 2,
-    },
-    userTypeTipText: {
-        fontSize: 12,
-        color: Colors.onSurfaceVariant,
-        lineHeight: 16,
-    },
-    cardContainer: {
-        backgroundColor: Colors.white,
-        borderRadius: 16,
-        padding: 20,
-        shadowColor: '#0f172a',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.05,
-        shadowRadius: 12,
-        elevation: 3,
-        borderWidth: 1,
-        borderColor: Colors.border,
+    formContainer: {
+        width: '100%',
     },
     inputContainer: {
-        marginBottom: 18,
+        marginBottom: 20,
     },
     inputLabel: {
         fontSize: 14,
         fontWeight: '600',
-        color: Colors.onSurface,
         marginBottom: 8,
     },
     inputWrapper: {
         flexDirection: 'row',
         alignItems: 'center',
-        borderWidth: 1,
-        borderColor: Colors.border,
-        borderRadius: 10,
-        backgroundColor: Colors.surface,
-        paddingHorizontal: 12,
-        height: 48,
-    },
-    inputIcon: {
-        marginRight: 10,
+        borderWidth: 1.5,
+        borderRadius: 15,
+        paddingHorizontal: 16,
+        height: 56,
     },
     inputField: {
         flex: 1,
-        fontSize: 15,
-        color: Colors.onSurface,
+        fontSize: 16,
         height: '100%',
     },
-    loginButton: {
-        height: 48,
-        backgroundColor: Colors.primary,
-        borderRadius: 10,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginTop: 10,
-        shadowColor: Colors.primary,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.2,
-        shadowRadius: 8,
-        elevation: 2,
+    forgotPassword: {
+        alignSelf: 'flex-end',
+        marginBottom: 30,
     },
-    loginButtonDisabled: {
-        opacity: 0.7,
-    },
-    loginButtonText: {
-        color: Colors.onPrimary,
-        fontSize: 16,
-        fontWeight: 'bold',
-    },
-    registerLink: {
-        marginTop: 24,
-        alignItems: 'center',
-        padding: 8,
-    },
-    registerLinkText: {
-        color: Colors.secondaryText,
-        fontSize: 15,
-    },
-    registerLinkHighlight: {
-        color: Colors.primary,
-        fontWeight: 'bold',
-    },
-
-    // Profile Screen Layout
-    profileHeader: {
-        alignItems: 'center',
-        paddingVertical: 28,
-        backgroundColor: Colors.white,
-        borderBottomWidth: 1,
-        borderBottomColor: Colors.border,
-    },
-    avatarWrapper: {
-        width: 88,
-        height: 88,
-        borderRadius: 44,
-        backgroundColor: Colors.primary,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 12,
-        shadowColor: Colors.primary,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.15,
-        shadowRadius: 10,
-        elevation: 4,
-    },
-    avatarInitials: {
-        fontSize: 32,
-        color: Colors.onPrimary,
-        fontWeight: 'bold',
-        letterSpacing: 1,
-    },
-    profileName: {
-        fontSize: 22,
-        fontWeight: 'bold',
-        color: Colors.onSurface,
-        marginBottom: 8,
-    },
-    badgeContainer: {
-        flexDirection: 'row',
-    },
-    userBadge: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 20,
-    },
-    userBadgeText: {
-        fontSize: 12,
-        fontWeight: '700',
-    },
-    sectionContainer: {
-        marginTop: 20,
-        paddingHorizontal: 16,
-    },
-    sectionTitle: {
-        fontSize: 16,
-        fontWeight: '700',
-        color: Colors.onSurface,
-        marginBottom: 12,
-        paddingLeft: 4,
-    },
-    infoCard: {
-        backgroundColor: Colors.white,
-        borderRadius: 16,
-        padding: 16,
-        borderWidth: 1,
-        borderColor: Colors.border,
-    },
-    infoRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: 12,
-        borderBottomWidth: 1,
-        borderBottomColor: Colors.surface,
-    },
-    infoContent: {
-        flex: 1,
-        marginLeft: 12,
-    },
-    infoLabel: {
-        fontSize: 12,
-        color: Colors.muted,
-        fontWeight: '500',
-        marginBottom: 2,
-    },
-    infoValue: {
+    forgotPasswordText: {
         fontSize: 14,
-        color: Colors.onSurface,
         fontWeight: '600',
     },
-    infoIcon: {
-        marginRight: 8,
+    loginButton: {
+        height: 56,
+        borderRadius: 15,
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 10,
+        elevation: 2,
+    },
+    loginButtonText: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
+    dividerContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginVertical: 30,
+    },
+    line: {
+        flex: 1,
+        height: 1,
+    },
+    dividerText: {
+        marginHorizontal: 10,
+        fontSize: 14,
+    },
+    googleButton: {
+        height: 56,
+        borderRadius: 15,
+        borderWidth: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        flexDirection: 'row',
+    },
+    googleButtonText: {
+        fontSize: 16,
+        fontWeight: '600',
+    },
+    registerLink: {
+        marginTop: 30,
+        alignItems: 'center',
+    },
+    registerLinkText: {
+        fontSize: 14,
+    },
+    registerLinkHighlight: {
+        fontWeight: 'bold',
     },
 
-    // Orders History Card
-    ordersList: {
-        paddingBottom: 16,
-    },
-    purchaseCard: {
-        backgroundColor: Colors.white,
-        borderRadius: 14,
-        padding: 16,
-        marginBottom: 12,
-        borderWidth: 1,
-        borderColor: Colors.border,
-    },
-    purchaseHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginBottom: 10,
-    },
-    orderNumber: {
-        fontSize: 14,
-        fontWeight: '700',
-        color: Colors.onSurface,
-    },
-    purchaseDate: {
-        fontSize: 12,
-        color: Colors.muted,
-    },
-    purchaseDetails: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
+    // Profile Header
+    profileHeader: {
         alignItems: 'center',
-        marginBottom: 12,
+        paddingVertical: 30,
     },
-    purchaseInfo: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    purchaseStatusLabel: {
-        fontSize: 13,
-        color: Colors.secondaryText,
-    },
-    purchaseTotal: {
-        fontSize: 16,
-        fontWeight: '700',
-        color: Colors.primary,
-    },
-    purchaseFooter: {
-        alignItems: 'flex-start',
-    },
-    purchaseStatus: {
-        fontSize: 11,
-        fontWeight: '700',
-        paddingHorizontal: 10,
-        paddingVertical: 4,
-        borderRadius: 6,
+    avatarContainer: {
+        width: 100,
+        height: 100,
+        borderRadius: 50,
         overflow: 'hidden',
-    },
-    emptyOrdersCard: {
-        backgroundColor: Colors.white,
-        borderRadius: 16,
-        borderWidth: 1,
-        borderColor: Colors.border,
-        padding: 32,
-        alignItems: 'center',
+        marginBottom: 15,
         justifyContent: 'center',
+        alignItems: 'center',
     },
-    emptyOrdersText: {
+    avatar: {
+        width: '100%',
+        height: '100%',
+    },
+    profileName: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        marginBottom: 4,
+    },
+    profileEmail: {
         fontSize: 14,
-        color: Colors.muted,
-        textAlign: 'center',
-    }
+    },
+    // Menu
+    menuContainer: {
+        paddingHorizontal: 20,
+        paddingBottom: 40,
+    },
+    menuItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingVertical: 18,
+        borderBottomWidth: 1,
+    },
+    menuItemLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 15,
+    },
+    menuItemLabel: {
+        fontSize: 16,
+        fontWeight: '500',
+    },
+    themeToggle: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingVertical: 18,
+    },
+    logoutButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        marginTop: 30,
+        paddingVertical: 10,
+    },
+    logoutText: {
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
 });
+

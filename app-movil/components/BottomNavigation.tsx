@@ -1,25 +1,58 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView } from 'react-native';
-import { Home, Search, Settings } from 'lucide-react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Home, ShoppingCart, Clock, User } from 'lucide-react-native';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import { useCart } from '../context/CartContext';
+import { useTheme } from '../context/ThemeContext';
 
 export const BottomNavigation: React.FC = () => {
+    const navigation = useNavigation<any>();
+    const route = useRoute();
+    const { totalItems } = useCart();
+    const { theme } = useTheme();
+
+    const isActive = (routeName: string) => route.name === routeName;
+
+    const navItems = [
+        { name: 'Home', label: 'Inicio', icon: Home },
+        { name: 'Cart', label: 'Carrito', icon: ShoppingCart, badge: totalItems },
+        { name: 'History', label: 'Historial', icon: Clock },
+        { name: 'Profile', label: 'Perfil', icon: User },
+    ];
+
     return (
-        <SafeAreaView style={styles.safeArea}>
-            <View style={styles.container}>
-                <TouchableOpacity style={styles.tab} accessibilityRole="tab" accessibilityState={{ selected: true }}>
-                    <Home color="#10b981" size={24} />
-                    <Text style={[styles.label, styles.labelActive]}>Inicio</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.tab} accessibilityRole="tab">
-                    <Search color="#64748b" size={24} strokeWidth={2.5} />
-                    <Text style={styles.label}>Búsqueda</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.tab} accessibilityRole="tab">
-                    <Settings color="#64748b" size={24} />
-                    <Text style={styles.label}>Ajustes</Text>
-                </TouchableOpacity>
+        <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.card, borderTopColor: theme.border }]}>
+            <View style={[styles.container, { backgroundColor: theme.card }]}>
+                {navItems.map((item) => {
+                    const Icon = item.icon;
+                    const active = isActive(item.name);
+                    return (
+                        <TouchableOpacity
+                            key={item.name}
+                            style={styles.tab}
+                            onPress={() => navigation.navigate(item.name === 'Categories' ? 'Home' : item.name)} // Categorías no implementada aún, redirige a Home
+                            activeOpacity={0.7}
+                        >
+                            <View>
+                                <Icon color={active ? theme.primary : theme.muted} size={24} />
+                                {item.badge && item.badge > 0 && (
+                                    <View style={[styles.badge, { backgroundColor: theme.secondary, borderColor: theme.card }]}>
+                                        <Text style={styles.badgeText}>{item.badge > 99 ? '99+' : item.badge}</Text>
+                                    </View>
+                                )}
+                            </View>
+                            <Text style={[
+                                styles.label,
+                                { color: theme.muted },
+                                active && { color: theme.primary, fontWeight: '700' }
+                            ]}>
+                                {item.label}
+                            </Text>
+                            {active && <View style={[styles.indicator, { backgroundColor: theme.primary }]} />}
+                        </TouchableOpacity>
+                    );
+                })}
             </View>
         </SafeAreaView>
     );
@@ -27,30 +60,58 @@ export const BottomNavigation: React.FC = () => {
 
 const styles = StyleSheet.create({
     safeArea: {
-        backgroundColor: '#ffffff',
         borderTopWidth: 1,
-        borderTopColor: '#e2e8f0',
+        ...Platform.select({
+            ios: {
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: -4 },
+                shadowOpacity: 0.05,
+                shadowRadius: 10,
+            },
+            android: {
+                elevation: 10,
+            }
+        })
     },
     container: {
         flexDirection: 'row',
-        height: 60,
-        backgroundColor: '#ffffff',
+        height: 65,
+        paddingBottom: 5,
+        justifyContent: 'space-around',
     },
     tab: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        paddingTop: 8,
-        paddingBottom: 4,
+        paddingTop: 12,
     },
     label: {
         fontSize: 10,
-        color: '#64748b',
         marginTop: 4,
         fontWeight: '500',
     },
-    labelActive: {
-        color: '#10b981', // Verde institucional
-        fontWeight: '700',
+    badge: {
+        position: 'absolute',
+        right: -10,
+        top: -5,
+        borderRadius: 10,
+        minWidth: 18,
+        height: 18,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 4,
+        borderWidth: 2,
     },
+    badgeText: {
+        color: '#ffffff',
+        fontSize: 9,
+        fontWeight: 'bold',
+    },
+    indicator: {
+        width: 4,
+        height: 4,
+        borderRadius: 2,
+        marginTop: 4,
+    }
 });
+
