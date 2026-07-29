@@ -36,11 +36,15 @@ export const BottomNavigation: React.FC = () => {
                         >
                             <View>
                                 <Icon color={active ? theme.primary : theme.muted} size={24} />
+<<<<<<< HEAD
                                 {!!item.badge && item.badge > 0 && (
+=======
+                                {item.badge ? (
+>>>>>>> 9b183314 (Implementada busqueda avanzada con TF-IDF, Fuzzy Search e historial en HomeScreen)
                                     <View style={[styles.badge, { backgroundColor: theme.secondary, borderColor: theme.card }]}>
                                         <Text style={styles.badgeText}>{item.badge > 99 ? '99+' : item.badge}</Text>
                                     </View>
-                                )}
+                                ) : null}
                             </View>
                             <Text style={[
                                 styles.label,

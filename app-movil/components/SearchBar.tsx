@@ -3,7 +3,21 @@ import { View, TextInput, StyleSheet } from 'react-native';
 import { Search } from 'lucide-react-native';
 import { useTheme } from '../context/ThemeContext';
 
-export const SearchBar: React.FC = () => {
+interface SearchBarProps {
+    value: string;
+    onChangeText: (text: string) => void;
+    onSubmitEditing?: () => void;
+    onFocus?: () => void;
+    onBlur?: () => void;
+}
+
+export const SearchBar: React.FC<SearchBarProps> = ({
+    value,
+    onChangeText,
+    onSubmitEditing,
+    onFocus,
+    onBlur
+}) => {
     const { theme } = useTheme();
 
     return (
@@ -14,6 +28,12 @@ export const SearchBar: React.FC = () => {
                     style={[styles.input, { color: theme.onSurface }]}
                     placeholder="Buscar productos, categorías..."
                     placeholderTextColor={theme.muted}
+                    value={value}
+                    onChangeText={onChangeText}
+                    onSubmitEditing={onSubmitEditing}
+                    onFocus={onFocus}
+                    onBlur={onBlur}
+                    returnKeyType="search"
                 />
             </View>
         </View>

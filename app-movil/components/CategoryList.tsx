@@ -1,12 +1,18 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { Shirt, Watch, BookOpen, Laptop, Coffee } from 'lucide-react-native';
+import { LayoutGrid, Shirt, Watch, BookOpen, Laptop, Coffee } from 'lucide-react-native';
 import { useTheme } from '../context/ThemeContext';
 
-export const CategoryList: React.FC = () => {
+interface CategoryListProps {
+    activeCategory: string;
+    onSelectCategory: (category: string) => void;
+}
+
+export const CategoryList: React.FC<CategoryListProps> = ({ activeCategory, onSelectCategory }) => {
     const { theme } = useTheme();
 
     const categories = [
+        { id: '0', name: 'Todos', icon: LayoutGrid },
         { id: '1', name: 'Ropa', icon: Shirt },
         { id: '2', name: 'Accesorios', icon: Watch },
         { id: '3', name: 'Papelería', icon: BookOpen },
@@ -29,12 +35,29 @@ export const CategoryList: React.FC = () => {
             >
                 {categories.map((cat) => {
                     const Icon = cat.icon;
+                    const isActive = activeCategory === cat.name;
+
                     return (
-                        <TouchableOpacity key={cat.id} style={styles.categoryItem}>
-                            <View style={[styles.iconContainer, { backgroundColor: theme.background }]}>
-                                <Icon color={theme.onSurface} size={24} />
+                        <TouchableOpacity
+                            key={cat.id}
+                            style={styles.categoryItem}
+                            onPress={() => onSelectCategory(cat.name)}
+                        >
+                            <View style={[
+                                styles.iconContainer,
+                                { backgroundColor: isActive ? theme.primary : theme.background }
+                            ]}>
+                                <Icon color={isActive ? '#fff' : theme.onSurface} size={24} />
                             </View>
-                            <Text style={[styles.categoryName, { color: theme.onSurfaceVariant }]}>{cat.name}</Text>
+                            <Text style={[
+                                styles.categoryName,
+                                {
+                                    color: isActive ? theme.primary : theme.onSurfaceVariant,
+                                    fontWeight: isActive ? 'bold' : '500'
+                                }
+                            ]}>
+                                {cat.name}
+                            </Text>
                         </TouchableOpacity>
                     );
                 })}
@@ -79,6 +102,5 @@ const styles = StyleSheet.create({
     },
     categoryName: {
         fontSize: 12,
-        fontWeight: '500',
     },
 });

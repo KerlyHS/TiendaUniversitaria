@@ -45,21 +45,21 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
 
             if (variations.length === 0 && product.category === 'food') {
                 const isBeverage = product.name.toLowerCase().includes('cola') ||
-                                 product.name.toLowerCase().includes('jugo') ||
-                                 product.name.toLowerCase().includes('agua') ||
-                                 product.name.toLowerCase().includes('bebida') ||
-                                 product.name.toLowerCase().includes('té');
+                    product.name.toLowerCase().includes('jugo') ||
+                    product.name.toLowerCase().includes('agua') ||
+                    product.name.toLowerCase().includes('bebida') ||
+                    product.name.toLowerCase().includes('té');
 
                 if (isBeverage) {
                     variations = [
                         { id: 'v1', nombre: '500 ml', stock: product.stock, precio_adicional: 0 },
-                        { id: 'v2', nombre: '1 litro', stock: Math.floor(product.stock/2), precio_adicional: 0.50 },
-                        { id: 'v3', nombre: '2 litros', stock: Math.floor(product.stock/4), precio_adicional: 1.20 }
+                        { id: 'v2', nombre: '1 litro', stock: Math.floor(product.stock / 2), precio_adicional: 0.50 },
+                        { id: 'v3', nombre: '2 litros', stock: Math.floor(product.stock / 4), precio_adicional: 1.20 }
                     ];
                 } else {
                     variations = [
                         { id: 'w1', nombre: 'Libras', stock: product.stock, precio_adicional: 0 },
-                        { id: 'w2', nombre: 'Kilogramos', stock: Math.floor(product.stock/2), precio_adicional: 0.80 }
+                        { id: 'w2', nombre: 'Kilogramos', stock: Math.floor(product.stock / 2), precio_adicional: 0.80 }
                     ];
                 }
             } else if (variations.length === 0 && product.category === 'clothing') {
