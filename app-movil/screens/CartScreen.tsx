@@ -88,8 +88,11 @@ export const CartScreen: React.FC = () => {
                         style={[styles.checkoutButton, { backgroundColor: theme.primary }]}
                         onPress={() => navigation.navigate('Checkout')}
                     >
-                        <Text style={styles.checkoutButtonText}>Continuar al pago</Text>
-                        <ChevronRight color="#fff" size={20} />
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                            <Text style={styles.checkoutButtonText}>Continuar al pago</Text>
+                            <View style={{ width: 10 }} />
+                            <ChevronRight color="#fff" size={20} />
+                        </View>
                     </TouchableOpacity>
                 </View>
             )}
@@ -197,7 +200,6 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'center',
         alignItems: 'center',
-        gap: 10,
     },
     checkoutButtonText: {
         color: '#fff',
@@ -212,4 +214,3 @@ const styles = StyleSheet.create({
         fontSize: 16,
     }
 });
-

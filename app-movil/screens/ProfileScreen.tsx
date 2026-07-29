@@ -109,7 +109,7 @@ export const ProfileScreen: React.FC = () => {
             case 'CANCELADO':
                 return '#ef4444';
             default:
-                return theme.primaryContainer;
+                return theme.primary;
         }
     };
 
@@ -137,9 +137,7 @@ export const ProfileScreen: React.FC = () => {
                             color: getStatusColor(item.estado), 
                             backgroundColor: getStatusColor(item.estado) + '15' 
                         }
-                    ]}>
-                        {item.estado}
-                    </Text>
+                    ]}>{item.estado}</Text>
                 </View>
             </View>
         );
@@ -286,7 +284,11 @@ export const ProfileScreen: React.FC = () => {
 
                 <View style={styles.themeToggle}>
                     <View style={styles.menuItemLeft}>
-                        {isDark ? <Moon color={theme.onSurface} size={20} /> : <Sun color={theme.onSurface} size={20} />}
+                        {isDark ? (
+                            <Moon color={theme.onSurface} size={20} />
+                        ) : (
+                            <Sun color={theme.onSurface} size={20} />
+                        )}
                         <Text style={[styles.menuItemLabel, { color: theme.onSurface }]}>Modo Oscuro</Text>
                     </View>
                     <Switch
@@ -298,8 +300,11 @@ export const ProfileScreen: React.FC = () => {
                 </View>
 
                 <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-                    <LogOut color={theme.error} size={20} />
-                    <Text style={[styles.logoutText, { color: theme.error }]}>Cerrar sesión</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <LogOut color={theme.error} size={20} />
+                        <View style={{ width: 10 }} />
+                        <Text style={[styles.logoutText, { color: theme.error }]}>Cerrar sesión</Text>
+                    </View>
                 </TouchableOpacity>
             </ScrollView>
 
@@ -440,9 +445,6 @@ const styles = StyleSheet.create({
     registerLinkText: {
         fontSize: 14,
     },
-    registerLinkHighlight: {
-        fontWeight: 'bold',
-    },
 
     // Profile Header
     profileHeader: {
@@ -498,9 +500,6 @@ const styles = StyleSheet.create({
         paddingVertical: 18,
     },
     logoutButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 10,
         marginTop: 30,
         paddingVertical: 10,
     },
@@ -509,4 +508,3 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
     },
 });
-

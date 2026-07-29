@@ -26,6 +26,14 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "plugins": []
+    "plugins": [
+      [
+        "@stripe/stripe-react-native",
+        {
+          "merchantIdentifier": "merchant.com.tiendauniversitaria",
+          "enableGooglePay": true
+        }
+      ]
+    ]
   }
 }

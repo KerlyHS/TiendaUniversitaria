@@ -24,7 +24,6 @@ export const ClothingProductModal: React.FC<ClothingProductModalProps> = ({ prod
     const handleAddToCart = () => {
         onAddToCart(product, quantity, selectedSize);
         onClose();
-        // Reset state for next open
         setQuantity(1);
         setSelectedSize('M');
     };
@@ -47,7 +46,7 @@ export const ClothingProductModal: React.FC<ClothingProductModalProps> = ({ prod
 
                     <ScrollView contentContainerStyle={styles.content}>
                         <Text style={styles.productName}>{product.name}</Text>
-                        <Text style={styles.price}>${product.price.toFixed(2)} {product.hasIva && '+ IVA'}</Text>
+                        <Text style={styles.price}>${product.price.toFixed(2)}{product.hasIva ? ' + IVA' : ''}</Text>
 
                         <View style={styles.section}>
                             <Text style={styles.sectionTitle}>Selecciona la Talla</Text>
@@ -170,7 +169,7 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.white,
     },
     addToCartButton: {
-        backgroundColor: Colors.primaryContainer, // Verde Institucional
+        backgroundColor: Colors.primaryContainer,
         borderRadius: 12,
         height: 56,
         justifyContent: 'center',

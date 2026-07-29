@@ -120,18 +120,13 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                                 styles.variationText,
                                 { color: theme.secondaryText },
                                 selectedVariation?.id === variation.id && { color: theme.primary, fontWeight: '700' }
-                            ]}>
-                                {variation.nombre}
-                            </Text>
-                            {variation.precio_adicional ? (
-                                <Text style={[styles.variationPrice, { color: theme.primary }]}>
-                                    +${Number(variation.precio_adicional).toFixed(2)}
-                                </Text>
-                            ) : variation.precio_fijo ? (
-                                <Text style={[styles.variationPrice, { color: theme.primary }]}>
-                                    ${Number(variation.precio_fijo).toFixed(2)}
-                                </Text>
-                            ) : null}
+                            ]}>{variation.nombre}</Text>
+                            {!!variation.precio_adicional && (
+                                <Text style={[styles.variationPrice, { color: theme.primary }]}>+${Number(variation.precio_adicional).toFixed(2)}</Text>
+                            )}
+                            {!!variation.precio_fijo && !variation.precio_adicional && (
+                                <Text style={[styles.variationPrice, { color: theme.primary }]}>${Number(variation.precio_fijo).toFixed(2)}</Text>
+                            )}
                         </TouchableOpacity>
                     ))}
                 </View>
@@ -166,14 +161,10 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
 
                         <View style={styles.content}>
                             <View style={styles.mainInfo}>
-                                <Text style={[styles.category, { color: theme.primary }]}>
-                                    {product.category.toUpperCase()}
-                                </Text>
+                                <Text style={[styles.category, { color: theme.primary }]}>{product.category.toUpperCase()}</Text>
                                 <Text style={[styles.productName, { color: theme.onSurface }]}>{product.name}</Text>
                                 <View style={styles.priceContainer}>
-                                    <Text style={[styles.price, { color: theme.primary }]}>
-                                        ${Number(currentPrice).toFixed(2)}
-                                    </Text>
+                                    <Text style={[styles.price, { color: theme.primary }]}>${Number(currentPrice).toFixed(2)}</Text>
                                     {product.hasIva && <Text style={[styles.iva, { color: theme.primary }]}> + IVA</Text>}
                                 </View>
                             </View>

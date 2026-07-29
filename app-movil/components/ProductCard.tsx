@@ -38,7 +38,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onPress }) =>
                         style={[styles.addButton, { backgroundColor: theme.primary }]}
                         onPress={(e) => {
                             e.stopPropagation();
-                            onPress(product); // Por ahora abre el detalle igual
+                            onPress(product);
                         }}
                     >
                         <Plus color={theme.onPrimary} size={16} strokeWidth={3} />

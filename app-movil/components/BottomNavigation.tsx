@@ -31,12 +31,12 @@ export const BottomNavigation: React.FC = () => {
                         <TouchableOpacity
                             key={item.name}
                             style={styles.tab}
-                            onPress={() => navigation.navigate(item.name === 'Categories' ? 'Home' : item.name)} // Categorías no implementada aún, redirige a Home
+                            onPress={() => navigation.navigate(item.name)}
                             activeOpacity={0.7}
                         >
                             <View>
                                 <Icon color={active ? theme.primary : theme.muted} size={24} />
-                                {item.badge && item.badge > 0 && (
+                                {!!item.badge && item.badge > 0 && (
                                     <View style={[styles.badge, { backgroundColor: theme.secondary, borderColor: theme.card }]}>
                                         <Text style={styles.badgeText}>{item.badge > 99 ? '99+' : item.badge}</Text>
                                     </View>
@@ -46,9 +46,7 @@ export const BottomNavigation: React.FC = () => {
                                 styles.label,
                                 { color: theme.muted },
                                 active && { color: theme.primary, fontWeight: '700' }
-                            ]}>
-                                {item.label}
-                            </Text>
+                            ]}>{item.label}</Text>
                             {active && <View style={[styles.indicator, { backgroundColor: theme.primary }]} />}
                         </TouchableOpacity>
                     );
@@ -114,4 +112,3 @@ const styles = StyleSheet.create({
         marginTop: 4,
     }
 });
-

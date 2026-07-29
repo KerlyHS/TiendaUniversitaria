@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, FlatList, StatusBar, Alert, Text, TouchableOpacity, ScrollView } from 'react-native';
+import { View, StyleSheet, FlatList, StatusBar, Alert, Text, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { Header } from '../components/Header';
 import { SearchBar } from '../components/SearchBar';
 import { PromotionalBanner } from '../components/PromotionalBanner';
@@ -50,7 +50,7 @@ export const HomeScreen: React.FC = () => {
                 stock: p.stock || 0,
                 category: p.is_food ? 'food' : (p.is_ropa ? 'clothing' : 'accessory'),
                 imageUrl: p.imagen || 'https://via.placeholder.com/400x400/1e293b/ffffff?text=Producto',
-                hasIva: p.tiene_iva || p.aplica_impuesto,
+                hasIva: !!(p.tiene_iva || p.aplica_impuesto),
                 variaciones: p.variaciones || [],
             }));
             
@@ -93,7 +93,7 @@ export const HomeScreen: React.FC = () => {
     );
 
     return (
-        <View style={[styles.container, { backgroundColor: theme.surface }]}>
+        <View style={[styles.container, { backgroundColor: theme.background }]}>
             <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={theme.surface} />
 
             <Header />

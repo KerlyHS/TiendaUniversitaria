@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { Minus, Plus } from 'lucide-react-native';
 import { useTheme } from '../context/ThemeContext';
 import { AnimatedButton } from './AnimatedButton';

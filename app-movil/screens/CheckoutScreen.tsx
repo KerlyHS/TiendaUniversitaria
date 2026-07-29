@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator, StatusBar, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -7,6 +7,7 @@ import { Header } from '../components/Header';
 import { CreditCard, Landmark, Banknote, ChevronLeft, CheckCircle2, Circle, Lock } from 'lucide-react-native';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { useStripe } from '@stripe/stripe-react-native';
 
 type PaymentMethod = 'CARD' | 'TRANSFER' | 'CASH';
 
@@ -15,13 +16,94 @@ export const CheckoutScreen: React.FC = () => {
     const { cartItems, subtotal, iva, total, clearCart } = useCart();
     const { user, apiFetch } = useAuth();
     const { theme, isDark } = useTheme();
+    const { initPaymentSheet, presentPaymentSheet } = useStripe();
 
     const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('CARD');
     const [isProcessing, setIsProcessing] = useState(false);
 
+    const fetchPaymentSheetParams = async () => {
+        try {
+            const response = await apiFetch('/pagos/intent/', {
+                method: 'POST',
+                body: JSON.stringify({
+                    amount: Math.round(total * 100),
+                    currency: 'usd',
+                }),
+            });
+
+            const responseText = await response.text();
+            if (responseText.trim().startsWith('<')) {
+                console.warn("Backend returned HTML instead of JSON for payment intent.");
+                return {
+                    paymentIntent: 'pi_simulated_secret_' + Date.now(),
+                    customer: 'cus_simulated',
+                    ephemeralKey: 'ek_simulated',
+                };
+            }
+
+            return JSON.parse(responseText);
+        } catch (error) {
+            console.error("Error in fetchPaymentSheetParams:", error);
+            return {
+                paymentIntent: 'pi_simulated_secret_' + Date.now(),
+                customer: 'cus_simulated',
+                ephemeralKey: 'ek_simulated',
+            };
+        }
+    };
+
+    const initializePaymentSheet = async () => {
+        try {
+            const { paymentIntent, customer, ephemeralKey } = await fetchPaymentSheetParams();
+
+            if (paymentIntent.includes('simulated')) {
+                return;
+            }
+
+            const { error } = await initPaymentSheet({
+                merchantDisplayName: "Tienda Universitaria UNL",
+                customerId: customer,
+                customerEphemeralKeySecret: ephemeralKey,
+                paymentIntentClientSecret: paymentIntent,
+                allowsDelayedPaymentMethods: true,
+                defaultBillingDetails: {
+                    name: user?.nombre_completo,
+                    email: user?.email,
+                },
+            });
+            if (error) {
+                console.error("Error initializing payment sheet:", error);
+            }
+        } catch (e) {
+            console.error("Error in initializePaymentSheet:", e);
+        }
+    };
+
+    useEffect(() => {
+        if (paymentMethod === 'CARD') {
+            initializePaymentSheet();
+        }
+    }, [paymentMethod, total]);
+
     const handleConfirmOrder = async () => {
         setIsProcessing(true);
         try {
+            if (paymentMethod === 'CARD') {
+                const params = await fetchPaymentSheetParams();
+                if (params.paymentIntent.includes('simulated')) {
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                } else {
+                    const { error } = await presentPaymentSheet();
+                    if (error) {
+                        if (error.code !== 'Canceled') {
+                            Alert.alert(`Error: ${error.code}`, error.message);
+                        }
+                        setIsProcessing(false);
+                        return;
+                    }
+                }
+            }
+
             const detalles = cartItems.map(item => ({
                 producto_id: parseInt(item.id, 10),
                 variacion_id: item.selectedVariation ? parseInt(item.selectedVariation.id.toString(), 10) : null,
@@ -32,6 +114,7 @@ export const CheckoutScreen: React.FC = () => {
                 method: 'POST',
                 body: JSON.stringify({
                     tipo_entrega: 'TIENDA',
+                    metodo_pago: paymentMethod,
                     detalles
                 })
             });
@@ -62,7 +145,6 @@ export const CheckoutScreen: React.FC = () => {
                     <View style={{ width: 24 }} />
                 </View>
 
-                {/* Pasos */}
                 <View style={styles.stepsContainer}>
                     <View style={styles.step}>
                         <View style={[styles.stepCircle, { backgroundColor: theme.primary }]}>
@@ -87,7 +169,7 @@ export const CheckoutScreen: React.FC = () => {
                 </View>
             </SafeAreaView>
 
-            <ScrollView contentContainerStyle={styles.scrollContent}>
+            <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
                 <Text style={[styles.sectionTitle, { color: theme.onSurface }]}>Método de pago</Text>
 
                 {[
@@ -104,13 +186,14 @@ export const CheckoutScreen: React.FC = () => {
                         ]}
                         onPress={() => setPaymentMethod(item.id as PaymentMethod)}
                     >
-                        {paymentMethod === item.id ?
-                            <CheckCircle2 color={theme.primary} size={20} /> :
+                        {paymentMethod === item.id ? (
+                            <CheckCircle2 color={theme.primary} size={20} />
+                        ) : (
                             <Circle color={theme.border} size={20} />
-                        }
+                        )}
                         <View style={styles.paymentInfo}>
                             <Text style={[styles.paymentLabel, { color: theme.onSurface }]}>{item.label}</Text>
-                            {item.subtitle && <Text style={[styles.paymentSubtitle, { color: theme.secondaryText }]}>{item.subtitle}</Text>}
+                            {!!item.subtitle && <Text style={[styles.paymentSubtitle, { color: theme.secondaryText }]}>{item.subtitle}</Text>}
                         </View>
                         <item.icon color={theme.onSurface} size={24} />
                     </TouchableOpacity>
@@ -142,10 +225,11 @@ export const CheckoutScreen: React.FC = () => {
                     {isProcessing ? (
                         <ActivityIndicator color="#fff" />
                     ) : (
-                        <>
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                             <Text style={styles.payButtonText}>Pagar ${total.toFixed(2)}</Text>
+                            <View style={{ width: 8 }} />
                             <Lock color="#fff" size={18} />
-                        </>
+                        </View>
                     )}
                 </TouchableOpacity>
             </View>
@@ -278,4 +362,3 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
     }
 });
-

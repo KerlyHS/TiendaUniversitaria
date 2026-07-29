@@ -37,11 +37,13 @@ export const HistoryScreen: React.FC = () => {
 
     const getStatusColor = (status: string) => {
         switch (status) {
-            case 'PENDIENTE': return theme.warning;
-            case 'PAGADO': return theme.success;
-            case 'ENTREGADO': return theme.primary;
-            case 'CANCELADO': return theme.error;
-            default: return theme.secondaryText;
+            case 'ENTREGADO':
+            case 'PAGADO':
+                return theme.primary;
+            case 'PENDIENTE':
+                return theme.error;
+            default:
+                return theme.secondaryText;
         }
     };
 
@@ -51,8 +53,8 @@ export const HistoryScreen: React.FC = () => {
 
         return (
             <TouchableOpacity
-                style={[styles.orderCard, { backgroundColor: theme.surface, borderColor: theme.border }]}
-                onPress={() => {}}
+                style={[styles.orderCard, { backgroundColor: theme.card, borderColor: theme.border }]}
+                onPress={() => navigation.navigate('Ticket', { order: item })}
                 activeOpacity={0.7}
             >
                 <View style={styles.orderMain}>
@@ -71,8 +73,15 @@ export const HistoryScreen: React.FC = () => {
         );
     };
 
+    const filteredOrders = orders.filter(order => {
+        if (activeFilter === 'Todos') return true;
+        if (activeFilter === 'Completados') return order.estado === 'ENTREGADO' || order.estado === 'PAGADO';
+        if (activeFilter === 'Pendientes') return order.estado === 'PENDIENTE';
+        return true;
+    });
+
     return (
-        <View style={[styles.container, { backgroundColor: theme.surface }]}>
+        <View style={[styles.container, { backgroundColor: theme.background }]}>
             <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={theme.surface} />
             <Header showGreeting={false} />
 
@@ -109,14 +118,14 @@ export const HistoryScreen: React.FC = () => {
                 </View>
             ) : (
                 <FlatList
-                    data={orders}
+                    data={filteredOrders}
                     keyExtractor={(item) => item.id.toString()}
                     renderItem={renderItem}
                     contentContainerStyle={styles.listContent}
                     ListEmptyComponent={
                         <View style={styles.emptyContainer}>
                             <Package color={theme.border} size={64} style={{ marginBottom: 16 }} />
-                            <Text style={[styles.emptyText, { color: theme.secondaryText }]}>No tienes compras aún</Text>
+                            <Text style={[styles.emptyText, { color: theme.secondaryText }]}>No hay pedidos que coincidan con el filtro</Text>
                         </View>
                     }
                 />
@@ -134,6 +143,7 @@ const styles = StyleSheet.create({
     headerSection: {
         paddingHorizontal: 20,
         marginBottom: 15,
+        marginTop: 10,
     },
     title: {
         fontSize: 24,
