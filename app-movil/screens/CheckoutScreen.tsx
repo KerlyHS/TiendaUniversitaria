@@ -8,13 +8,15 @@ import { CreditCard, Landmark, Banknote, ChevronLeft, CheckCircle2, Circle, Lock
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useStripe } from '@stripe/stripe-react-native';
+import { handleAppError } from '../utils/errorHelper';
 
 type PaymentMethod = 'CARD' | 'TRANSFER' | 'CASH';
 
 export const CheckoutScreen: React.FC = () => {
+    const auth = useAuth();
     const navigation = useNavigation<any>();
     const { cartItems, subtotal, iva, total, clearCart } = useCart();
-    const { user, apiFetch } = useAuth();
+    const { user, apiFetch, isAuthenticated } = auth;
     const { theme, isDark } = useTheme();
     const { initPaymentSheet, presentPaymentSheet } = useStripe();
 
@@ -32,8 +34,8 @@ export const CheckoutScreen: React.FC = () => {
             });
 
             const responseText = await response.text();
-            if (responseText.trim().startsWith('<')) {
-                console.warn("Backend returned HTML instead of JSON for payment intent.");
+            if (!response.ok || responseText.trim().startsWith('<')) {
+                console.log("Backend returned invalid response for payment intent. Using internal simulation mode.");
                 return {
                     paymentIntent: 'pi_simulated_secret_' + Date.now(),
                     customer: 'cus_simulated',
@@ -43,7 +45,7 @@ export const CheckoutScreen: React.FC = () => {
 
             return JSON.parse(responseText);
         } catch (error) {
-            console.error("Error in fetchPaymentSheetParams:", error);
+            handleAppError(error, 'fetchPaymentSheetParams');
             return {
                 paymentIntent: 'pi_simulated_secret_' + Date.now(),
                 customer: 'cus_simulated',
@@ -53,6 +55,8 @@ export const CheckoutScreen: React.FC = () => {
     };
 
     const initializePaymentSheet = async () => {
+        if (!isAuthenticated) return;
+
         try {
             const { paymentIntent, customer, ephemeralKey } = await fetchPaymentSheetParams();
 
@@ -75,17 +79,23 @@ export const CheckoutScreen: React.FC = () => {
                 console.error("Error initializing payment sheet:", error);
             }
         } catch (e) {
-            console.error("Error in initializePaymentSheet:", e);
+            handleAppError(e, 'initializePaymentSheet');
         }
     };
 
     useEffect(() => {
-        if (paymentMethod === 'CARD') {
+        if (paymentMethod === 'CARD' && isAuthenticated) {
             initializePaymentSheet();
         }
-    }, [paymentMethod, total]);
+    }, [paymentMethod, total, isAuthenticated]);
 
     const handleConfirmOrder = async () => {
+        if (!isAuthenticated) {
+            Alert.alert('Autenticación requerida', 'Debes iniciar sesión para continuar con el proceso de compra.');
+            navigation.navigate('Profile');
+            return;
+        }
+
         setIsProcessing(true);
         try {
             if (paymentMethod === 'CARD') {
@@ -96,7 +106,7 @@ export const CheckoutScreen: React.FC = () => {
                     const { error } = await presentPaymentSheet();
                     if (error) {
                         if (error.code !== 'Canceled') {
-                            Alert.alert(`Error: ${error.code}`, error.message);
+                            Alert.alert('Error de pago', handleAppError(error, 'presentPaymentSheet'));
                         }
                         setIsProcessing(false);
                         return;
@@ -119,14 +129,17 @@ export const CheckoutScreen: React.FC = () => {
                 })
             });
 
-            if (!orderRes.ok) throw new Error(`Error del servidor (${orderRes.status})`);
+            if (!orderRes.ok) {
+                const errorMsg = handleAppError({ status: orderRes.status }, 'createOrder');
+                throw new Error(errorMsg);
+            }
 
             const order = await orderRes.json();
             clearCart();
             navigation.replace('Ticket', { order });
 
         } catch (error: any) {
-            Alert.alert('Error', error.message || 'Ocurrió un error al procesar tu pedido.');
+            Alert.alert('Aviso', error.message || 'No fue posible completar tu pedido. Inténtalo de nuevo.');
         } finally {
             setIsProcessing(false);
         }

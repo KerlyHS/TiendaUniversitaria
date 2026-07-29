@@ -9,6 +9,7 @@ import { Download, Share2, Printer, ChevronLeft } from 'lucide-react-native';
 import { generateInvoiceHTML } from '../utils/InvoiceHTMLTemplate';
 import { AnimatedButton } from '../components/AnimatedButton';
 import { useTheme } from '../context/ThemeContext';
+import { handleAppError } from '../utils/errorHelper';
 
 export const TicketScreen: React.FC = () => {
     const route = useRoute<any>();
@@ -36,8 +37,7 @@ export const TicketScreen: React.FC = () => {
                 dialogTitle: 'Guardar Comprobante'
             });
         } catch (error) {
-            console.error('Error generating PDF:', error);
-            Alert.alert('Error', 'No se pudo generar el comprobante.');
+            Alert.alert('Error', handleAppError(error, 'generatePDF'));
         } finally {
             setIsGenerating(false);
         }
@@ -50,8 +50,7 @@ export const TicketScreen: React.FC = () => {
             const { uri } = await Print.printToFileAsync({ html });
             await Sharing.shareAsync(uri, { UTI: '.pdf', mimeType: 'application/pdf' });
         } catch (error) {
-            console.error('Error sharing PDF:', error);
-            Alert.alert('Error', 'No se pudo compartir el comprobante.');
+            Alert.alert('Error', handleAppError(error, 'sharePDF'));
         } finally {
             setIsGenerating(false);
         }
@@ -63,8 +62,7 @@ export const TicketScreen: React.FC = () => {
             const html = generateInvoiceHTML(order);
             await Print.printAsync({ html });
         } catch (error) {
-            console.error('Error printing PDF:', error);
-            Alert.alert('Error', 'No se pudo abrir el diálogo de impresión.');
+            Alert.alert('Error', handleAppError(error, 'printPDF'));
         } finally {
             setIsGenerating(false);
         }

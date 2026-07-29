@@ -12,9 +12,10 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({ showGreeting = true }) => {
+    const auth = useAuth();
     const navigation = useNavigation<any>();
     const { theme } = useTheme();
-    const { user } = useAuth();
+    const { user } = auth;
     const { totalItems } = useCart();
 
     const firstName = user?.nombre_completo ? user.nombre_completo.split(' ')[0] : 'Invitado';

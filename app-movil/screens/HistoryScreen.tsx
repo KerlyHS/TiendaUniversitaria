@@ -1,20 +1,31 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, StatusBar, ScrollView } from 'react-native';
+import {
+    View,
+    Text,
+    StyleSheet,
+    FlatList,
+    TouchableOpacity,
+    ActivityIndicator,
+    StatusBar,
+    ScrollView
+} from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Header } from '../components/Header';
 import { BottomNavigation } from '../components/BottomNavigation';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { Package } from 'lucide-react-native';
+import { handleAppError } from '../utils/errorHelper';
 
 export const HistoryScreen: React.FC = () => {
+    const authData = useAuth();
     const navigation = useNavigation<any>();
     const [orders, setOrders] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [activeFilter, setActiveFilter] = useState('Todos');
     const { theme, isDark } = useTheme();
 
-    const { apiFetch } = useAuth();
+    const { apiFetch } = authData;
 
     const filters = ['Todos', 'Completados', 'Pendientes'];
 
@@ -22,18 +33,18 @@ export const HistoryScreen: React.FC = () => {
         const fetchOrders = async () => {
             try {
                 const response = await apiFetch('/pedidos/');
-                if (!response.ok) throw new Error("Error fetching orders");
+                if (!response.ok) throw { status: response.status };
                 const data = await response.json();
                 setOrders(data.results || data || []);
             } catch (error) {
-                console.error(error);
+                handleAppError(error, 'fetchOrders');
             } finally {
                 setLoading(false);
             }
         };
 
         fetchOrders();
-    }, []);
+    }, [apiFetch]);
 
     const getStatusColor = (status: string) => {
         switch (status) {

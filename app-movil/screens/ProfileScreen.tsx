@@ -22,6 +22,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { BottomNavigation } from '../components/BottomNavigation';
 import { AnimatedButton } from '../components/AnimatedButton';
+import { handleAppError } from '../utils/errorHelper';
 
 interface OrderItem {
     id: number;
@@ -32,8 +33,9 @@ interface OrderItem {
 }
 
 export const ProfileScreen: React.FC = () => {
+    const auth = useAuth();
     const navigation = useNavigation<any>();
-    const { user, isAuthenticated, isLoading, login, logout, apiFetch } = useAuth();
+    const { user, isAuthenticated, isLoading, login, logout, apiFetch } = auth;
     const { theme, isDark, toggleTheme } = useTheme();
     
     const [email, setEmail] = useState('');
@@ -56,9 +58,11 @@ export const ProfileScreen: React.FC = () => {
                 const data = await res.json();
                 const orderList = Array.isArray(data) ? data : (data.results || []);
                 setOrders(orderList);
+            } else {
+                throw { status: res.status };
             }
         } catch (err) {
-            console.log('Error al cargar pedidos del móvil:', err);
+            handleAppError(err, 'fetchUserOrders');
         } finally {
             setLoadingOrders(false);
         }
@@ -75,7 +79,8 @@ export const ProfileScreen: React.FC = () => {
         setIsSubmitting(false);
 
         if (!result.success) {
-            Alert.alert('Error de Inicio de Sesión', result.error || 'Credenciales inválidas.');
+            // result.error ya viene formateado desde AuthContext que usa handleAppError
+            Alert.alert('Aviso', result.error);
         }
     };
 
