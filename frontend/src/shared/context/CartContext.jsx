@@ -56,7 +56,7 @@ export const CartProvider = ({ children }) => {
         message: 'Debes iniciar sesión para agregar productos al carrito.',
         type: 'warning'
       });
-      return;
+      return false;
     }
     
     setCartItems(prev => {
@@ -79,6 +79,7 @@ export const CartProvider = ({ children }) => {
       }
       return [...cleanedPrev, { ...product, cantidad: quantity, selectedVariation }];
     });
+    return true;
   }, [isAuthenticated, addToast]);
 
   const removeFromCart = useCallback((productId, variationId = null) => {
@@ -101,11 +102,16 @@ export const CartProvider = ({ children }) => {
     }));
   }, []);
 
-  const clearCart = useCallback(() => setCartItems([]), []);
+  const clearCart = useCallback(() => {
+    setCartItems([]);
+    if (user?.id) {
+      localStorage.removeItem(`unl_cart_${user.id}`);
+    }
+  }, [user]);
   const openCart = useCallback(() => setIsCartOpen(true), []);
   const closeCart = useCallback(() => setIsCartOpen(false), []);
 
-  const totalItems = cartItems.reduce((acc, item) => acc + item.cantidad, 0);
+  const totalItems = cartItems.length;
   const subtotal = cartItems.reduce((acc, item) => acc + (item.precio * item.cantidad), 0);
 
   return (

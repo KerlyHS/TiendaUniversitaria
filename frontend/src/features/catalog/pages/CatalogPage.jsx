@@ -4,6 +4,7 @@ import { useCart } from '../../../shared/context/CartContext';
 import { useToast } from '../../../shared/context/ToastContext';
 import { catalogService } from '../../../core/api/services';
 import { getProductDisplayPrice } from '../../../shared/utils/priceHelper';
+import { useAuth } from '../../../core/hooks/useAuth';
 
 const FOOD_CATEGORIES = ['AGRICOLA', 'HORTALIZAS', 'FRUTAS', 'CARNES', 'LACTEOS', 'BEBIDAS'];
 
@@ -17,8 +18,14 @@ export const CatalogPage = () => {
   const navigate = useNavigate();
   const { addToCart, openCart } = useCart();
   const { addToast } = useToast();
+  const { user } = useAuth();
 
   useEffect(() => {
+    if (user?.rol === 'CAJERO') {
+      navigate('/admin/caja', { replace: true });
+      return;
+    }
+
     const fetchProducts = async () => {
       try {
         setIsLoading(true);
@@ -43,13 +50,15 @@ export const CatalogPage = () => {
       return;
     }
 
-    addToCart(product, 1);
-    addToast({
-      title: '¡Añadido al carrito!',
-      message: `El producto "${product.nombre}" se agregó correctamente.`,
-      actionText: 'Ver Carrito',
-      onAction: () => openCart()
-    });
+    const added = addToCart(product, 1);
+    if (added) {
+      addToast({
+        title: '¡Añadido al carrito!',
+        message: `El producto "${product.nombre}" se agregó correctamente.`,
+        actionText: 'Ver Carrito',
+        onAction: () => openCart()
+      });
+    }
   };
 
   const filteredProducts = products.filter(product => {

@@ -24,7 +24,7 @@ const apiClient = axios.create({
 // Interceptor: Agregar JWT token a headers
 apiClient.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('jwt_token');
+    const token = sessionStorage.getItem('jwt_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -43,22 +43,21 @@ apiClient.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        const refreshToken = localStorage.getItem('jwt_refresh');
+        const refreshToken = sessionStorage.getItem('jwt_refresh');
         if (refreshToken) {
           const response = await axios.post(`${API_BASE_URL}/token/refresh/`, {
             refresh: refreshToken,
           });
 
-          localStorage.setItem('jwt_token', response.data.access);
+          sessionStorage.setItem('jwt_token', response.data.access);
           originalRequest.headers.Authorization = `Bearer ${response.data.access}`;
 
           return apiClient(originalRequest);
         }
       } catch (refreshError) {
-        // Logout y redirigir a login
-        localStorage.removeItem('jwt_token');
-        localStorage.removeItem('jwt_refresh');
-        window.location.href = '/login';
+        // Solo borrar localstorage, no redirigir automáticamente para no interrumpir la navegación pública
+        sessionStorage.removeItem('jwt_token');
+        sessionStorage.removeItem('jwt_refresh');
       }
     }
 

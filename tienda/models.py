@@ -21,6 +21,7 @@ class MetodoPago(models.TextChoices):
 
 class ProgresoVenta(models.TextChoices):
     RECIBIDO = 'RECIBIDO', _('Recibido')
+    PENDIENTE_RETIRO = 'PENDIENTE_RETIRO', _('Pendiente a Retirar')
     EN_PREPARACION = 'PREPARACION', _('En Preparación')
     LISTO = 'LISTO', _('Listo')
     ENTREGADO = 'ENTREGADO', _('Entregado')

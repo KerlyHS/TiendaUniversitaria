@@ -157,6 +157,9 @@ class PedidoViewSet(viewsets.ModelViewSet):
     - `PUT /pedidos/{id}/`: Actualizar estado
     """
     permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
+    filterset_fields = ['estado']
+    ordering_fields = ['fecha_creacion']
     
     def get_queryset(self):
         """
@@ -607,6 +610,32 @@ class PagoViewSet(viewsets.ViewSet):
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+    @action(detail=False, methods=['get'], url_path='verificar')
+    def verificar_pago(self, request):
+        session_id = request.query_params.get('session_id')
+        payment_intent = request.query_params.get('payment_intent')
+        identificador = session_id or payment_intent
+
+        if not identificador:
+            return Response({"error": "Falta parámetro de sesión"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            transaccion = Transaccion.objects.get(stripe_session_id=identificador)
+            pedido = transaccion.pedido
+
+            if pedido.cliente != request.user and request.user.rol not in ['ADMIN', 'GERENTE']:
+                return Response({"detail": "No tienes permiso."}, status=status.HTTP_403_FORBIDDEN)
+
+            if pedido.estado == 'RECIBIDO':
+                pedido.estado = 'PENDIENTE_RETIRO'
+                pedido.save()
+                transaccion.estado = EstadoTransaccion.APROBADO
+                transaccion.save()
+
+            return Response({"status": "ok", "pedido_estado": pedido.estado})
+        except Transaccion.DoesNotExist:
+            return Response({"error": "Transacción no encontrada"}, status=status.HTTP_404_NOT_FOUND)
+
     @action(detail=False, methods=['get'], url_path='comprobante')
     def comprobante(self, request):
         payment_intent_id = request.query_params.get('payment_intent')
@@ -668,7 +697,7 @@ class StripeWebhookView(APIView):
                 with transaction.atomic():
                     pedido = Pedido.objects.select_for_update().get(id=pedido_id)
                     if pedido.estado == 'RECIBIDO':
-                        pedido.estado = 'LISTO'
+                        pedido.estado = 'PENDIENTE_RETIRO'
                         pedido.save()
                         
                         transaccion = pedido.transaccion
@@ -704,7 +733,7 @@ class DashboardStatsView(APIView):
         # Ventas del mes (Monto de pedidos pagados/completados)
         pedidos_mes = Pedido.objects.filter(
             fecha_creacion__gte=start_of_month,
-            estado__in=['PAGADO', 'PREPARACION', 'LISTO', 'ENTREGADO']
+            estado__in=['PAGADO', 'PREPARACION', 'LISTO', 'ENTREGADO', 'PENDIENTE_RETIRO']
         )
         ventas_totales_mes = pedidos_mes.aggregate(Sum('total'))['total__sum'] or 0
         total_pedidos_mes = pedidos_mes.count()
@@ -712,7 +741,7 @@ class DashboardStatsView(APIView):
 
         # Órdenes de hoy
         ordenes_hoy = Pedido.objects.filter(fecha_creacion__gte=start_of_today).count()
-        pendientes_hoy = Pedido.objects.filter(fecha_creacion__gte=start_of_today, estado='RECIBIDO').count()
+        pendientes_hoy = Pedido.objects.filter(fecha_creacion__gte=start_of_today, estado__in=['RECIBIDO', 'PENDIENTE_RETIRO', 'PREPARACION']).count()
 
         # Datos para el Gráfico (Últimos 6 meses o días del mes)
         # Aquí mockeamos los últimos 6 meses para la demostración
@@ -741,11 +770,12 @@ class DashboardStatsView(APIView):
                 "estado": p.estado
             })
 
-        # Reporte Caja
-        caja_activa = Caja.objects.filter(fecha_cierra__isnull=True).first()
-        saldo_actual = caja_activa.saldo_abre if caja_activa else 0
-        entradas_hoy = 450.00  # Mock
-        salidas_hoy = 25.00    # Mock
+        # Reporte Diario
+        pedidos_hoy_completados = Pedido.objects.filter(
+            fecha_creacion__gte=start_of_today,
+            estado__in=['PAGADO', 'PREPARACION', 'LISTO', 'ENTREGADO', 'PENDIENTE_RETIRO']
+        )
+        ventas_hoy = pedidos_hoy_completados.aggregate(Sum('total'))['total__sum'] or 0
 
         data = {
             "kpis": {
@@ -755,14 +785,10 @@ class DashboardStatsView(APIView):
                 "pendientes_empaque": pendientes_hoy
             },
             "grafico_ventas": grafico_ventas,
-            "caja": {
-                "saldo_actual": float(saldo_actual),
-                "entradas_hoy": entradas_hoy,
-                "salidas_hoy": salidas_hoy,
-                "ultimos_cierres": [
-                    {"fecha": "Ayer", "monto": 1150.00},
-                    {"fecha": "15 Oct", "monto": 980.00}
-                ]
+            "reporte_diario": {
+                "ventas_hoy": float(ventas_hoy),
+                "ordenes_hoy": ordenes_hoy,
+                "pendientes_hoy": pendientes_hoy,
             },
             "alertas_stock": alertas_list,
             "ordenes_recientes": ordenes_recientes

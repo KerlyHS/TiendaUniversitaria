@@ -1,15 +1,18 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ShoppingCart, Plus, Minus, Truck } from 'lucide-react';
 import { useCart } from '../../../shared/context/CartContext';
 import { useToast } from '../../../shared/context/ToastContext';
 import { catalogService } from '../../../core/api/services';
 import { getProductDisplayPrice } from '../../../shared/utils/priceHelper';
+import { useAuth } from '../../../core/hooks/useAuth';
 
 export const ProductDetailPage = () => {
   const { id } = useParams();
   const { addToCart, openCart } = useCart();
   const { addToast } = useToast();
+  const { user } = useAuth();
+  const navigate = useNavigate();
   
   const getCategoryName = (cat) => typeof cat === 'object' && cat !== null ? cat.nombre : cat;
 
@@ -27,6 +30,11 @@ export const ProductDetailPage = () => {
   const currentStock = selectedVariation ? selectedVariation.stock : (product ? product.stock : 0);
 
   useEffect(() => {
+    if (user?.rol === 'CAJERO') {
+      navigate('/admin/caja', { replace: true });
+      return;
+    }
+
     const fetchProductAndRecommendations = async () => {
       setIsLoading(true);
       try {
@@ -67,13 +75,15 @@ export const ProductDetailPage = () => {
       precio: currentPrice, // override con el precio final
       selectedVariation
     };
-    addToCart(itemToAdd, quantity, selectedVariation);
-    addToast({
-      title: '¡Añadido al carrito!',
-      message: `${quantity}x "${product.nombre}" ${selectedVariation ? '('+selectedVariation.nombre+')' : ''} se agregó correctamente.`,
-      actionText: 'Ver Carrito',
-      onAction: () => openCart()
-    });
+    const added = addToCart(itemToAdd, quantity, selectedVariation);
+    if (added) {
+      addToast({
+        title: '¡Añadido al carrito!',
+        message: `${quantity}x "${product.nombre}" ${selectedVariation ? '('+selectedVariation.nombre+')' : ''} se agregó correctamente.`,
+        actionText: 'Ver Carrito',
+        onAction: () => openCart()
+      });
+    }
   };
 
   if (isLoading) {
@@ -211,6 +221,14 @@ export const ProductDetailPage = () => {
                   ))}
                 </ul>
               )}
+            </div>
+
+            {/* Total Price Calculated */}
+            <div className="flex justify-between items-center bg-surface-container-low p-4 rounded-lg mb-4 border border-outline-variant">
+              <span className="font-title-md text-on-surface">Total Calculado:</span>
+              <span className="font-display-sm text-primary font-bold">
+                $ {(currentPrice * quantity).toFixed(2).replace('.', ',')}
+              </span>
             </div>
 
             {/* Actions */}

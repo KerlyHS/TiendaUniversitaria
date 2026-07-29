@@ -11,7 +11,7 @@ export const AuthProvider = ({ children }) => {
   // Load user profile if token exists
   useEffect(() => {
     const loadUser = async () => {
-      const token = localStorage.getItem('jwt_token');
+      const token = sessionStorage.getItem('jwt_token');
       if (token) {
         try {
           const res = await apiClient.get('/usuarios/me/');
@@ -20,8 +20,8 @@ export const AuthProvider = ({ children }) => {
         } catch (error) {
           console.error("Error loading user profile:", error);
           // If token is invalid/expired, log out
-          localStorage.removeItem('jwt_token');
-          localStorage.removeItem('jwt_refresh');
+          sessionStorage.removeItem('jwt_token');
+          sessionStorage.removeItem('jwt_refresh');
           setIsAuthenticated(false);
           setUser(null);
         }
@@ -39,8 +39,8 @@ export const AuthProvider = ({ children }) => {
       setIsLoading(true);
       const response = await apiClient.post('/auth/login/', { email, password });
       
-      localStorage.setItem('jwt_token', response.data.access_token);
-      localStorage.setItem('jwt_refresh', response.data.refresh_token);
+      sessionStorage.setItem('jwt_token', response.data.access_token);
+      sessionStorage.setItem('jwt_refresh', response.data.refresh_token);
       
       // Fetch user profile immediately
       const profileRes = await apiClient.get('/usuarios/me/');
@@ -56,8 +56,8 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
-    localStorage.removeItem('jwt_token');
-    localStorage.removeItem('jwt_refresh');
+    sessionStorage.removeItem('jwt_token');
+    sessionStorage.removeItem('jwt_refresh');
     setIsAuthenticated(false);
     setUser(null);
   };

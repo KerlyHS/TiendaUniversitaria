@@ -50,14 +50,18 @@ export const InventoryAdminPage = () => {
 
   // Calcular stock total automáticamente si hay variaciones
   useEffect(() => {
-    if (isFoodCategory(formData.categoria)) {
-      const total = (parseInt(agricolaData.var1Stock) || 0) + (parseInt(agricolaData.var2Stock) || 0);
-      setFormData(prev => ({ ...prev, stock: total.toString() }));
-    } else if (variations.length > 0) {
+    if (variations.length > 0 && !isFoodCategory(formData.categoria)) {
       const total = variations.reduce((sum, v) => sum + (parseInt(v.stock) || 0), 0);
       setFormData(prev => ({ ...prev, stock: total.toString() }));
     }
-  }, [variations, agricolaData, formData.categoria]);
+  }, [variations, formData.categoria]);
+
+  // Sincronizar Precio Base con el precio de la primera variación (ej. Kilo) en categorías de alimentos
+  useEffect(() => {
+    if (isFoodCategory(formData.categoria) && agricolaData.var1Precio !== '') {
+      setFormData(prev => ({ ...prev, precio: agricolaData.var1Precio }));
+    }
+  }, [agricolaData.var1Precio, formData.categoria]);
 
   const handleVariationChange = (index, field, value) => {
     const newVars = [...variations];
@@ -145,7 +149,7 @@ export const InventoryAdminPage = () => {
       is_activo: true, aplica_impuesto: true,
     });
     setVariations([]);
-    setAgricolaData({ var1Precio: '', var1Stock: '', var2Precio: '', var2Stock: '' });
+    setAgricolaData({ var1Precio: '', var2Precio: '' });
     setSelectedFile(null);
     setPreviewUrl(null);
     setIsFormOpen(true);
@@ -173,15 +177,13 @@ export const InventoryAdminPage = () => {
       const v2 = product.variaciones?.find(v => v.nombre === var2) || {};
       setAgricolaData({
         var1Precio: v1.precio_fijo || '',
-        var1Stock: v1.stock || '',
         var1Id: v1.id || null,
         var2Precio: v2.precio_fijo || '',
-        var2Stock: v2.stock || '',
         var2Id: v2.id || null,
       });
       setVariations([]);
     } else {
-      setAgricolaData({ var1Precio: '', var1Stock: '', var2Precio: '', var2Stock: '' });
+      setAgricolaData({ var1Precio: '', var2Precio: '' });
       setVariations(product.variaciones ? product.variaciones.map(v => ({
         id: v.id,
         nombre: v.nombre,
@@ -238,8 +240,8 @@ export const InventoryAdminPage = () => {
       }
       const { var1, var2 } = getFoodVariationsForCategory(formData.categoria);
       finalVariations = [
-        { id: agricolaData.var1Id, nombre: var1, stock: parseInt(agricolaData.var1Stock) || 0, precio_fijo: parseFloat(agricolaData.var1Precio) || 0 },
-        { id: agricolaData.var2Id, nombre: var2, stock: parseInt(agricolaData.var2Stock) || 0, precio_fijo: parseFloat(agricolaData.var2Precio) || 0 }
+        { id: agricolaData.var1Id, nombre: var1, stock: 0, precio_fijo: parseFloat(agricolaData.var1Precio) || 0 },
+        { id: agricolaData.var2Id, nombre: var2, stock: 0, precio_fijo: parseFloat(agricolaData.var2Precio) || 0 }
       ];
     } else {
       finalVariations = variations;
@@ -339,7 +341,9 @@ export const InventoryAdminPage = () => {
                       <div className="font-title-sm text-on-surface font-bold">{p.nombre}</div>
                       <div className="text-body-sm text-on-surface-variant">{p.codigo || 'Sin código'}</div>
                     </td>
-                    <td className="p-4 font-body-md">${parseFloat(p.precio).toFixed(2)}</td>
+                    <td className="p-4 font-body-md">
+                      ${parseFloat(isFoodCategory(p.categoria) && p.variaciones?.length > 0 ? (p.variaciones[0].precio_fijo || p.precio) : p.precio).toFixed(2)}
+                    </td>
                     <td className="p-4">
                       <span className={`px-2 py-1 rounded text-xs font-bold ${p.stock > 5 ? 'bg-[#006633]/10 text-[#006633]' : p.stock > 0 ? 'bg-yellow-500/10 text-yellow-700' : 'bg-error/10 text-error'}`}>
                         {p.stock} un.
@@ -439,9 +443,9 @@ export const InventoryAdminPage = () => {
                   <input required={!isFoodCategory(formData.categoria)} type="number" step="0.01" min="0" name="precio" value={formData.precio} onChange={handleInputChange} disabled={isFoodCategory(formData.categoria)} className="px-3 py-2 border border-outline rounded bg-surface focus:border-primary outline-none disabled:bg-gray-100 disabled:text-gray-500" placeholder={isFoodCategory(formData.categoria) ? "N/A" : ""} />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-label-md text-on-surface-variant">Stock Inicial *</label>
-                  <input required type="number" min="0" name="stock" value={formData.stock} onChange={handleInputChange} disabled={variations.length > 0 || isFoodCategory(formData.categoria)} className="px-3 py-2 border border-outline rounded bg-surface focus:border-primary outline-none disabled:bg-gray-100 disabled:text-gray-500" />
-                  {(variations.length > 0 || isFoodCategory(formData.categoria)) && <span className="text-xs text-primary">Se calcula automáticamente</span>}
+                  <label className="text-label-md text-on-surface-variant">Stock Total (Unidades) *</label>
+                  <input required type="number" min="0" name="stock" value={formData.stock} onChange={handleInputChange} disabled={variations.length > 0 && !isFoodCategory(formData.categoria)} className="px-3 py-2 border border-outline rounded bg-surface focus:border-primary outline-none disabled:bg-gray-100 disabled:text-gray-500" />
+                  {(variations.length > 0 && !isFoodCategory(formData.categoria)) && <span className="text-xs text-primary">Se calcula automáticamente</span>}
                 </div>
               </div>
 
@@ -456,20 +460,12 @@ export const InventoryAdminPage = () => {
                         <label className="text-xs text-on-surface-variant">Precio ($)</label>
                         <input type="number" step="0.01" min="0" required value={agricolaData.var1Precio} onChange={e => setAgricolaData({ ...agricolaData, var1Precio: e.target.value })} className="w-full text-sm px-2 py-1 border border-outline rounded focus:border-primary outline-none" />
                       </div>
-                      <div>
-                        <label className="text-xs text-on-surface-variant">Stock</label>
-                        <input type="number" min="0" required value={agricolaData.var1Stock} onChange={e => setAgricolaData({ ...agricolaData, var1Stock: e.target.value })} className="w-full text-sm px-2 py-1 border border-outline rounded focus:border-primary outline-none" />
-                      </div>
                     </div>
                     <div className="flex flex-col gap-2 p-3 bg-white rounded border border-outline-variant">
                       <span className="font-bold text-sm">Venta por {getFoodVariationsForCategory(formData.categoria).var2}</span>
                       <div>
                         <label className="text-xs text-on-surface-variant">Precio ($)</label>
                         <input type="number" step="0.01" min="0" required value={agricolaData.var2Precio} onChange={e => setAgricolaData({ ...agricolaData, var2Precio: e.target.value })} className="w-full text-sm px-2 py-1 border border-outline rounded focus:border-primary outline-none" />
-                      </div>
-                      <div>
-                        <label className="text-xs text-on-surface-variant">Stock</label>
-                        <input type="number" min="0" required value={agricolaData.var2Stock} onChange={e => setAgricolaData({ ...agricolaData, var2Stock: e.target.value })} className="w-full text-sm px-2 py-1 border border-outline rounded focus:border-primary outline-none" />
                       </div>
                     </div>
                   </div>

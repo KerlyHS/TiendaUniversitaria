@@ -215,11 +215,25 @@ class PedidoCreateSerializer(serializers.Serializer):
             # Variacion logic
             variacion_id = detalle.get('variacion_id')
             variacion = None
+            is_food = producto.categoria in ['AGRICOLA', 'HORTALIZAS', 'FRUTAS', 'CARNES', 'LACTEOS', 'BEBIDAS']
+            
             if variacion_id:
                 try:
                     variacion = ProductoVariacion.objects.get(id=variacion_id, producto=producto)
-                    if variacion.stock < cantidad:
-                        raise serializers.ValidationError(f"Stock insuficiente en la variación '{variacion.nombre}'.")
+                    if is_food:
+                        var_name_lower = variacion.nombre.lower()
+                        multiplier = 5 if 'libra' in var_name_lower else 7 if 'kilo' in var_name_lower else 1
+                        required_units = cantidad * multiplier
+                        if producto.stock < required_units:
+                            raise serializers.ValidationError(
+                                f"Stock insuficiente en unidades principales para '{producto.nombre}'. "
+                                f"Se requieren {required_units} unidades."
+                            )
+                        detalle['unidades_a_restar'] = required_units
+                    else:
+                        if variacion.stock < cantidad:
+                            raise serializers.ValidationError(f"Stock insuficiente en la variación '{variacion.nombre}'.")
+                        detalle['unidades_a_restar'] = cantidad
                 except ProductoVariacion.DoesNotExist:
                     raise serializers.ValidationError(f"Variación {variacion_id} no válida para el producto {producto_id}")
             else:
@@ -228,6 +242,7 @@ class PedidoCreateSerializer(serializers.Serializer):
                         f"Stock insuficiente para '{producto.nombre}'. "
                         f"Disponible: {producto.stock}, Solicitado: {cantidad}"
                     )
+                detalle['unidades_a_restar'] = cantidad
             
             # Actualizar el detalle con valores calculados
             detalle['producto'] = producto
@@ -277,14 +292,20 @@ class PedidoCreateSerializer(serializers.Serializer):
                 # RE-FETCH WITH LOCK TO PREVENT RACE CONDITIONS
                 producto = Producto.objects.select_for_update().get(id=detalle_data['producto'].id)
                 cantidad = detalle_data['cantidad']
+                unidades_a_restar = detalle_data.get('unidades_a_restar', cantidad)
+                is_food = producto.categoria in ['AGRICOLA', 'HORTALIZAS', 'FRUTAS', 'CARNES', 'LACTEOS', 'BEBIDAS']
                 
                 variacion = detalle_data.get('variacion')
                 if variacion:
                     variacion = ProductoVariacion.objects.select_for_update().get(id=variacion.id)
-                    if variacion.stock < cantidad:
-                        raise serializers.ValidationError(f"Stock insuficiente para la variación '{variacion.nombre}'")
-                elif producto.stock < cantidad:
-                    raise serializers.ValidationError(f"Stock insuficiente para '{producto.nombre}'. Disponible: {producto.stock}, Solicitado: {cantidad}")
+                    if is_food:
+                        if producto.stock < unidades_a_restar:
+                            raise serializers.ValidationError(f"Stock insuficiente para '{producto.nombre}'. Disponible: {producto.stock}, Solicitado: {unidades_a_restar}")
+                    else:
+                        if variacion.stock < unidades_a_restar:
+                            raise serializers.ValidationError(f"Stock insuficiente para la variación '{variacion.nombre}'")
+                elif producto.stock < unidades_a_restar:
+                    raise serializers.ValidationError(f"Stock insuficiente para '{producto.nombre}'. Disponible: {producto.stock}, Solicitado: {unidades_a_restar}")
                     
                 precio_unitario = Decimal(str(detalle_data['precio_unitario']))
                 
@@ -301,11 +322,11 @@ class PedidoCreateSerializer(serializers.Serializer):
                 )
                 
                 # Reducir stock
-                if variacion:
-                    variacion.stock -= cantidad
+                if variacion and not is_food:
+                    variacion.stock -= unidades_a_restar
                     variacion.save()
                 else:
-                    producto.stock -= cantidad
+                    producto.stock -= unidades_a_restar
                     producto.save()
                 
                 # Calcular totales
@@ -395,14 +416,35 @@ class PedidoListSerializer(serializers.ModelSerializer):
         source='get_estado_display',
         read_only=True
     )
+    cliente = serializers.SerializerMethodField()
+    detalles = serializers.SerializerMethodField()
     
     class Meta:
         model = Pedido
         fields = [
-            'id', 'numero_pedido', 'cliente_nombre', 'estado', 'estado_display',
-            'tipo_entrega', 'total', 'fecha_creacion'
+            'id', 'numero_pedido', 'cliente_nombre', 'cliente', 'estado', 'estado_display',
+            'tipo_entrega', 'total', 'fecha_creacion', 'detalles'
         ]
         read_only_fields = fields
+
+    def get_cliente(self, obj):
+        if obj.cliente:
+            return {
+                'id': obj.cliente.id,
+                'nombre_completo': obj.cliente.nombre_completo,
+                'identificacion': getattr(obj.cliente, 'identificacion', getattr(obj.cliente, 'cedula', None))
+            }
+        return None
+
+    def get_detalles(self, obj):
+        try:
+            if hasattr(obj, 'venta') and obj.venta:
+                detalles = obj.venta.detalles.all()
+                return DetalleVentaSerializer(detalles, many=True).data
+        except:
+            pass
+        detalles = obj.detalles_venta.all()
+        return DetalleVentaSerializer(detalles, many=True).data
 
 
 class PedidoUpdateStateSerializer(serializers.ModelSerializer):
@@ -411,6 +453,7 @@ class PedidoUpdateStateSerializer(serializers.ModelSerializer):
     
     Valida transiciones de estado permitidas:
     - RECIBIDO → PREPARACION, CANCELADO
+    - PENDIENTE_RETIRO → ENTREGADO, CANCELADO
     - PREPARACION → LISTO, CANCELADO
     - LISTO → ENTREGADO, CANCELADO
     - ENTREGADO → (no permitido)
@@ -430,6 +473,7 @@ class PedidoUpdateStateSerializer(serializers.ModelSerializer):
         # Matriz de transiciones permitidas
         valid_transitions = {
             'RECIBIDO': ['PREPARACION', 'CANCELADO'],
+            'PENDIENTE_RETIRO': ['ENTREGADO', 'CANCELADO'],
             'PREPARACION': ['LISTO', 'CANCELADO'],
             'LISTO': ['ENTREGADO', 'CANCELADO'],
             'ENTREGADO': [],

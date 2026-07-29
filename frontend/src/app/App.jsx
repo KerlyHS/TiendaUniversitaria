@@ -19,7 +19,7 @@ import { AdminLayout } from '../features/admin/layouts/AdminLayout';
 
 // Protected Route
 const ProtectedRoute = ({ children }) => {
-  const token = localStorage.getItem('jwt_token');
+  const token = sessionStorage.getItem('jwt_token');
   return token ? children : <Navigate to="/login" />;
 };
 
