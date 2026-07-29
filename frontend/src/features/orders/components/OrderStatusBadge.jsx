@@ -21,6 +21,11 @@ export const OrderStatusBadge = ({ estado }) => {
       className: 'status-recibido',
       icon: '📋',
     },
+    PENDIENTE_RETIRO: {
+      label: 'Pendiente a Retirar',
+      className: 'status-listo', // Reutilizamos estilo verde o podemos agregar uno nuevo
+      icon: '🛍️',
+    },
     PREPARACION: {
       label: 'En Preparación',
       className: 'status-preparacion',

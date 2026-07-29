@@ -38,10 +38,8 @@ export const LoginPage = () => {
           type: 'success'
         });
         
-        // Redirección basada en el rol
-        const rol = response.user?.rol;
-        if (['ADMIN', 'GERENTE', 'SUPERVISOR', 'BODEGUERO', 'CAJERO'].includes(rol)) {
-          navigate('/admin/dashboard');
+        if (response.user?.rol === 'CAJERO') {
+          navigate('/admin/caja');
         } else {
           navigate('/catalogo');
         }

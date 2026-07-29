@@ -153,7 +153,7 @@ export const GlobalHeader = () => {
           {/* Trailing Actions */}
           <div className="flex items-center gap-1 flex-shrink-0 text-on-primary">
             {isAuthenticated ? (
-              <Link to={user?.rol === 'ADMIN' ? '/admin' : '/dashboard'} className="hidden md:flex items-center gap-2 p-2 hover:bg-white/10 rounded-DEFAULT transition-colors">
+              <Link to={['ADMIN', 'GERENTE', 'CAJERO', 'BODEGUERO'].includes(user?.rol) ? '/admin' : '/dashboard'} className="hidden md:flex items-center gap-2 p-2 hover:bg-white/10 rounded-DEFAULT transition-colors">
                 <div className="w-8 h-8 rounded-full bg-primary/20 text-primary-fixed-dim flex items-center justify-center">
                   <span className="material-symbols-outlined text-[20px]">person</span>
                 </div>
@@ -172,7 +172,7 @@ export const GlobalHeader = () => {
             )}
             
             {isAuthenticated ? (
-              <Link to={user?.rol === 'ADMIN' ? '/admin' : '/dashboard'} className="md:hidden p-2 hover:bg-white/10 rounded-full transition-colors flex items-center justify-center">
+              <Link to={['ADMIN', 'GERENTE', 'CAJERO', 'BODEGUERO'].includes(user?.rol) ? '/admin' : '/dashboard'} className="md:hidden p-2 hover:bg-white/10 rounded-full transition-colors flex items-center justify-center">
                 <div className="w-8 h-8 rounded-full bg-primary/20 text-primary-fixed-dim flex items-center justify-center">
                   <span className="material-symbols-outlined">person</span>
                 </div>

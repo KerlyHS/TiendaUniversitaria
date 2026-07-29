@@ -43,7 +43,7 @@ export const DashboardAdminPage = () => {
 
   if (!stats) return null;
 
-  const { kpis, grafico_ventas, caja, alertas_stock, ordenes_recientes } = stats;
+  const { kpis, grafico_ventas, reporte_diario, alertas_stock, ordenes_recientes } = stats;
 
   return (
     <div className="p-6 lg:p-8 flex flex-col gap-6">
@@ -112,42 +112,27 @@ export const DashboardAdminPage = () => {
           </div>
         </div>
 
-        {/* Reporte Caja */}
+        {/* Reporte Diario */}
         <div className="bg-surface border border-outline-variant rounded-2xl p-6 shadow-sm flex flex-col">
           <div className="flex justify-between items-center mb-6">
-            <h3 className="text-title-md font-bold text-on-surface">Reporte de Caja</h3>
-            <button className="text-on-surface-variant hover:text-primary">⋮</button>
+            <h3 className="text-title-md font-bold text-on-surface">Reporte Diario</h3>
           </div>
           
           <div className="bg-surface-container-low rounded-xl p-4 mb-6">
-            <p className="text-label-sm text-on-surface-variant mb-1">Saldo Actual</p>
-            <p className="text-headline-md font-bold text-primary">${caja.saldo_actual.toFixed(2)}</p>
+            <p className="text-label-sm text-on-surface-variant mb-1">Ventas de Hoy</p>
+            <p className="text-headline-md font-bold text-primary">${reporte_diario.ventas_hoy.toFixed(2)}</p>
           </div>
 
           <div className="flex flex-col gap-3 mb-6">
             <div className="flex justify-between items-center text-body-sm">
-              <span className="text-on-surface-variant">Entradas Hoy</span>
-              <span className="text-[#006633] font-bold">+{caja.entradas_hoy.toFixed(2)}</span>
+              <span className="text-on-surface-variant">Órdenes de Hoy</span>
+              <span className="text-[#006633] font-bold">{reporte_diario.ordenes_hoy}</span>
             </div>
             <div className="flex justify-between items-center text-body-sm">
-              <span className="text-on-surface-variant">Salidas Hoy</span>
-              <span className="text-error font-bold">-{caja.salidas_hoy.toFixed(2)}</span>
+              <span className="text-on-surface-variant">Pedidos Pendientes</span>
+              <span className="text-error font-bold">{reporte_diario.pendientes_hoy}</span>
             </div>
           </div>
-
-          <div className="flex flex-col gap-3 flex-grow">
-            <h4 className="text-label-sm text-outline font-bold uppercase tracking-wider mb-2">Últimos Cierres</h4>
-            {caja.ultimos_cierres.map((cierre, i) => (
-              <div key={i} className="flex justify-between items-center text-body-sm">
-                <span className="text-on-surface-variant">{cierre.fecha}</span>
-                <span className="font-bold text-on-surface">${cierre.monto.toFixed(2)}</span>
-              </div>
-            ))}
-          </div>
-
-          <button className="w-full mt-6 bg-[#006633] text-white py-3 rounded-xl font-title-sm hover:bg-[#005522] transition-colors shadow-sm">
-            Nuevo Cierre
-          </button>
         </div>
 
       </div>
@@ -236,8 +221,9 @@ export const DashboardAdminPage = () => {
                       <td className="py-3 text-on-surface-variant">{orden.fecha}</td>
                       <td className="py-3">
                         <span className={`px-2 py-1 rounded text-xs font-bold ${
-                          orden.estado === 'PAGADO' || orden.estado === 'ENTREGADO' ? 'bg-[#006633]/10 text-[#006633]' : 
+                          orden.estado === 'PAGADO' || orden.estado === 'ENTREGADO' || orden.estado === 'LISTO' ? 'bg-[#006633]/10 text-[#006633]' : 
                           orden.estado === 'CANCELADO' ? 'bg-error/10 text-error' : 
+                          orden.estado === 'PENDIENTE_RETIRO' ? 'bg-[#008080]/10 text-[#008080]' :
                           'bg-primary/10 text-primary'
                         }`}>
                           {orden.estado}

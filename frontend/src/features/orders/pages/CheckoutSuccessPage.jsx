@@ -13,25 +13,33 @@ export const CheckoutSuccessPage = () => {
   const { addToast } = useToast();
   const [isDownloading, setIsDownloading] = useState(false);
   
-  // The payment intent ID will be present in the URL if using Stripe Elements return_url
+  // The payment intent ID or session ID will be present in the URL
   const paymentIntent = searchParams.get('payment_intent');
+  const sessionId = searchParams.get('session_id');
+  const identificador = paymentIntent || sessionId;
 
   useEffect(() => {
     // Clear the cart on successful checkout
     clearCart();
-  }, [clearCart]);
+    
+    // Verify payment in backend (useful as a fallback if webhook fails in local dev)
+    if (identificador) {
+      apiClient.get(`/pagos/verificar/?payment_intent=${paymentIntent || ''}&session_id=${sessionId || ''}`)
+        .catch(err => console.error("Error verificando pago:", err));
+    }
+  }, [clearCart, identificador, paymentIntent, sessionId]);
 
   const handleDownloadReceipt = async () => {
-    if (!paymentIntent) return;
+    if (!identificador) return;
     try {
       setIsDownloading(true);
-      const res = await apiClient.get(`/pagos/comprobante/?payment_intent=${paymentIntent}`, {
+      const res = await apiClient.get(`/pagos/comprobante/?payment_intent=${identificador}`, {
         responseType: 'blob'
       });
       const url = window.URL.createObjectURL(new Blob([res.data]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `comprobante_${paymentIntent}.pdf`);
+      link.setAttribute('download', `comprobante_${identificador}.pdf`);
       document.body.appendChild(link);
       link.click();
       link.parentNode.removeChild(link);
@@ -58,11 +66,11 @@ export const CheckoutSuccessPage = () => {
           Tu transacción se ha procesado correctamente. Gracias por tu compra en la Tienda Universitaria UNL.
         </p>
 
-        {paymentIntent && (
+        {identificador && (
           <div className="bg-surface-container-low p-4 rounded-xl mb-8 text-sm text-on-surface-variant flex flex-col gap-3">
             <div>
               <span className="font-bold uppercase text-xs tracking-wider opacity-70 block mb-1">Referencia de Transacción</span>
-              <span className="font-mono">{paymentIntent}</span>
+              <span className="font-mono">{identificador}</span>
             </div>
             <Button 
               onClick={handleDownloadReceipt}

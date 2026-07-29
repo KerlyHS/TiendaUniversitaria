@@ -6,16 +6,7 @@ import { useAuth } from '../../../core/hooks/useAuth';
 import { authService } from '../../../core/api/services';
 import { useToast } from '../../../shared/context/ToastContext';
 
-// Mock Data
-const mockOrders = [
-  { id: 'P-20240520-001', fecha: '20 May, 2024', total: 45.50, estado: 'EN PREPARACIÓN' },
-  { id: 'P-20240415-089', fecha: '15 Abr, 2024', total: 32.00, estado: 'ENTREGADO' },
-];
-
-const mockTransactions = [
-  { id: 'P-20240310-042', fecha: '10 Mar, 2024', total: 15.00, estado: 'ENTREGADO' },
-  { id: 'P-20240228-115', fecha: '28 Feb, 2024', total: 85.00, estado: 'CANCELADO' },
-];
+import { useOrders } from '../../../core/hooks/useAPI';
 
 export const OrdersPage = () => {
   const location = useLocation();
@@ -25,6 +16,8 @@ export const OrdersPage = () => {
   const [activeTab, setActiveTab] = useState(
     location.pathname.includes('pedidos') ? 'pedidos' : 'informacion'
   );
+
+  const { orders, loading } = useOrders();
 
   const { addToast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
@@ -223,20 +216,31 @@ export const OrdersPage = () => {
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {mockOrders.map(order => (
+                {loading ? <p>Cargando pedidos...</p> : orders.slice(0, 3).map(order => (
                   <div key={order.id} className="bg-white p-5 rounded-lg border border-gray-200 shadow-level-1">
                     <div className="flex justify-between items-start mb-4">
-                      <span className="text-xs font-semibold text-gray-500">{order.id}</span>
+                      <span className="text-xs font-semibold text-gray-500">{order.numero_pedido}</span>
                       <StatusBadge status={order.estado} />
                     </div>
-                    <h3 className="font-semibold text-secondary mb-1">Kit Universitario UNL</h3>
-                    <p className="text-sm text-gray-500 mb-4">1 x Chompa Oficial, 1 x Cuaderno</p>
+                    {order.detalles && order.detalles.length > 0 && (
+                      <>
+                        <h3 className="font-semibold text-secondary mb-1">
+                          {order.detalles[0].producto_nombre} {order.detalles.length > 1 ? `y ${order.detalles.length - 1} más` : ''}
+                        </h3>
+                        <p className="text-sm text-gray-500 mb-4">
+                          {order.detalles.map(d => `${d.cantidad} x ${d.producto_nombre}`).join(', ')}
+                        </p>
+                      </>
+                    )}
                     <div className="flex justify-between items-center pt-4 border-t border-gray-100">
-                      <span className="text-sm text-gray-500">{order.fecha}</span>
-                      <span className="font-bold text-primary">${order.total.toFixed(2)}</span>
+                      <span className="text-sm text-gray-500">
+                        {order.fecha_creacion ? new Date(order.fecha_creacion).toLocaleString() : 'Fecha no disponible'}
+                      </span>
+                      <span className="font-bold text-primary">${parseFloat(order.total).toFixed(2)}</span>
                     </div>
                   </div>
                 ))}
+                {!loading && orders.length === 0 && <p className="text-gray-500">No tienes compras recientes.</p>}
               </div>
             </section>
 
@@ -262,14 +266,23 @@ export const OrdersPage = () => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
-                      {mockTransactions.map(tx => (
+                      {loading ? (
+                        <tr><td colSpan="4" className="p-4 text-center">Cargando...</td></tr>
+                      ) : orders.map(tx => (
                         <tr key={tx.id} className="hover:bg-gray-50/50 transition-colors">
-                          <td className="p-4 font-medium text-primary">{tx.id}</td>
-                          <td className="p-4 text-gray-600">{tx.fecha}</td>
-                          <td className="p-4"><StatusBadge status={tx.estado} /></td>
-                          <td className="p-4 font-semibold text-secondary">${tx.total.toFixed(2)}</td>
+                          <td className="p-4 font-medium text-primary">{tx.numero_pedido}</td>
+                          <td className="p-4 text-gray-600">
+                            {tx.fecha_creacion ? new Date(tx.fecha_creacion).toLocaleString() : 'Fecha no disponible'}
+                          </td>
+                          <td className="p-4">
+                            <StatusBadge status={tx.estado} />
+                          </td>
+                          <td className="p-4 font-bold text-secondary">${parseFloat(tx.total).toFixed(2)}</td>
                         </tr>
                       ))}
+                      {!loading && orders.length === 0 && (
+                        <tr><td colSpan="4" className="p-4 text-center text-gray-500">No hay transacciones.</td></tr>
+                      )}
                     </tbody>
                   </table>
                 </div>

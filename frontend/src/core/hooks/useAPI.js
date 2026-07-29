@@ -50,7 +50,8 @@ export const useProducts = (filters = {}) => {
     } finally {
       setLoading(false);
     }
-  }, [filters]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(filters)]);
 
   useEffect(() => {
     fetchProducts();
@@ -121,7 +122,8 @@ export const useOrders = (filters = {}) => {
     } finally {
       setLoading(false);
     }
-  }, [filters]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(filters)]);
 
   useEffect(() => {
     fetchOrders();
