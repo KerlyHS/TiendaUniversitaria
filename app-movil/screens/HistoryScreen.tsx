@@ -1,21 +1,22 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, StatusBar, ScrollView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Header } from '../components/Header';
 import { BottomNavigation } from '../components/BottomNavigation';
-import { Colors } from '../constants/Colors';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { AnimatedButton } from '../components/AnimatedButton';
-import { Package, ChevronRight } from 'lucide-react-native';
+import { Package } from 'lucide-react-native';
 
 export const HistoryScreen: React.FC = () => {
     const navigation = useNavigation<any>();
     const [orders, setOrders] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const { theme } = useTheme();
+    const [activeFilter, setActiveFilter] = useState('Todos');
+    const { theme, isDark } = useTheme();
 
     const { apiFetch } = useAuth();
+
+    const filters = ['Todos', 'Completados', 'Pendientes'];
 
     useEffect(() => {
         const fetchOrders = async () => {
@@ -36,68 +37,75 @@ export const HistoryScreen: React.FC = () => {
 
     const getStatusColor = (status: string) => {
         switch (status) {
-            case 'PENDIENTE': return '#f59e0b';
-            case 'PAGADO': return '#10b981';
-            case 'ENTREGADO': return '#3b82f6';
-            case 'CANCELADO': return Colors.error;
-            default: return Colors.secondaryText;
+            case 'PENDIENTE': return theme.warning;
+            case 'PAGADO': return theme.success;
+            case 'ENTREGADO': return theme.primary;
+            case 'CANCELADO': return theme.error;
+            default: return theme.secondaryText;
         }
     };
 
     const renderItem = ({ item }: { item: any }) => {
-        const date = new Date(item.fecha).toLocaleDateString();
+        const date = new Date(item.fecha || item.fecha_creacion).toLocaleDateString();
         const orderTotal = Number(item.total) || 0;
 
         return (
-            <AnimatedButton
-                style={[styles.orderCard, { backgroundColor: theme.card, borderColor: theme.border }]}
+            <TouchableOpacity
+                style={[styles.orderCard, { backgroundColor: theme.surface, borderColor: theme.border }]}
                 onPress={() => {}}
+                activeOpacity={0.7}
             >
-                <View style={styles.orderHeader}>
-                    <View style={styles.orderIdContainer}>
-                        <Package color={Colors.primary} size={20} />
-                        <Text style={styles.orderId}>{item.numero_pedido}</Text>
+                <View style={styles.orderMain}>
+                    <View style={styles.orderInfo}>
+                        <Text style={[styles.orderId, { color: theme.onSurface }]}>{item.numero_pedido || `#UNL-${item.id}`}</Text>
+                        <Text style={[styles.orderDate, { color: theme.secondaryText }]}>{date}</Text>
                     </View>
-                    <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.estado) + '20' }]}>
+                    <View style={styles.orderStatus}>
+                        <Text style={[styles.totalValue, { color: theme.onSurface }]}>${orderTotal.toFixed(2)}</Text>
                         <Text style={[styles.statusText, { color: getStatusColor(item.estado) }]}>
                             {item.estado}
                         </Text>
                     </View>
                 </View>
-
-                <View style={styles.orderDetails}>
-                    <View style={styles.detailCol}>
-                        <Text style={styles.detailLabel}>Fecha</Text>
-                        <Text style={styles.detailValue}>{date}</Text>
-                    </View>
-                    <View style={styles.detailCol}>
-                        <Text style={styles.detailLabel}>Método</Text>
-                        <Text style={styles.detailValue}>{item.venta?.metodo_pago || 'STRIPE'}</Text>
-                    </View>
-                    <View style={styles.detailColRight}>
-                        <Text style={styles.detailLabel}>Total</Text>
-                        <Text style={styles.totalValue}>${orderTotal.toFixed(2)}</Text>
-                    </View>
-                </View>
-
-                <View style={styles.orderFooter}>
-                    <Text style={[styles.viewDetailsText, { color: theme.primary }]}>Ver detalles</Text>
-                    <ChevronRight color={theme.primary} size={16} />
-                </View>
-            </AnimatedButton>
+            </TouchableOpacity>
         );
     };
 
     return (
-        <View style={styles.container}>
-            <Header />
-            <View style={styles.headerTitle}>
-                <Text style={styles.title}>Historial de Compras</Text>
+        <View style={[styles.container, { backgroundColor: theme.surface }]}>
+            <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={theme.surface} />
+            <Header showGreeting={false} />
+
+            <View style={styles.headerSection}>
+                <Text style={[styles.title, { color: theme.onSurface }]}>Historial</Text>
+            </View>
+
+            <View style={styles.filterWrapper}>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterContainer}>
+                    {filters.map(filter => (
+                        <TouchableOpacity
+                            key={filter}
+                            style={[
+                                styles.filterItem,
+                                activeFilter === filter && { backgroundColor: theme.primary }
+                            ]}
+                            onPress={() => setActiveFilter(filter)}
+                        >
+                            <Text style={[
+                                styles.filterText,
+                                { color: theme.secondaryText },
+                                activeFilter === filter && { color: '#fff', fontWeight: 'bold' }
+                            ]}>
+                                {filter}
+                            </Text>
+                        </TouchableOpacity>
+                    ))}
+                </ScrollView>
             </View>
 
             {loading ? (
                 <View style={styles.centerContent}>
-                    <ActivityIndicator size="large" color={Colors.primary} />
+                    <ActivityIndicator size="large" color={theme.primary} />
                 </View>
             ) : (
                 <FlatList
@@ -107,14 +115,8 @@ export const HistoryScreen: React.FC = () => {
                     contentContainerStyle={styles.listContent}
                     ListEmptyComponent={
                         <View style={styles.emptyContainer}>
-                            <Package color={Colors.border} size={64} style={{ marginBottom: 16 }} />
-                            <Text style={styles.emptyText}>No tienes compras aún</Text>
-                            <TouchableOpacity 
-                                style={styles.shopButton}
-                                onPress={() => navigation.navigate('Home')}
-                            >
-                                <Text style={styles.shopButtonText}>Ir a comprar</Text>
-                            </TouchableOpacity>
+                            <Package color={theme.border} size={64} style={{ marginBottom: 16 }} />
+                            <Text style={[styles.emptyText, { color: theme.secondaryText }]}>No tienes compras aún</Text>
                         </View>
                     }
                 />
@@ -128,99 +130,74 @@ export const HistoryScreen: React.FC = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: Colors.surface,
+    },
+    headerSection: {
+        paddingHorizontal: 20,
+        marginBottom: 15,
+    },
+    title: {
+        fontSize: 24,
+        fontWeight: 'bold',
+    },
+    filterWrapper: {
+        marginBottom: 20,
+    },
+    filterContainer: {
+        paddingHorizontal: 15,
+    },
+    filterItem: {
+        paddingHorizontal: 20,
+        paddingVertical: 8,
+        borderRadius: 20,
+        marginHorizontal: 5,
+        backgroundColor: 'rgba(0,0,0,0.05)',
+    },
+    filterText: {
+        fontSize: 14,
     },
     centerContent: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
     },
-    headerTitle: {
-        padding: 16,
-        backgroundColor: Colors.surface,
-    },
-    title: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: Colors.onSurface,
-    },
     listContent: {
-        padding: 16,
+        paddingHorizontal: 20,
+        paddingBottom: 20,
     },
     orderCard: {
-        borderRadius: 20,
-        padding: 20,
-        marginBottom: 20,
+        borderRadius: 15,
+        padding: 16,
+        marginBottom: 12,
         borderWidth: 1,
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.05,
-        shadowRadius: 15,
-        elevation: 3,
+        elevation: 1,
     },
-    orderHeader: {
+    orderMain: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 16,
     },
-    orderIdContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-    },
-    orderId: {
-        fontSize: 14,
-        fontWeight: 'bold',
-        color: Colors.onSurface,
-    },
-    statusBadge: {
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 12,
-    },
-    statusText: {
-        fontSize: 10,
-        fontWeight: 'bold',
-    },
-    orderDetails: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginBottom: 16,
-    },
-    detailCol: {
+    orderInfo: {
         flex: 1,
     },
-    detailColRight: {
-        alignItems: 'flex-end',
-    },
-    detailLabel: {
-        fontSize: 12,
-        color: Colors.secondaryText,
+    orderId: {
+        fontSize: 15,
+        fontWeight: 'bold',
         marginBottom: 4,
     },
-    detailValue: {
-        fontSize: 14,
-        fontWeight: '500',
-        color: Colors.onSurface,
+    orderDate: {
+        fontSize: 12,
+    },
+    orderStatus: {
+        alignItems: 'flex-end',
     },
     totalValue: {
         fontSize: 16,
         fontWeight: 'bold',
-        color: Colors.onSurface,
+        marginBottom: 4,
     },
-    orderFooter: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'flex-end',
-        borderTopWidth: 1,
-        borderTopColor: Colors.border,
-        paddingTop: 12,
-    },
-    viewDetailsText: {
+    statusText: {
         fontSize: 12,
-        color: Colors.primary,
-        fontWeight: '600',
-        marginRight: 4,
+        fontWeight: 'bold',
     },
     emptyContainer: {
         alignItems: 'center',
@@ -229,17 +206,5 @@ const styles = StyleSheet.create({
     },
     emptyText: {
         fontSize: 16,
-        color: Colors.secondaryText,
-        marginBottom: 24,
-    },
-    shopButton: {
-        backgroundColor: Colors.primary,
-        paddingHorizontal: 24,
-        paddingVertical: 12,
-        borderRadius: 8,
-    },
-    shopButtonText: {
-        color: Colors.white,
-        fontWeight: 'bold',
     }
 });

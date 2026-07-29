@@ -3,8 +3,7 @@ import {
     View, 
     Text, 
     StyleSheet, 
-    SafeAreaView, 
-    TouchableOpacity, 
+    TouchableOpacity,
     TextInput, 
     ScrollView, 
     Alert, 
@@ -12,6 +11,7 @@ import {
     Platform,
     ActivityIndicator
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { 
     ChevronLeft, 
@@ -23,7 +23,6 @@ import {
     Phone, 
     MapPin, 
     Briefcase, 
-    ShieldAlert, 
     Check,
     Info
 } from 'lucide-react-native';

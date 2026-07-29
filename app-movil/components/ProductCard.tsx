@@ -1,8 +1,8 @@
 import React from 'react';
-import { View, Text, StyleSheet, Image, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Image, Dimensions, TouchableOpacity } from 'react-native';
+import { Plus } from 'lucide-react-native';
 import { Product } from '../types/product';
 import { useTheme } from '../context/ThemeContext';
-import { AnimatedButton } from './AnimatedButton';
 
 interface ProductCardProps {
     product: Product;
@@ -10,51 +10,64 @@ interface ProductCardProps {
 }
 
 const { width } = Dimensions.get('window');
-const CARD_MARGIN = 8;
-const CARD_WIDTH = (width - 32 - CARD_MARGIN * 2) / 2;
+const CARD_MARGIN = 10;
+const CARD_WIDTH = (width - 60) / 2; // Basado en padding 20 y gap 20
 
 export const ProductCard: React.FC<ProductCardProps> = ({ product, onPress }) => {
     const { theme } = useTheme();
 
     return (
-        <AnimatedButton
-            style={[styles.card, { backgroundColor: theme.card, shadowColor: theme.black, borderColor: theme.border }]}
+        <TouchableOpacity
+            style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}
             onPress={() => onPress(product)}
+            activeOpacity={0.9}
         >
             <View style={[styles.imageContainer, { backgroundColor: theme.background }]}>
                 <Image
                     source={{ uri: product.imageUrl }}
                     style={styles.image}
-                    resizeMode="cover"
+                    resizeMode="contain"
                 />
             </View>
             <View style={styles.infoContainer}>
-                <Text style={[styles.code, { color: theme.muted }]}>{product.code}</Text>
-                <Text style={[styles.name, { color: theme.onSurface }]} numberOfLines={2}>{product.name}</Text>
+                <Text style={[styles.name, { color: theme.onSurface }]} numberOfLines={1}>{product.name}</Text>
+                <Text style={[styles.code, { color: theme.secondaryText }]}>{product.code}</Text>
                 <View style={styles.priceRow}>
-                    <Text style={[styles.price, { color: theme.primary }]}>${product.price.toFixed(2)}</Text>
-                    {product.hasIva && <Text style={[styles.iva, { color: theme.primary }]}> + IVA</Text>}
+                    <Text style={[styles.price, { color: theme.onSurface }]}>${product.price.toFixed(2)}</Text>
+                    <TouchableOpacity
+                        style={[styles.addButton, { backgroundColor: theme.primary }]}
+                        onPress={(e) => {
+                            e.stopPropagation();
+                            onPress(product); // Por ahora abre el detalle igual
+                        }}
+                    >
+                        <Plus color={theme.onPrimary} size={16} strokeWidth={3} />
+                    </TouchableOpacity>
                 </View>
             </View>
-        </AnimatedButton>
+        </TouchableOpacity>
     );
 };
 
 const styles = StyleSheet.create({
     card: {
         width: CARD_WIDTH,
-        borderRadius: 12, // More rounded like web
-        margin: CARD_MARGIN,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-        elevation: 3,
+        borderRadius: 20,
+        marginBottom: 20,
         overflow: 'hidden',
         borderWidth: 1,
+        elevation: 2,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
     },
     imageContainer: {
         width: '100%',
-        height: CARD_WIDTH,
+        height: CARD_WIDTH * 1.1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 10,
     },
     image: {
         width: '100%',
@@ -63,28 +76,29 @@ const styles = StyleSheet.create({
     infoContainer: {
         padding: 12,
     },
-    code: {
-        fontSize: 10,
-        marginBottom: 4,
-        textTransform: 'uppercase',
-    },
     name: {
-        fontSize: 15,
+        fontSize: 14,
         fontWeight: 'bold',
+        marginBottom: 2,
+    },
+    code: {
+        fontSize: 12,
         marginBottom: 8,
-        height: 40,
     },
     priceRow: {
         flexDirection: 'row',
-        alignItems: 'baseline',
+        alignItems: 'center',
+        justifyContent: 'space-between',
     },
     price: {
-        fontSize: 18,
-        fontWeight: '800',
+        fontSize: 16,
+        fontWeight: '900',
     },
-    iva: {
-        fontSize: 11,
-        fontWeight: '700',
-        marginLeft: 2,
+    addButton: {
+        width: 28,
+        height: 28,
+        borderRadius: 14,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
 });

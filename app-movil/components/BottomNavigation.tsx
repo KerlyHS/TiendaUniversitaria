@@ -1,10 +1,10 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView } from 'react-native';
-import { Home, Search, ShoppingCart, User } from 'lucide-react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Home, ShoppingCart, Clock, User } from 'lucide-react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useCart } from '../context/CartContext';
 import { useTheme } from '../context/ThemeContext';
-import { AnimatedButton } from './AnimatedButton';
 
 export const BottomNavigation: React.FC = () => {
     const navigation = useNavigation<any>();
@@ -14,51 +14,45 @@ export const BottomNavigation: React.FC = () => {
 
     const isActive = (routeName: string) => route.name === routeName;
 
+    const navItems = [
+        { name: 'Home', label: 'Inicio', icon: Home },
+        { name: 'Cart', label: 'Carrito', icon: ShoppingCart, badge: totalItems },
+        { name: 'History', label: 'Historial', icon: Clock },
+        { name: 'Profile', label: 'Perfil', icon: User },
+    ];
+
     return (
         <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.card, borderTopColor: theme.border }]}>
             <View style={[styles.container, { backgroundColor: theme.card }]}>
-                <TouchableOpacity
-                    style={styles.tab}
-                    onPress={() => navigation.navigate('Home')}
-                    activeOpacity={0.7}
-                >
-                    <Home color={isActive('Home') ? theme.primary : theme.muted} size={24} />
-                    <Text style={[styles.label, { color: theme.muted }, isActive('Home') && { color: theme.primary, fontWeight: '700' }]}>Inicio</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                    style={styles.tab}
-                    onPress={() => {/* Búsqueda no implementada aún */}}
-                    activeOpacity={0.7}
-                >
-                    <Search color={isActive('Search') ? theme.primary : theme.muted} size={24} />
-                    <Text style={[styles.label, { color: theme.muted }, isActive('Search') && { color: theme.primary, fontWeight: '700' }]}>Buscar</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                    style={styles.tab}
-                    onPress={() => navigation.navigate('Cart')}
-                    activeOpacity={0.7}
-                >
-                    <View>
-                        <ShoppingCart color={isActive('Cart') ? theme.primary : theme.muted} size={24} />
-                        {totalItems > 0 && (
-                            <View style={[styles.badge, { backgroundColor: theme.error, borderColor: theme.card }]}>
-                                <Text style={styles.badgeText}>{totalItems > 99 ? '99+' : totalItems}</Text>
+                {navItems.map((item) => {
+                    const Icon = item.icon;
+                    const active = isActive(item.name);
+                    return (
+                        <TouchableOpacity
+                            key={item.name}
+                            style={styles.tab}
+                            onPress={() => navigation.navigate(item.name === 'Categories' ? 'Home' : item.name)} // Categorías no implementada aún, redirige a Home
+                            activeOpacity={0.7}
+                        >
+                            <View>
+                                <Icon color={active ? theme.primary : theme.muted} size={24} />
+                                {item.badge && item.badge > 0 && (
+                                    <View style={[styles.badge, { backgroundColor: theme.secondary, borderColor: theme.card }]}>
+                                        <Text style={styles.badgeText}>{item.badge > 99 ? '99+' : item.badge}</Text>
+                                    </View>
+                                )}
                             </View>
-                        )}
-                    </View>
-                    <Text style={[styles.label, { color: theme.muted }, isActive('Cart') && { color: theme.primary, fontWeight: '700' }]}>Carrito</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                    style={styles.tab}
-                    onPress={() => navigation.navigate('Profile')}
-                    activeOpacity={0.7}
-                >
-                    <User color={isActive('Profile') ? theme.primary : theme.muted} size={24} />
-                    <Text style={[styles.label, { color: theme.muted }, isActive('Profile') && { color: theme.primary, fontWeight: '700' }]}>Perfil</Text>
-                </TouchableOpacity>
+                            <Text style={[
+                                styles.label,
+                                { color: theme.muted },
+                                active && { color: theme.primary, fontWeight: '700' }
+                            ]}>
+                                {item.label}
+                            </Text>
+                            {active && <View style={[styles.indicator, { backgroundColor: theme.primary }]} />}
+                        </TouchableOpacity>
+                    );
+                })}
             </View>
         </SafeAreaView>
     );
@@ -67,17 +61,29 @@ export const BottomNavigation: React.FC = () => {
 const styles = StyleSheet.create({
     safeArea: {
         borderTopWidth: 1,
+        ...Platform.select({
+            ios: {
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: -4 },
+                shadowOpacity: 0.05,
+                shadowRadius: 10,
+            },
+            android: {
+                elevation: 10,
+            }
+        })
     },
     container: {
         flexDirection: 'row',
         height: 65,
         paddingBottom: 5,
+        justifyContent: 'space-around',
     },
     tab: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        paddingTop: 8,
+        paddingTop: 12,
     },
     label: {
         fontSize: 10,
@@ -98,8 +104,14 @@ const styles = StyleSheet.create({
     },
     badgeText: {
         color: '#ffffff',
-        fontSize: 10,
+        fontSize: 9,
         fontWeight: 'bold',
     },
+    indicator: {
+        width: 4,
+        height: 4,
+        borderRadius: 2,
+        marginTop: 4,
+    }
 });
 

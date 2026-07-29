@@ -6,11 +6,11 @@ import {
     Modal,
     TouchableOpacity,
     ScrollView,
-    SafeAreaView,
     Image,
     Dimensions,
     Platform
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { X, ShoppingCart, Info, Package, Tag, Layers } from 'lucide-react-native';
 import { Product, ProductVariation } from '../types/product';
 import { QuantitySelector } from './QuantitySelector';

@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, FlatList, StatusBar, Alert, ActivityIndicator, Text, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, FlatList, StatusBar, Alert, Text, TouchableOpacity, ScrollView } from 'react-native';
 import { Header } from '../components/Header';
+import { SearchBar } from '../components/SearchBar';
 import { PromotionalBanner } from '../components/PromotionalBanner';
+import { CategoryList } from '../components/CategoryList';
 import { ProductCard } from '../components/ProductCard';
 import { BottomNavigation } from '../components/BottomNavigation';
 import { ProductDetailModal } from '../components/ProductDetailModal';
 import { ProductSkeleton } from '../components/SkeletonLoader';
 import { AnimatedButton } from '../components/AnimatedButton';
 import { Product, ProductVariation } from '../types/product';
-import { API_URL, useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useTheme } from '../context/ThemeContext';
 
@@ -76,18 +78,30 @@ export const HomeScreen: React.FC = () => {
         );
     };
 
+    const ListHeader = () => (
+        <View>
+            <SearchBar />
+            <PromotionalBanner />
+            <CategoryList />
+            <View style={styles.featuredHeader}>
+                <Text style={[styles.featuredTitle, { color: theme.onSurface }]}>Productos destacados</Text>
+                <TouchableOpacity>
+                    <Text style={[styles.viewAll, { color: theme.primary }]}>Ver todos</Text>
+                </TouchableOpacity>
+            </View>
+        </View>
+    );
+
     return (
-        <View style={[styles.container, { backgroundColor: theme.background }]}>
-            <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={theme.primary} />
+        <View style={[styles.container, { backgroundColor: theme.surface }]}>
+            <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={theme.surface} />
 
             <Header />
 
             {isLoading ? (
                 <View style={styles.listContent}>
-                    <PromotionalBanner />
+                    <ListHeader />
                     <View style={styles.columnWrapperStyle}>
-                        <ProductSkeleton />
-                        <ProductSkeleton />
                         <ProductSkeleton />
                         <ProductSkeleton />
                     </View>
@@ -107,12 +121,13 @@ export const HomeScreen: React.FC = () => {
                     data={products}
                     keyExtractor={(item) => item.id}
                     numColumns={2}
-                    ListHeaderComponent={<PromotionalBanner />}
+                    ListHeaderComponent={<ListHeader />}
                     contentContainerStyle={styles.listContent}
                     columnWrapperStyle={styles.columnWrapperStyle}
                     renderItem={({ item }) => (
                         <ProductCard product={item} onPress={handleProductPress} />
                     )}
+                    showsVerticalScrollIndicator={false}
                 />
             )}
 
@@ -136,10 +151,25 @@ const styles = StyleSheet.create({
     listContent: {
         paddingBottom: 24,
     },
+    featuredHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingHorizontal: 20,
+        marginTop: 24,
+        marginBottom: 16,
+    },
+    featuredTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+    },
+    viewAll: {
+        fontSize: 14,
+        fontWeight: '600',
+    },
     columnWrapperStyle: {
-        paddingHorizontal: 8,
-        marginTop: 16,
-        justifyContent: 'flex-start',
+        paddingHorizontal: 20,
+        justifyContent: 'space-between',
     },
     center: {
         flex: 1,

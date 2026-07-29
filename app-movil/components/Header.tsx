@@ -1,40 +1,55 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Platform } from 'react-native';
-import { Bell, User } from 'lucide-react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Bell, ShoppingCart } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
-import { AnimatedButton } from './AnimatedButton';
+import { useCart } from '../context/CartContext';
 
-export const Header: React.FC = () => {
+interface HeaderProps {
+    showGreeting?: boolean;
+}
+
+export const Header: React.FC<HeaderProps> = ({ showGreeting = true }) => {
     const navigation = useNavigation<any>();
     const { theme } = useTheme();
     const { user } = useAuth();
+    const { totalItems } = useCart();
 
-    const getInitials = () => {
-        if (!user || !user.nombre_completo) return 'U';
-        return user.nombre_completo.split(' ').map((n: string) => n[0]).slice(0, 2).join('').toUpperCase();
-    };
+    const firstName = user?.nombre_completo ? user.nombre_completo.split(' ')[0] : 'Invitado';
 
     return (
-        <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.primary }]}>
-            <View style={[styles.container, { backgroundColor: theme.primary }]}>
-                <AnimatedButton
-                    style={[styles.avatarContainer, { borderColor: theme.onPrimary }]}
-                    onPress={() => navigation.navigate('Profile')}
-                >
-                    <View style={styles.avatarPlaceholder}>
-                        <Text style={[styles.avatarText, { color: theme.onPrimary }]}>{getInitials()}</Text>
+        <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.surface }]}>
+            <View style={[styles.container, { backgroundColor: theme.surface }]}>
+                {showGreeting ? (
+                    <View style={styles.greetingContainer}>
+                        <Text style={[styles.greeting, { color: theme.onSurface }]}>¡Hola, {firstName}! 👋</Text>
+                        <Text style={[styles.subtitle, { color: theme.secondaryText }]}>¿Qué deseas comprar hoy?</Text>
                     </View>
-                </AnimatedButton>
+                ) : (
+                    <View style={styles.titleContainer}>
+                        <Text style={[styles.title, { color: theme.onSurface }]}>Tienda Universitaria</Text>
+                    </View>
+                )}
 
-                <View style={styles.titleContainer}>
-                    <Text style={[styles.title, { color: theme.onPrimary }]}>Tienda Universitaria</Text>
+                <View style={styles.actions}>
+                    <TouchableOpacity style={[styles.iconButton, { backgroundColor: theme.background }]} onPress={() => {}}>
+                        <Bell color={theme.onSurface} size={22} />
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={[styles.iconButton, { backgroundColor: theme.background }]}
+                        onPress={() => navigation.navigate('Cart')}
+                    >
+                        <ShoppingCart color={theme.onSurface} size={22} />
+                        {totalItems > 0 && (
+                            <View style={[styles.badge, { backgroundColor: theme.secondary }]}>
+                                <Text style={styles.badgeText}>{totalItems}</Text>
+                            </View>
+                        )}
+                    </TouchableOpacity>
                 </View>
-
-                <AnimatedButton style={styles.iconContainer} onPress={() => {}}>
-                    <Bell color={theme.onPrimary} size={24} />
-                </AnimatedButton>
             </View>
         </SafeAreaView>
     );
@@ -42,44 +57,59 @@ export const Header: React.FC = () => {
 
 const styles = StyleSheet.create({
     safeArea: {
-        paddingTop: Platform.OS === 'android' ? 25 : 0,
+        paddingTop: Platform.OS === 'android' ? 10 : 0,
     },
     container: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingHorizontal: 16,
+        paddingHorizontal: 20,
         paddingVertical: 12,
     },
-    avatarContainer: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        overflow: 'hidden',
-        borderWidth: 2,
-        justifyContent: 'center',
-        alignItems: 'center',
+    greetingContainer: {
+        flex: 1,
     },
-    avatarPlaceholder: {
-        width: '100%',
-        height: '100%',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    avatarText: {
-        fontSize: 16,
+    greeting: {
+        fontSize: 20,
         fontWeight: 'bold',
+    },
+    subtitle: {
+        fontSize: 14,
+        marginTop: 2,
     },
     titleContainer: {
         flex: 1,
-        alignItems: 'center',
     },
     title: {
         fontSize: 18,
         fontWeight: 'bold',
-        letterSpacing: 0.5,
     },
-    iconContainer: {
-        padding: 8,
+    actions: {
+        flexDirection: 'row',
+        gap: 12,
+    },
+    iconButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
+        position: 'relative',
+    },
+    badge: {
+        position: 'absolute',
+        top: -4,
+        right: -4,
+        minWidth: 18,
+        height: 18,
+        borderRadius: 9,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 4,
+    },
+    badgeText: {
+        color: '#fff',
+        fontSize: 10,
+        fontWeight: 'bold',
     },
 });

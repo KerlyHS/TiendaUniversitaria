@@ -3,7 +3,6 @@ import {
     View, 
     Text, 
     StyleSheet, 
-    SafeAreaView, 
     TouchableOpacity,
     FlatList, 
     TextInput, 
@@ -12,10 +11,13 @@ import {
     KeyboardAvoidingView,
     Platform,
     ScrollView,
-    Switch
+    Switch,
+    Image,
+    StatusBar
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import { ChevronLeft, ShoppingBag, LogOut, User, Mail, Lock, Phone, MapPin, BadgeHelp, CheckCircle2, Moon, Sun } from 'lucide-react-native';
+import { ChevronLeft, ChevronRight, ShoppingBag, LogOut, User, Mail, Lock, Phone, MapPin, BadgeHelp, CheckCircle2, Moon, Sun, Bell, ShieldAlert } from 'lucide-react-native';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { BottomNavigation } from '../components/BottomNavigation';
@@ -161,48 +163,34 @@ export const ProfileScreen: React.FC = () => {
                 >
                     <ScrollView contentContainerStyle={styles.loginScroll} showsVerticalScrollIndicator={false}>
                         <View style={styles.loginHeader}>
-                            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButtonAbsolute}>
-                                <ChevronLeft color={theme.onSurface} size={28} />
-                            </TouchableOpacity>
-                            <View style={[styles.loginIconContainer, { backgroundColor: theme.primary + '15' }]}>
-                                <User color={theme.primary} size={48} />
-                            </View>
-                            <Text style={[styles.loginTitle, { color: theme.onSurface }]}>¡Bienvenido de nuevo!</Text>
-                            <Text style={[styles.loginSubtitle, { color: theme.secondaryText }]}>Ingresa a tu cuenta de la Tienda Universitaria</Text>
+                            <Image
+                                source={require('../assets/icon.png')}
+                                style={styles.loginLogo}
+                                resizeMode="contain"
+                            />
+                            <Text style={[styles.loginTitle, { color: theme.onSurface }]}>¡Bienvenido!</Text>
+                            <Text style={[styles.loginSubtitle, { color: theme.secondaryText }]}>Inicia sesión en tu cuenta</Text>
                         </View>
 
-                        <View style={[styles.userTypeTipBox, { backgroundColor: isDark ? '#1e293b' : '#e6f4ea', borderColor: isDark ? theme.border : '#34a85360' }]}>
-                            <BadgeHelp color={theme.primary} size={20} style={{ marginRight: 8, marginTop: 2 }} />
-                            <View style={{ flex: 1 }}>
-                                <Text style={[styles.userTypeTipTitle, { color: theme.primary }]}>Información de Acceso</Text>
-                                <Text style={[styles.userTypeTipText, { color: theme.onSurfaceVariant }]}>
-                                    Si eres de la <Text style={{ fontWeight: 'bold' }}>Comunidad UNL</Text>, inicia sesión con tu correo institucional (@unl.edu.ec). El público general puede usar su correo personal registrado.
-                                </Text>
-                            </View>
-                        </View>
-
-                        <View style={[styles.cardContainer, { backgroundColor: theme.card, borderColor: theme.border, shadowColor: theme.black }]}>
+                        <View style={styles.formContainer}>
                             <View style={styles.inputContainer}>
-                                <Text style={[styles.inputLabel, { color: theme.onSurface }]}>Correo Electrónico</Text>
-                                <View style={[styles.inputWrapper, { borderColor: theme.border, backgroundColor: theme.surface }]}>
-                                    <Mail color={theme.muted} size={20} style={styles.inputIcon} />
+                                <Text style={[styles.inputLabel, { color: theme.onSurface }]}>Correo institucional</Text>
+                                <View style={[styles.inputWrapper, { borderColor: theme.border }]}>
                                     <TextInput
                                         style={[styles.inputField, { color: theme.onSurface }]}
-                                        placeholder="ejemplo@correo.com o @unl.edu.ec"
+                                        placeholder="usuario@unl.edu.ec"
                                         placeholderTextColor={theme.muted}
                                         value={email}
                                         onChangeText={setEmail}
                                         autoCapitalize="none"
                                         keyboardType="email-address"
-                                        editable={!isSubmitting}
                                     />
                                 </View>
                             </View>
 
                             <View style={styles.inputContainer}>
                                 <Text style={[styles.inputLabel, { color: theme.onSurface }]}>Contraseña</Text>
-                                <View style={[styles.inputWrapper, { borderColor: theme.border, backgroundColor: theme.surface }]}>
-                                    <Lock color={theme.muted} size={20} style={styles.inputIcon} />
+                                <View style={[styles.inputWrapper, { borderColor: theme.border }]}>
                                     <TextInput
                                         style={[styles.inputField, { color: theme.onSurface }]}
                                         placeholder="••••••••"
@@ -210,26 +198,44 @@ export const ProfileScreen: React.FC = () => {
                                         value={password}
                                         onChangeText={setPassword}
                                         secureTextEntry
-                                        editable={!isSubmitting}
                                     />
+                                    <TouchableOpacity>
+                                        <Text style={{ color: theme.muted }}>👁️</Text>
+                                    </TouchableOpacity>
                                 </View>
                             </View>
 
-                            <AnimatedButton
-                                style={[styles.loginButton, { backgroundColor: theme.primary, shadowColor: theme.primary }, isSubmitting && styles.loginButtonDisabled]}
+                            <TouchableOpacity style={styles.forgotPassword}>
+                                <Text style={[styles.forgotPasswordText, { color: theme.primary }]}>¿Olvidaste tu contraseña?</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={[styles.loginButton, { backgroundColor: theme.primary }]}
                                 onPress={handleLogin}
                                 disabled={isSubmitting}
                             >
                                 {isSubmitting ? (
-                                    <ActivityIndicator size="small" color={theme.onPrimary} />
+                                    <ActivityIndicator size="small" color="#fff" />
                                 ) : (
-                                    <Text style={[styles.loginButtonText, { color: theme.onPrimary }]}>Iniciar Sesión</Text>
+                                    <Text style={styles.loginButtonText}>Iniciar sesión</Text>
                                 )}
-                            </AnimatedButton>
+                            </TouchableOpacity>
+
+                            <View style={styles.dividerContainer}>
+                                <View style={[styles.line, { backgroundColor: theme.border }]} />
+                                <Text style={[styles.dividerText, { color: theme.muted }]}>o continúa con</Text>
+                                <View style={[styles.line, { backgroundColor: theme.border }]} />
+                            </View>
+
+                            <TouchableOpacity style={[styles.googleButton, { borderColor: theme.border }]}>
+                                <Text style={[styles.googleButtonText, { color: theme.onSurface }]}>G Google</Text>
+                            </TouchableOpacity>
                         </View>
 
                         <TouchableOpacity style={styles.registerLink} onPress={() => navigation.navigate('Register')}>
-                            <Text style={[styles.registerLinkText, { color: theme.secondaryText }]}>¿No tienes cuenta? <Text style={[styles.registerLinkHighlight, { color: theme.primary }]}>Regístrate aquí</Text></Text>
+                            <Text style={[styles.registerLinkText, { color: theme.secondaryText }]}>
+                                ¿No tienes cuenta? <Text style={{ color: theme.primary, fontWeight: 'bold' }}>Regístrate</Text>
+                            </Text>
                         </TouchableOpacity>
                     </ScrollView>
                 </KeyboardAvoidingView>
@@ -240,111 +246,63 @@ export const ProfileScreen: React.FC = () => {
 
     return (
         <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.surface }]}>
-            <View style={[styles.header, { backgroundColor: theme.primary }]}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                    <ChevronLeft color={theme.onPrimary} size={28} />
-                </TouchableOpacity>
-                <Text style={[styles.headerTitle, { color: theme.onPrimary }]}>Mi Perfil</Text>
-                <TouchableOpacity onPress={handleLogout} style={styles.backButton}>
-                    <LogOut color={theme.onPrimary} size={24} />
-                </TouchableOpacity>
-            </View>
+            <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={theme.surface} />
 
-            <View style={[styles.profileHeader, { backgroundColor: theme.card, borderBottomColor: theme.border }]}>
-                <View style={[styles.avatarWrapper, { backgroundColor: theme.primary, shadowColor: theme.primary }]}>
-                    <Text style={[styles.avatarInitials, { color: theme.onPrimary }]}>
-                        {user.nombre_completo ? user.nombre_completo.split(' ').map((n: any) => n[0]).slice(0, 2).join('').toUpperCase() : 'U'}
-                    </Text>
+            <View style={styles.profileHeader}>
+                <View style={[styles.avatarContainer, { backgroundColor: theme.background }]}>
+                    <Image
+                        source={{ uri: 'https://via.placeholder.com/150x150/006837/ffffff?text=User' }}
+                        style={styles.avatar}
+                    />
                 </View>
                 <Text style={[styles.profileName, { color: theme.onSurface }]}>{user.nombre_completo}</Text>
-                <View style={styles.badgeContainer}>
-                    <View style={[styles.userBadge, { backgroundColor: user.is_universidad ? theme.primary + '15' : theme.price + '15' }]}>
-                        <CheckCircle2 color={user.is_universidad ? theme.primary : theme.price} size={14} style={{ marginRight: 4 }} />
-                        <Text style={[styles.userBadgeText, { color: user.is_universidad ? theme.primary : theme.price }]}>
-                            {user.is_universidad ? `Comunidad UNL - ${user.comunidad_rol || 'Miembro'}` : 'Público General'}
-                        </Text>
-                    </View>
-                </View>
+                <Text style={[styles.profileEmail, { color: theme.secondaryText }]}>{user.email}</Text>
             </View>
 
-            <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
-                <View style={styles.sectionContainer}>
-                    <Text style={[styles.sectionTitle, { color: theme.onSurface }]}>Configuración</Text>
-                    <View style={[styles.infoCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
-                        <View style={[styles.infoRow, { borderBottomWidth: 0 }]}>
-                            {isDark ? <Moon color={theme.secondaryText} size={18} style={styles.infoIcon} /> : <Sun color={theme.secondaryText} size={18} style={styles.infoIcon} />}
-                            <View style={styles.infoContent}>
-                                <Text style={[styles.infoLabel, { color: theme.muted }]}>Modo Oscuro</Text>
-                                <Text style={[styles.infoValue, { color: theme.onSurface }]}>{isDark ? 'Activado' : 'Desactivado'}</Text>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.menuContainer}>
+                {[
+                    { label: 'Mis datos', icon: User },
+                    { label: 'Direcciones', icon: MapPin },
+                    { label: 'Métodos de pago', icon: Lock },
+                    { label: 'Mis pedidos', icon: ShoppingBag, onPress: () => navigation.navigate('History') },
+                    { label: 'Notificaciones', icon: Bell },
+                    { label: 'Configuración', icon: ShieldAlert },
+                ].map((item, index) => {
+                    const Icon = item.icon;
+                    return (
+                        <TouchableOpacity
+                            key={index}
+                            style={[styles.menuItem, { borderBottomColor: theme.border }]}
+                            onPress={item.onPress}
+                        >
+                            <View style={styles.menuItemLeft}>
+                                <Icon color={theme.onSurface} size={20} />
+                                <Text style={[styles.menuItemLabel, { color: theme.onSurface }]}>{item.label}</Text>
                             </View>
-                            <Switch
-                                value={isDark}
-                                onValueChange={toggleTheme}
-                                trackColor={{ false: theme.border, true: theme.primary + '80' }}
-                                thumbColor={isDark ? theme.primary : '#f4f3f4'}
-                            />
-                        </View>
+                            <ChevronRight color={theme.muted} size={20} />
+                        </TouchableOpacity>
+                    );
+                })}
+
+                <View style={styles.themeToggle}>
+                    <View style={styles.menuItemLeft}>
+                        {isDark ? <Moon color={theme.onSurface} size={20} /> : <Sun color={theme.onSurface} size={20} />}
+                        <Text style={[styles.menuItemLabel, { color: theme.onSurface }]}>Modo Oscuro</Text>
                     </View>
+                    <Switch
+                        value={isDark}
+                        onValueChange={toggleTheme}
+                        trackColor={{ false: theme.border, true: theme.primary + '80' }}
+                        thumbColor={isDark ? theme.primary : '#f4f3f4'}
+                    />
                 </View>
 
-                <View style={styles.sectionContainer}>
-                    <Text style={[styles.sectionTitle, { color: theme.onSurface }]}>Datos Personales</Text>
-                    <View style={[styles.infoCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
-                        <View style={[styles.infoRow, { borderBottomColor: theme.surface }]}>
-                            <Mail color={theme.secondaryText} size={18} style={styles.infoIcon} />
-                            <View style={styles.infoContent}>
-                                <Text style={[styles.infoLabel, { color: theme.muted }]}>Correo Electrónico</Text>
-                                <Text style={[styles.infoValue, { color: theme.onSurface }]}>{user.email}</Text>
-                            </View>
-                        </View>
-
-                        <View style={[styles.infoRow, { borderBottomColor: theme.surface }]}>
-                            <User color={theme.secondaryText} size={18} style={styles.infoIcon} />
-                            <View style={styles.infoContent}>
-                                <Text style={[styles.infoLabel, { color: theme.muted }]}>Identificación (Cédula/Pasaporte)</Text>
-                                <Text style={[styles.infoValue, { color: theme.onSurface }]}>{user.identificacion || 'No especificada'}</Text>
-                            </View>
-                        </View>
-
-                        <View style={[styles.infoRow, { borderBottomColor: theme.surface }]}>
-                            <Phone color={theme.secondaryText} size={18} style={styles.infoIcon} />
-                            <View style={styles.infoContent}>
-                                <Text style={[styles.infoLabel, { color: theme.muted }]}>Teléfono</Text>
-                                <Text style={[styles.infoValue, { color: theme.onSurface }]}>{user.telefono || 'No especificado'}</Text>
-                            </View>
-                        </View>
-
-                        <View style={[styles.infoRow, { borderBottomWidth: 0 }]}>
-                            <MapPin color={theme.secondaryText} size={18} style={styles.infoIcon} />
-                            <View style={styles.infoContent}>
-                                <Text style={[styles.infoLabel, { color: theme.muted }]}>Dirección de envío</Text>
-                                <Text style={[styles.infoValue, { color: theme.onSurface }]}>{user.direccion || 'No especificada'}</Text>
-                            </View>
-                        </View>
-                    </View>
-                </View>
-
-                <View style={[styles.sectionContainer, { marginBottom: 32 }]}>
-                    <Text style={[styles.sectionTitle, { color: theme.onSurface }]}>Historial de Pedidos</Text>
-                    
-                    {loadingOrders ? (
-                        <ActivityIndicator size="small" color={theme.primary} style={{ marginVertical: 20 }} />
-                    ) : orders.length === 0 ? (
-                        <View style={[styles.emptyOrdersCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
-                            <ShoppingBag color={theme.muted} size={40} style={{ marginBottom: 12 }} />
-                            <Text style={[styles.emptyOrdersText, { color: theme.muted }]}>Aún no tienes pedidos registrados.</Text>
-                        </View>
-                    ) : (
-                        <FlatList
-                            data={orders}
-                            renderItem={renderPurchaseItem}
-                            keyExtractor={(item) => item.id.toString()}
-                            scrollEnabled={false}
-                            contentContainerStyle={styles.ordersList}
-                        />
-                    )}
-                </View>
+                <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+                    <LogOut color={theme.error} size={20} />
+                    <Text style={[styles.logoutText, { color: theme.error }]}>Cerrar sesión</Text>
+                </TouchableOpacity>
             </ScrollView>
+
             <BottomNavigation />
         </SafeAreaView>
     );
@@ -379,66 +337,35 @@ const styles = StyleSheet.create({
 
     // Login Screen Redesign
     loginScroll: {
-        paddingHorizontal: 24,
+        paddingHorizontal: 30,
         paddingBottom: 40,
     },
     loginHeader: {
         alignItems: 'center',
-        marginTop: 40,
-        marginBottom: 24,
+        marginTop: 60,
+        marginBottom: 40,
     },
-    backButtonAbsolute: {
-        position: 'absolute',
-        left: 0,
-        top: 0,
-        padding: 4,
-    },
-    loginIconContainer: {
-        width: 80,
-        height: 80,
-        borderRadius: 40,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 16,
+    loginLogo: {
+        width: 100,
+        height: 100,
+        marginBottom: 20,
     },
     loginTitle: {
-        fontSize: 24,
+        fontSize: 28,
         fontWeight: 'bold',
-        marginBottom: 6,
+        marginBottom: 8,
         textAlign: 'center',
     },
     loginSubtitle: {
-        fontSize: 14,
+        fontSize: 16,
         textAlign: 'center',
-        paddingHorizontal: 12,
+        marginBottom: 30,
     },
-    userTypeTipBox: {
-        flexDirection: 'row',
-        borderWidth: 1,
-        borderRadius: 12,
-        padding: 14,
-        marginBottom: 24,
-    },
-    userTypeTipTitle: {
-        fontSize: 13,
-        fontWeight: 'bold',
-        marginBottom: 2,
-    },
-    userTypeTipText: {
-        fontSize: 12,
-        lineHeight: 16,
-    },
-    cardContainer: {
-        borderRadius: 20,
-        padding: 24,
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.1,
-        shadowRadius: 15,
-        elevation: 4,
-        borderWidth: 1,
+    formContainer: {
+        width: '100%',
     },
     inputContainer: {
-        marginBottom: 18,
+        marginBottom: 20,
     },
     inputLabel: {
         fontSize: 14,
@@ -448,189 +375,138 @@ const styles = StyleSheet.create({
     inputWrapper: {
         flexDirection: 'row',
         alignItems: 'center',
-        borderWidth: 1,
-        borderRadius: 10,
-        paddingHorizontal: 12,
-        height: 48,
-    },
-    inputIcon: {
-        marginRight: 10,
+        borderWidth: 1.5,
+        borderRadius: 15,
+        paddingHorizontal: 16,
+        height: 56,
     },
     inputField: {
         flex: 1,
-        fontSize: 15,
+        fontSize: 16,
         height: '100%',
     },
+    forgotPassword: {
+        alignSelf: 'flex-end',
+        marginBottom: 30,
+    },
+    forgotPasswordText: {
+        fontSize: 14,
+        fontWeight: '600',
+    },
     loginButton: {
-        height: 48,
-        borderRadius: 10,
+        height: 56,
+        borderRadius: 15,
         justifyContent: 'center',
         alignItems: 'center',
-        marginTop: 10,
         shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.2,
-        shadowRadius: 8,
+        shadowOpacity: 0.1,
+        shadowRadius: 10,
         elevation: 2,
     },
-    loginButtonDisabled: {
-        opacity: 0.7,
-    },
     loginButtonText: {
+        color: '#fff',
         fontSize: 16,
         fontWeight: 'bold',
     },
-    registerLink: {
-        marginTop: 24,
+    dividerContainer: {
+        flexDirection: 'row',
         alignItems: 'center',
-        padding: 8,
+        marginVertical: 30,
+    },
+    line: {
+        flex: 1,
+        height: 1,
+    },
+    dividerText: {
+        marginHorizontal: 10,
+        fontSize: 14,
+    },
+    googleButton: {
+        height: 56,
+        borderRadius: 15,
+        borderWidth: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        flexDirection: 'row',
+    },
+    googleButtonText: {
+        fontSize: 16,
+        fontWeight: '600',
+    },
+    registerLink: {
+        marginTop: 30,
+        alignItems: 'center',
     },
     registerLinkText: {
-        fontSize: 15,
+        fontSize: 14,
     },
     registerLinkHighlight: {
         fontWeight: 'bold',
     },
 
-    // Profile Screen Layout
+    // Profile Header
     profileHeader: {
         alignItems: 'center',
-        paddingVertical: 28,
-        borderBottomWidth: 1,
+        paddingVertical: 30,
     },
-    avatarWrapper: {
-        width: 88,
-        height: 88,
-        borderRadius: 44,
+    avatarContainer: {
+        width: 100,
+        height: 100,
+        borderRadius: 50,
+        overflow: 'hidden',
+        marginBottom: 15,
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 12,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.15,
-        shadowRadius: 10,
-        elevation: 4,
     },
-    avatarInitials: {
-        fontSize: 32,
-        fontWeight: 'bold',
-        letterSpacing: 1,
+    avatar: {
+        width: '100%',
+        height: '100%',
     },
     profileName: {
-        fontSize: 22,
+        fontSize: 20,
         fontWeight: 'bold',
-        marginBottom: 8,
+        marginBottom: 4,
     },
-    badgeContainer: {
-        flexDirection: 'row',
+    profileEmail: {
+        fontSize: 14,
     },
-    userBadge: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 20,
+    // Menu
+    menuContainer: {
+        paddingHorizontal: 20,
+        paddingBottom: 40,
     },
-    userBadgeText: {
-        fontSize: 12,
-        fontWeight: '700',
-    },
-    sectionContainer: {
-        marginTop: 20,
-        paddingHorizontal: 16,
-    },
-    sectionTitle: {
-        fontSize: 16,
-        fontWeight: '700',
-        marginBottom: 12,
-        paddingLeft: 4,
-    },
-    infoCard: {
-        borderRadius: 16,
-        padding: 16,
-        borderWidth: 1,
-    },
-    infoRow: {
+    menuItem: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: 12,
+        justifyContent: 'space-between',
+        paddingVertical: 18,
         borderBottomWidth: 1,
     },
-    infoContent: {
-        flex: 1,
-        marginLeft: 12,
-    },
-    infoLabel: {
-        fontSize: 12,
-        fontWeight: '500',
-        marginBottom: 2,
-    },
-    infoValue: {
-        fontSize: 14,
-        fontWeight: '600',
-    },
-    infoIcon: {
-        marginRight: 8,
-    },
-
-    // Orders History Card
-    ordersList: {
-        paddingBottom: 16,
-    },
-    purchaseCard: {
-        borderRadius: 14,
-        padding: 16,
-        marginBottom: 12,
-        borderWidth: 1,
-    },
-    purchaseHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginBottom: 10,
-    },
-    orderNumber: {
-        fontSize: 14,
-        fontWeight: '700',
-    },
-    purchaseDate: {
-        fontSize: 12,
-    },
-    purchaseDetails: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 12,
-    },
-    purchaseInfo: {
+    menuItemLeft: {
         flexDirection: 'row',
         alignItems: 'center',
+        gap: 15,
     },
-    purchaseStatusLabel: {
-        fontSize: 13,
-    },
-    purchaseTotal: {
+    menuItemLabel: {
         fontSize: 16,
-        fontWeight: '700',
+        fontWeight: '500',
     },
-    purchaseFooter: {
-        alignItems: 'flex-start',
-    },
-    purchaseStatus: {
-        fontSize: 11,
-        fontWeight: '700',
-        paddingHorizontal: 10,
-        paddingVertical: 4,
-        borderRadius: 6,
-        overflow: 'hidden',
-    },
-    emptyOrdersCard: {
-        borderRadius: 16,
-        borderWidth: 1,
-        padding: 32,
+    themeToggle: {
+        flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'center',
+        justifyContent: 'space-between',
+        paddingVertical: 18,
     },
-    emptyOrdersText: {
-        fontSize: 14,
-        textAlign: 'center',
-    }
+    logoutButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        marginTop: 30,
+        paddingVertical: 10,
+    },
+    logoutText: {
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
 });
 

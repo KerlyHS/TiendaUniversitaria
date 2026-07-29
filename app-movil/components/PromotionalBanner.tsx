@@ -1,20 +1,27 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { ShoppingBag } from 'lucide-react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 
 export const PromotionalBanner: React.FC = () => {
     const { theme } = useTheme();
 
     return (
-        <View style={[styles.container, { backgroundColor: theme.primaryContainer, shadowColor: theme.black }]}>
+        <View style={[styles.container, { backgroundColor: theme.primary }]}>
             <View style={styles.contentContainer}>
-                <Text style={[styles.subtitle, { color: theme.onPrimary }]}>VUELTA A CLASES</Text>
-                <Text style={[styles.title, { color: theme.onPrimary }]}>HASTA -60% OFF</Text>
-                <Text style={[styles.footer, { color: theme.onPrimary }]}>Ahorros del Campus</Text>
+                <Text style={[styles.title, { color: theme.onPrimary }]}>Orgullo UNL</Text>
+                <Text style={[styles.subtitle, { color: theme.onPrimary }]}>
+                    Lleva los colores{"\n"}que nos identifican
+                </Text>
+                <TouchableOpacity style={[styles.button, { backgroundColor: theme.surface }]}>
+                    <Text style={[styles.buttonText, { color: theme.primary }]}>Ver colección</Text>
+                </TouchableOpacity>
             </View>
-            <View style={styles.iconContainer}>
-                <ShoppingBag color={theme.onPrimary} size={80} strokeWidth={1.5} />
+            <View style={styles.imageContainer}>
+                <Image
+                    source={{ uri: 'https://via.placeholder.com/200x200/006837/ffffff?text=Hoodie+UNL' }} // Reemplazar con imagen real si disponible
+                    style={styles.image}
+                    resizeMode="contain"
+                />
             </View>
         </View>
     );
@@ -22,37 +29,48 @@ export const PromotionalBanner: React.FC = () => {
 
 const styles = StyleSheet.create({
     container: {
-        borderRadius: 24,
-        padding: 24,
-        marginHorizontal: 16,
-        marginTop: 16,
+        borderRadius: 20,
+        marginHorizontal: 20,
+        marginTop: 10,
+        padding: 20,
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between',
-        shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.2,
-        shadowRadius: 15,
-        elevation: 8,
+        overflow: 'hidden',
     },
     contentContainer: {
         flex: 1,
-    },
-    subtitle: {
-        fontSize: 12,
-        fontWeight: '700',
-        letterSpacing: 1,
-        marginBottom: 4,
+        zIndex: 2,
     },
     title: {
-        fontSize: 24,
-        fontWeight: '900',
-        marginBottom: 4,
+        fontSize: 18,
+        fontWeight: 'bold',
+        marginBottom: 8,
     },
-    footer: {
+    subtitle: {
         fontSize: 14,
-        fontWeight: '500',
+        lineHeight: 20,
+        marginBottom: 16,
+        opacity: 0.9,
     },
-    iconContainer: {
-        opacity: 0.8,
+    button: {
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 10,
+        alignSelf: 'flex-start',
+    },
+    buttonText: {
+        fontSize: 12,
+        fontWeight: 'bold',
+    },
+    imageContainer: {
+        width: 120,
+        height: 120,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    image: {
+        width: '120%',
+        height: '120%',
+        transform: [{ scale: 1.2 }],
     },
 });
