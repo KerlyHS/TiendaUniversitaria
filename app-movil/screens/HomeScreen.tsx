@@ -1,10 +1,5 @@
-<<<<<<< HEAD
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, FlatList, StatusBar, Alert, Text, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
-=======
-import React, { useState, useEffect, useMemo } from 'react';
-import { View, StyleSheet, FlatList, StatusBar, Alert, Text, TouchableOpacity, Keyboard } from 'react-native';
->>>>>>> 9b183314 (Implementada busqueda avanzada con TF-IDF, Fuzzy Search e historial en HomeScreen)
 import { Header } from '../components/Header';
 import { SearchBar } from '../components/SearchBar';
 import { PromotionalBanner } from '../components/PromotionalBanner';
@@ -18,10 +13,6 @@ import { Product, ProductVariation } from '../types/product';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useTheme } from '../context/ThemeContext';
-import { Clock } from 'lucide-react-native';
-
-import { searchProducts } from '../services/searchAlgorithms';
-import { getSearchHistory, saveSearchQuery } from '../services/searchStorage';
 
 export const HomeScreen: React.FC = () => {
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -29,30 +20,19 @@ export const HomeScreen: React.FC = () => {
     const [products, setProducts] = useState<Product[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-
-    const [searchQuery, setSearchQuery] = useState('');
-    const [activeCategory, setActiveCategory] = useState('Todos');
-    const [searchHistory, setSearchHistory] = useState<string[]>([]);
-    const [isSearchFocused, setIsSearchFocused] = useState(false);
-
     const { addToCart } = useCart();
     const { apiFetch } = useAuth();
     const { theme, isDark } = useTheme();
 
     useEffect(() => {
         fetchProducts();
-        loadHistory();
     }, []);
-
-    const loadHistory = async () => {
-        const history = await getSearchHistory();
-        setSearchHistory(history);
-    };
 
     const fetchProducts = async () => {
         try {
             setIsLoading(true);
             setError(null);
+
             const response = await apiFetch('/productos/');
 
             if (!response.ok) {
@@ -60,6 +40,7 @@ export const HomeScreen: React.FC = () => {
             }
 
             const data = await response.json();
+
             const apiProducts = (data.results || data).map((p: any) => ({
                 id: p.id.toString(),
                 code: p.codigo || `SKU-${p.id}`,
@@ -67,30 +48,18 @@ export const HomeScreen: React.FC = () => {
                 description: p.descripcion || 'Sin descripción disponible.',
                 price: typeof p.precio === 'number' ? p.precio : parseFloat(p.precio),
                 stock: p.stock || 0,
-                category: p.is_food ? 'Alimentos' : (p.is_ropa ? 'Ropa' : 'Accesorios'),
+                category: p.is_food ? 'food' : (p.is_ropa ? 'clothing' : 'accessory'),
                 imageUrl: p.imagen || 'https://via.placeholder.com/400x400/1e293b/ffffff?text=Producto',
                 hasIva: !!(p.tiene_iva || p.aplica_impuesto),
                 variaciones: p.variaciones || [],
             }));
-
+            
             setProducts(apiProducts);
         } catch (err: any) {
             console.error('Error fetching products:', err);
             setError(err.message === 'Network request failed' ? 'Error de conexión con el servidor.' : err.message);
         } finally {
             setIsLoading(false);
-        }
-    };
-
-    const searchResults = useMemo(() => {
-        return searchProducts(searchQuery, products, activeCategory);
-    }, [searchQuery, products, activeCategory]);
-
-    const handleSearchSubmit = async () => {
-        Keyboard.dismiss();
-        if (searchQuery.trim()) {
-            const newHistory = await saveSearchQuery(searchQuery);
-            setSearchHistory(newHistory);
         }
     };
 
@@ -101,58 +70,24 @@ export const HomeScreen: React.FC = () => {
 
     const handleAddToCart = (product: Product, quantity: number, variation?: ProductVariation) => {
         addToCart(product, quantity, variation);
+
         Alert.alert(
             'Añadido al carrito',
-            `${quantity}x ${product.name} añadido exitosamente.`,
+            `${quantity}x ${product.name} ${variation ? `(${variation.nombre})` : ''} añadido exitosamente.`,
             [{ text: 'OK' }]
         );
     };
 
-    const renderHeader = () => (
+    const ListHeader = () => (
         <View>
-            <SearchBar
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                onSubmitEditing={handleSearchSubmit}
-                onFocus={() => setIsSearchFocused(true)}
-                onBlur={() => setIsSearchFocused(false)}
-            />
-
-            {(!isSearchFocused && searchQuery === '') ? <PromotionalBanner /> : null}
-
-            <CategoryList
-                activeCategory={activeCategory}
-                onSelectCategory={setActiveCategory}
-            />
-
-            {(isSearchFocused && searchQuery === '' && searchHistory.length > 0) ? (
-                <View style={styles.historyContainer}>
-                    <Text style={[styles.historyTitle, { color: theme.onSurfaceVariant }]}>Búsquedas Recientes</Text>
-                    {searchHistory.map((item, index) => (
-                        <TouchableOpacity
-                            key={index}
-                            style={styles.historyItem}
-                            onPress={() => {
-                                setSearchQuery(item);
-                                handleSearchSubmit();
-                            }}
-                        >
-                            <Clock color={theme.muted} size={16} />
-                            <Text style={[styles.historyText, { color: theme.onSurface }]}>{item}</Text>
-                        </TouchableOpacity>
-                    ))}
-                </View>
-            ) : null}
-
+            <SearchBar />
+            <PromotionalBanner />
+            <CategoryList />
             <View style={styles.featuredHeader}>
-                <Text style={[styles.featuredTitle, { color: theme.onSurface }]}>
-                    {searchQuery || activeCategory !== 'Todos' ? 'Resultados de Búsqueda' : 'Productos destacados'}
-                </Text>
-                {(!searchQuery && activeCategory === 'Todos') ? (
-                    <TouchableOpacity>
-                        <Text style={[styles.viewAll, { color: theme.primary }]}>Ver todos</Text>
-                    </TouchableOpacity>
-                ) : null}
+                <Text style={[styles.featuredTitle, { color: theme.onSurface }]}>Productos destacados</Text>
+                <TouchableOpacity>
+                    <Text style={[styles.viewAll, { color: theme.primary }]}>Ver todos</Text>
+                </TouchableOpacity>
             </View>
         </View>
     );
@@ -165,7 +100,7 @@ export const HomeScreen: React.FC = () => {
 
             {isLoading ? (
                 <View style={styles.listContent}>
-                    {renderHeader()}
+                    <ListHeader />
                     <View style={styles.columnWrapperStyle}>
                         <ProductSkeleton />
                         <ProductSkeleton />
@@ -183,24 +118,16 @@ export const HomeScreen: React.FC = () => {
                 </View>
             ) : (
                 <FlatList
-                    data={searchResults}
+                    data={products}
                     keyExtractor={(item) => item.id}
                     numColumns={2}
-                    // Llamamos a la función para pasar el elemento renderizado y evitar desmontajes
-                    ListHeaderComponent={renderHeader()}
+                    ListHeaderComponent={<ListHeader />}
                     contentContainerStyle={styles.listContent}
                     columnWrapperStyle={styles.columnWrapperStyle}
                     renderItem={({ item }) => (
                         <ProductCard product={item} onPress={handleProductPress} />
                     )}
                     showsVerticalScrollIndicator={false}
-                    ListEmptyComponent={
-                        <View style={styles.center}>
-                            <Text style={{ color: theme.onSurfaceVariant, marginTop: 40 }}>
-                                No se encontraron productos.
-                            </Text>
-                        </View>
-                    }
                 />
             )}
 
@@ -215,6 +142,7 @@ export const HomeScreen: React.FC = () => {
         </View>
     );
 };
+
 
 const styles = StyleSheet.create({
     container: {
@@ -259,23 +187,5 @@ const styles = StyleSheet.create({
     retryText: {
         color: '#fff',
         fontWeight: 'bold',
-    },
-    historyContainer: {
-        paddingHorizontal: 20,
-        marginTop: 16,
-    },
-    historyTitle: {
-        fontSize: 14,
-        fontWeight: '600',
-        marginBottom: 12,
-    },
-    historyItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: 12,
-    },
-    historyText: {
-        marginLeft: 12,
-        fontSize: 16,
     },
 });

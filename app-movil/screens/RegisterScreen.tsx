@@ -32,8 +32,9 @@ import { useTheme } from '../context/ThemeContext';
 import { AnimatedButton } from '../components/AnimatedButton';
 
 export const RegisterScreen: React.FC = () => {
+    const auth = useAuth();
     const navigation = useNavigation<any>();
-    const { register, isLoading } = useAuth();
+    const { register, isLoading } = auth;
     const { theme } = useTheme();
 
     // Estados del Formulario

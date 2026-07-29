@@ -54,6 +54,8 @@ const AsyncStorage = {
   }
 };
 
+import { handleAppError } from '../utils/errorHelper';
+
 import Constants from 'expo-constants';
 
 // URL base dinámica del API. En desarrollo, detecta dinámicamente la IP del host de Metro 
@@ -97,7 +99,7 @@ interface AuthContextType {
   apiFetch: (endpoint: string, options?: RequestInit) => Promise<Response>;
 }
 
-const AuthContext = createContext<AuthContextType | null>(null);
+export const AuthContext = createContext<AuthContextType | null>(null);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -224,14 +226,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { success: true };
       } else {
         const errorMsg = data.message || (data.errors && Object.values(data.errors).flat().join(' ')) || 'Credenciales inválidas.';
-        setError(errorMsg);
-        return { success: false, error: errorMsg };
+        const friendlyMsg = handleAppError({ message: errorMsg, status: response.status }, 'login');
+        setError(friendlyMsg);
+        return { success: false, error: friendlyMsg };
       }
     } catch (err) {
-      console.error('Login error:', err);
-      const connError = 'Error de conexión con el servidor.';
-      setError(connError);
-      return { success: false, error: connError };
+      const friendlyMsg = handleAppError(err, 'login');
+      setError(friendlyMsg);
+      return { success: false, error: friendlyMsg };
     } finally {
       setIsLoading(false);
     }
@@ -262,14 +264,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           errorMsg = Object.values(data.errors).flat().join(' ');
         } else if (data.detail) errorMsg = data.detail;
         
-        setError(errorMsg);
-        return { success: false, error: errorMsg };
+        const friendlyMsg = handleAppError({ message: errorMsg, status: response.status }, 'register');
+        setError(friendlyMsg);
+        return { success: false, error: friendlyMsg };
       }
     } catch (err) {
-      console.error('Registration error:', err);
-      const connError = 'Error de conexión con el servidor.';
-      setError(connError);
-      return { success: false, error: connError };
+      const friendlyMsg = handleAppError(err, 'register');
+      setError(friendlyMsg);
+      return { success: false, error: friendlyMsg };
     } finally {
       setIsLoading(false);
     }

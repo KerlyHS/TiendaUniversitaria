@@ -2,6 +2,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { Alert } from 'react-native';
 import { API_URL } from '../context/AuthContext';
+import { handleAppError } from '../utils/errorHelper';
 
 export const downloadReceiptPDF = async (paymentIntentId: string) => {
   try {
@@ -19,7 +20,7 @@ export const downloadReceiptPDF = async (paymentIntentId: string) => {
     );
 
     if (downloadRes.status !== 200) {
-      Alert.alert("Aviso", "El comprobante no pudo generarse en este momento.");
+      Alert.alert("Aviso", handleAppError({ status: downloadRes.status }, 'downloadReceiptPDF'));
       return;
     }
 
@@ -35,7 +36,6 @@ export const downloadReceiptPDF = async (paymentIntentId: string) => {
       Alert.alert("Éxito", `Comprobante descargado en la ruta interna de la app.`);
     }
   } catch (error) {
-    console.error("Error descargando comprobante:", error);
-    Alert.alert("Error Técnico", "Ocurrió un problema de red al intentar descargar tu comprobante.");
+    Alert.alert("Aviso", handleAppError(error, 'downloadReceiptPDF'));
   }
 };
