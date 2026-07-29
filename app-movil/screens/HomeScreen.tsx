@@ -1,10 +1,5 @@
-<<<<<<< HEAD
-import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, FlatList, StatusBar, Alert, Text, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
-=======
 import React, { useState, useEffect, useMemo } from 'react';
-import { View, StyleSheet, FlatList, StatusBar, Alert, Text, TouchableOpacity, Keyboard } from 'react-native';
->>>>>>> 9b183314 (Implementada busqueda avanzada con TF-IDF, Fuzzy Search e historial en HomeScreen)
+import { View, StyleSheet, FlatList, StatusBar, Alert, Text, TouchableOpacity, ScrollView, ActivityIndicator, Keyboard } from 'react-native';
 import { Header } from '../components/Header';
 import { SearchBar } from '../components/SearchBar';
 import { PromotionalBanner } from '../components/PromotionalBanner';
