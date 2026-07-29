@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { View, StyleSheet, FlatList, StatusBar, Alert, Text, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { Header } from '../components/Header';
 import { SearchBar } from '../components/SearchBar';
@@ -13,6 +13,7 @@ import { Product, ProductVariation } from '../types/product';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useTheme } from '../context/ThemeContext';
+import { searchProducts } from '../services/searchAlgorithms';
 
 export const HomeScreen: React.FC = () => {
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -20,6 +21,9 @@ export const HomeScreen: React.FC = () => {
     const [products, setProducts] = useState<Product[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [activeCategory, setActiveCategory] = useState('Todos');
+
     const { addToCart } = useCart();
     const { apiFetch } = useAuth();
     const { theme, isDark } = useTheme();
@@ -48,7 +52,7 @@ export const HomeScreen: React.FC = () => {
                 description: p.descripcion || 'Sin descripción disponible.',
                 price: typeof p.precio === 'number' ? p.precio : parseFloat(p.precio),
                 stock: p.stock || 0,
-                category: p.is_food ? 'food' : (p.is_ropa ? 'clothing' : 'accessory'),
+                category: p.is_food ? 'Otros' : (p.is_ropa ? 'Ropa' : 'Accesorios'), // Mapeo a categorías de UI
                 imageUrl: p.imagen || 'https://via.placeholder.com/400x400/1e293b/ffffff?text=Producto',
                 hasIva: !!(p.tiene_iva || p.aplica_impuesto),
                 variaciones: p.variaciones || [],
@@ -62,6 +66,10 @@ export const HomeScreen: React.FC = () => {
             setIsLoading(false);
         }
     };
+
+    const filteredProducts = useMemo(() => {
+        return searchProducts(searchQuery, products, activeCategory);
+    }, [searchQuery, products, activeCategory]);
 
     const handleProductPress = (product: Product) => {
         setSelectedProduct(product);
@@ -80,14 +88,24 @@ export const HomeScreen: React.FC = () => {
 
     const ListHeader = () => (
         <View>
-            <SearchBar />
+            <SearchBar
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+            />
             <PromotionalBanner />
-            <CategoryList />
+            <CategoryList
+                activeCategory={activeCategory}
+                onSelectCategory={setActiveCategory}
+            />
             <View style={styles.featuredHeader}>
-                <Text style={[styles.featuredTitle, { color: theme.onSurface }]}>Productos destacados</Text>
-                <TouchableOpacity>
-                    <Text style={[styles.viewAll, { color: theme.primary }]}>Ver todos</Text>
-                </TouchableOpacity>
+                <Text style={[styles.featuredTitle, { color: theme.onSurface }]}>
+                    {searchQuery ? 'Resultados de búsqueda' : 'Productos destacados'}
+                </Text>
+                {!searchQuery && (
+                    <TouchableOpacity>
+                        <Text style={[styles.viewAll, { color: theme.primary }]}>Ver todos</Text>
+                    </TouchableOpacity>
+                )}
             </View>
         </View>
     );
@@ -118,7 +136,7 @@ export const HomeScreen: React.FC = () => {
                 </View>
             ) : (
                 <FlatList
-                    data={products}
+                    data={filteredProducts}
                     keyExtractor={(item) => item.id}
                     numColumns={2}
                     ListHeaderComponent={<ListHeader />}
@@ -127,6 +145,13 @@ export const HomeScreen: React.FC = () => {
                     renderItem={({ item }) => (
                         <ProductCard product={item} onPress={handleProductPress} />
                     )}
+                    ListEmptyComponent={
+                        <View style={styles.center}>
+                            <Text style={{ color: theme.secondaryText, marginTop: 20 }}>
+                                No se encontraron productos.
+                            </Text>
+                        </View>
+                    }
                     showsVerticalScrollIndicator={false}
                 />
             )}
